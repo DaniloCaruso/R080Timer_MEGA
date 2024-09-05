@@ -1,0 +1,8 @@
+{
+  "files.associations": {
+    "map": "cpp",
+    "list": "cpp",
+    "locale": "cpp",
+    "iterator_base": "cpp"
+  }
+}
