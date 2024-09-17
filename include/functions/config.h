@@ -3,6 +3,7 @@
 #define CONFIG_H
 
 #include <Arduino.h>
+#include <ArduinoSTL.h>
 #include "variables.h"
 #include "constants.h"
 

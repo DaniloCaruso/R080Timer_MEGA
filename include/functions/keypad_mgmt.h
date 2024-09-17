@@ -4,10 +4,10 @@
 #define KEYPAD_MGMT_H
 
 #include <Arduino.h>
+#include <ArduinoSTL.h>
 #include "variables.h"
 #include "Keypad.h"
-#include "functions/presentation.h"
-#include "types.h"
+#include "variables.h"
 
 // PROTOTYPES
 void evaluateKey(int toneType, int duration);
@@ -71,15 +71,18 @@ void evaluateKey()
       }
 
       switch (operationStatus.current.precisionType.id) {
-        case Precision::SECONDS:
-          rawTime = timeSet - precisionSet * 10;
+      
+        case PrecisionType::FSTOP:
+          multSet = pow(2.0, (1.0 / precisionSet));
+          rawTime = int(((float(timeSet) / multSet) * 10 + 5) / 10);
           timeSet = rawTime > 1 ? rawTime : 1;
           appoTimeSet = timeSet;
           showTime(timeSet);
           break;
-        case Precision::FSTOP:
-          multSet = pow(2.0, (1.0 / precisionSet));
-          rawTime = int(((float(timeSet) / multSet) * 10 + 5) / 10);
+
+        case PrecisionType::SECONDS:
+        default:
+          rawTime = timeSet - precisionSet * 10;
           timeSet = rawTime > 1 ? rawTime : 1;
           appoTimeSet = timeSet;
           showTime(timeSet);
@@ -97,19 +100,23 @@ void evaluateKey()
       }
       
       switch (operationStatus.current.precisionType.id) {
-        case Precision::SECONDS:
-          rawTime = timeSet + precisionSet * 10;
-          timeSet = rawTime > 1 ? rawTime : 1;
-          appoTimeSet = timeSet;
-          showTime(timeSet);
-          break;
-        case Precision::FSTOP:
+       
+        case PrecisionType::FSTOP:
           multSet = pow(2.0, (1.0 / precisionSet));
           rawTime = int(((float(timeSet) * multSet) * 10 + 5) / 10);
           timeSet = rawTime <= 9999 ? rawTime : 9999;
           appoTimeSet = timeSet;
           showTime(timeSet);
-          break;
+        break;
+
+        case PrecisionType::SECONDS:
+        default:
+          rawTime = timeSet + precisionSet * 10;
+          timeSet = rawTime > 1 ? rawTime : 1;
+          appoTimeSet = timeSet;
+          showTime(timeSet);
+        break;
+
       }
       break;
 

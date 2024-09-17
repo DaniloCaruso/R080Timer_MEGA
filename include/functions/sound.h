@@ -4,8 +4,8 @@
 #define SOUND_H
 
 #include <Arduino.h>
+#include <ArduinoSTL.h>
 #include "variables.h"
-#include "functions/base.h"
 
 // PROTOTYPES
 void emitSound(int toneType, int duration);

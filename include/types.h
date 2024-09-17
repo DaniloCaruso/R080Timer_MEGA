@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 #include <ArduinoSTL.h>
+#include <map>
+#include <vector>
 
 typedef enum {
   FOCUS,
@@ -16,27 +18,32 @@ typedef enum
   CONTINOUS,
   STEP_BY_STEP,
   NO_MODALITY
-} Modality;
+} ModalityType;
 
 typedef enum
 {
   FSTOP,
   SECONDS,
   NO_PRECISION
-} Precision;
+} PrecisionType;
 
-struct ModalityType
-{
-  Modality id;
-  String value;
-  ModalityType(Modality i, String v) : id(i), value(v) {}
+struct PrecisionValueString {
+    int value;
+    String string;
 };
 
-struct PrecisionType
+struct ModalityTypeStruct
 {
-  Precision id;
+  ModalityType id;
   String value;
-  PrecisionType(Precision i, String v) : id(i), value(v) {}
+  ModalityTypeStruct(ModalityType i, String v) : id(i), value(v) {}
+};
+
+struct PrecisionTypeStruct
+{
+  PrecisionType id;
+  String value;
+  PrecisionTypeStruct(PrecisionType i, String v) : id(i), value(v) {}
 };
 
 struct OperationActions
@@ -52,31 +59,83 @@ struct OperationActions
     startedAction(started) {}
 };
 
+std::map<PrecisionType, std::vector<PrecisionValueString>> PRECISION_MAP_LISTS = {
+  { 
+    PrecisionType::FSTOP, { 
+      {   1, "Pr:1/1  "}, 
+      {   2, "Pr:1/2  "}, 
+      {   3, "Pr:1/3  "}, 
+      {   4, "Pr:1/4  "}, 
+      {   6, "Pr:1/6  "}, 
+      {   8, "Pr:1/8  "}, 
+      {  12, "Pr:1/12 "}, 
+      {  16, "Pr:1/16 "}, 
+      {  24, "Pr:1/24 "}, 
+      {  32, "Pr:1/32 "}, 
+      {  64, "Pr:1/64 "}, 
+    }
+  },
+  { 
+    PrecisionType::SECONDS, { 
+      {  1, "Pr: 1s  " },
+      {  2, "Pr: 2s  " },
+      {  3, "Pr: 3s  " },
+      {  4, "Pr: 4s  " },
+      {  5, "Pr: 5s  " },
+      {  6, "Pr: 6s  " },
+      {  7, "Pr: 7s  " },
+      {  8, "Pr: 8s  " },
+      { 10, "Pr: 10s " },
+      { 15, "Pr: 15s " },
+      { 20, "Pr: 20s " },
+    } 
+  }
+};
+
 class Operation
 {
 private:
   static void noActionOrPresentation() {}
-  static void noSwitchMod(ModalityType *type) { }
-  static void noSwitchPrec(PrecisionType *type) { }
+  static void noSwitchMod(ModalityTypeStruct *type) { }
+  static void noSwitchPrec(PrecisionTypeStruct *type) { }
+
 
 public:
   String name;
-  ModalityType modalityType;
-  PrecisionType precisionType;
+  ModalityTypeStruct modalityType = ModalityTypeStruct(ModalityType::CONTINOUS, "CO");
+  PrecisionTypeStruct precisionType = PrecisionTypeStruct(PrecisionType::SECONDS, "S");
+  PrecisionValueString precision = PRECISION_MAP_LISTS[precisionType.id][0];
   void (*showPresentation)();
-  void (*switchModality)(ModalityType *);
-  void (*switchPrecision)(PrecisionType *);
+  void (*switchModality)(ModalityTypeStruct *);
+  void (*switchPrecisionType)(PrecisionTypeStruct *);
   void (*toStartAction)();
   void (*startedAction)();
+  void setPrecision(int index) {
+    // Trova la lista di precisioni associata al tipo di precisione attuale
+    if (PRECISION_MAP_LISTS.count(precisionType.id) > 0) {
+        std::vector<PrecisionValueString>& precisionList = PRECISION_MAP_LISTS[precisionType.id];
+        
+        // Verifica se l'indice è valido
+        if (index >= 0 && index < static_cast<signed int>(precisionList.size())) {
+            // Imposta il valore di precisione
+            precision = precisionList[index];
+        } else {
+            Serial.println("Indice di precisione non valido.");
+        }
+    } else {
+        Serial.println("Tipo di precisione non trovato nella mappa.");
+    }
+  }
+
 
   // Costruttore di default
   Operation() : 
     name(""),
-    modalityType(ModalityType(NO_MODALITY, "")),
-    precisionType(PrecisionType(NO_PRECISION, "")),
+    modalityType(ModalityTypeStruct(NO_MODALITY, "")),
+    precisionType(PrecisionTypeStruct(NO_PRECISION, "")),
     showPresentation(noActionOrPresentation),
     switchModality(noSwitchMod),
-    switchPrecision(noSwitchPrec),
+    switchPrecisionType(noSwitchPrec),
     toStartAction(noActionOrPresentation),
     startedAction(noActionOrPresentation) {}
   
@@ -86,11 +145,11 @@ public:
       void (*showPres)()
   ) : 
     name(n),
-    modalityType(ModalityType(NO_MODALITY, "")),
-    precisionType(PrecisionType(NO_PRECISION, "")),
+    modalityType(ModalityTypeStruct(NO_MODALITY, "")),
+    precisionType(PrecisionTypeStruct(NO_PRECISION, "")),
     showPresentation(showPres),
     switchModality(noSwitchMod),
-    switchPrecision(noSwitchPrec),
+    switchPrecisionType(noSwitchPrec),
     toStartAction(noActionOrPresentation),
     startedAction(noActionOrPresentation) {}
 
@@ -102,58 +161,58 @@ public:
     void (*started)()
   ) : 
     name(n),
-    modalityType(ModalityType(NO_MODALITY, "")),
-    precisionType(PrecisionType(NO_PRECISION, "")),
+    modalityType(ModalityTypeStruct(NO_MODALITY, "")),
+    precisionType(PrecisionTypeStruct(NO_PRECISION, "")),
     showPresentation(showPres),
     switchModality(noSwitchMod),
-    switchPrecision(noSwitchPrec),
+    switchPrecisionType(noSwitchPrec),
     toStartAction(toStart),
     startedAction(started) {}
   
   // COSTRUTTORE NO MODALITA CON PRECISIONE E ACTION (COUNTDOWN)
   Operation(
     String n,
-    PrecisionType p,
+    PrecisionTypeStruct p,
     void (*showPres)(),
-    void (*switchPrec)(PrecisionType *),
+    void (*switchPrec)(PrecisionTypeStruct *),
     void (*toStart)(),
     void (*started)()
   ) : 
     name(n),
-    modalityType(ModalityType(NO_MODALITY, "")),
+    modalityType(ModalityTypeStruct(NO_MODALITY, "")),
     precisionType(p),
     showPresentation(showPres),
     switchModality(noSwitchMod),
-    switchPrecision(switchPrec),
+    switchPrecisionType(switchPrec),
     toStartAction(toStart),
     startedAction(started) {}
 
   // COSTRUTTORE NO PRECISIONE CON MODALITA E ACTION (INUTILE? NON USATO)
   Operation(
     String n,
-    ModalityType m,
+    ModalityTypeStruct m,
     void (*showPres)(),
-    void (*switchMod)(ModalityType *),
+    void (*switchMod)(ModalityTypeStruct *),
     void (*toStart)(),
     void (*started)()
   ) : 
     name(n),
     modalityType(m),
-    precisionType(PrecisionType(NO_PRECISION, "")),
+    precisionType(PrecisionTypeStruct(NO_PRECISION, "")),
     showPresentation(showPres),
     switchModality(switchMod),
-    switchPrecision(noSwitchPrec),
+    switchPrecisionType(noSwitchPrec),
     toStartAction(toStart),
     startedAction(started) {}
 
   // COSTRUTTORE CON PRECISIONE MODALITA E  ACTION (PROVINO SCALARE)
   Operation(
     String n,
-    ModalityType m,
-    PrecisionType p,
+    ModalityTypeStruct m,
+    PrecisionTypeStruct p,
     void (*showPres)(),
-    void (*switchMod)(ModalityType *),
-    void (*switchPrec)(PrecisionType *),
+    void (*switchMod)(ModalityTypeStruct *),
+    void (*switchPrec)(PrecisionTypeStruct *),
     void (*toStart)(),
     void (*started)()
   ) : 
@@ -162,7 +221,7 @@ public:
     precisionType(p),
     showPresentation(showPres),
     switchModality(switchMod),
-    switchPrecision(switchPrec),
+    switchPrecisionType(switchPrec),
     toStartAction(toStart),
     startedAction(started) {}
 };

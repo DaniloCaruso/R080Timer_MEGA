@@ -5,8 +5,6 @@
 
 #include <Arduino.h>
 #include <ArduinoSTL.h>
-#include <list>
-#include <functional>
 
 const byte BUZZER_PIN = 10;
 const byte RELAY_PIN = 11;
@@ -47,5 +45,6 @@ const String MODES_TEXTS[] = {
   "COUNTDOWN",
   "TEST STRIP"
 };
+
 
 #endif // CONSTANTS_H

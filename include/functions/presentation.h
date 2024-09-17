@@ -4,10 +4,8 @@
 
 #include <Arduino.h>
 #include <ArduinoSTL.h>
-#include "constants.h"
 #include "variables.h"
-#include "sound.h"
-#include "functions/config.h"
+#include "functions/sound.h"
 
 // PROTOTYPES
 void writePosition(int col, int row, String string);
@@ -19,10 +17,12 @@ void showPushOrPullActMode();
 void showWelcomeMessage();
 void clearPrecision();
 void clearModality();
-void showModality();
+void showModalityType();
 void showFocus();
 void showCountdown();
 void showTestStrip();
+void showPrecisionType();
+void showPrecision();
 
 // IMPLEMENTATIONS
 void writePosition(int col, int row, String string) {
@@ -80,6 +80,7 @@ void showWelcomeMessage() {
 
 void clearPrecision() {  
   writeRow(1, "        ");
+  writePosition(12,0, operationStatus.current.precisionType.value);
 }
 
 void clearModality() {
@@ -95,20 +96,33 @@ void showFocus() {
 }
 
 void showCountdown() {
-  writeRow(0, "COUNTDOWN       ");
+  writeRow(0, "COUNTDOWN ( )   ");
   //beep(tone_down, 200); //beep al passaggio di programma
   showTime(countdownTime[channel]);
+  showPrecisionType();
+  showPrecision();
 }
 
 void showTestStrip() {
-  writeRow(0, "TEST STRIP      ");
+  writeRow(0, "TEST STRIP ( )  ");
   //beep(tone_down, 200); //beep al passaggio di programma
   showTime(testStripTime[channel]);
-  showModality();
+  showPrecisionType();
+  showModalityType();
+  showPrecision();
 }
 
-void showModality() {
+void showModalityType() {
   writePosition(14,0, operationStatus.current.modalityType.value);
 }
+
+void showPrecisionType() {
+  writePosition(12,0, operationStatus.current.precisionType.value);
+}
+
+void showPrecision() {
+   writePosition(0,1, operationStatus.current.precision.string);
+}
+
 
 #endif // PRESENTATION_H

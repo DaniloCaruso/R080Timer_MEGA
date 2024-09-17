@@ -40,9 +40,8 @@ void setup() {
 void loop() {
 
   if (isInError()) return;
-
   evaluateMainBtnStatus();
   manageMainButtonAction();
-  evaluateKey();
+  
 }
 

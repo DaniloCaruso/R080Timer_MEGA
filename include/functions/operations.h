@@ -3,16 +3,12 @@
 
 #include <Arduino.h>
 #include <ArduinoSTL.h>
-#include "types.h"
-#include "constants.h"
 #include "variables.h"
-#include "functions/presentation.h"
-#include "functions/base.h"
 #include "functions/actions.h"
 
 // PROTOTYPES
-void switchModality(ModalityType* type);
-void switchPrecision(PrecisionType* type);
+void switchModality(ModalityTypeStruct* type);
+void switchPrecisionType(PrecisionTypeStruct* type);
 void initializeOperations();
 Operation getOperationByName(String name);
 boolean currentOpDiffsFromLast();
@@ -23,16 +19,16 @@ void setOperationStatus(int currentIndex);
 // IMPLEMENTATIONS
 void noAction() { /* Implementazione */ } // TEMPORANEA
 
-void switchModality(ModalityType* type) {
-    *type = (type->id == Modality::CONTINOUS) ? 
-      ModalityType(Modality::STEP_BY_STEP, "PP") : 
-      ModalityType(Modality::CONTINOUS, "CO");
+void switchModality(ModalityTypeStruct* type) {
+    *type = (type->id == ModalityType::CONTINOUS) ? 
+      ModalityTypeStruct(ModalityType::STEP_BY_STEP, "PP") : 
+      ModalityTypeStruct(ModalityType::CONTINOUS, "CO");
 }
 
-void switchPrecision(PrecisionType* type) {
-    *type = (type->id == Precision::SECONDS) ? 
-      PrecisionType(Precision::FSTOP, "F") : 
-      PrecisionType(Precision::SECONDS, "S");
+void switchPrecisionType(PrecisionTypeStruct* type) {
+    *type = (type->id == PrecisionType::SECONDS) ? 
+      PrecisionTypeStruct(PrecisionType::FSTOP, "F") : 
+      PrecisionTypeStruct(PrecisionType::SECONDS, "S");
 }
 
 void initializeOperations() {
@@ -46,20 +42,20 @@ void initializeOperations() {
 
     operations[COUNTDOWN] = Operation(
       MODES_TEXTS[COUNTDOWN], 
-      PrecisionType(Precision::SECONDS, "S"), 
+      PrecisionTypeStruct(PrecisionType::SECONDS, "S"), 
       showCountdown, 
-      switchPrecision, 
+      switchPrecisionType, 
       operationActions[COUNTDOWN].toStartAction,
       operationActions[COUNTDOWN].startedAction
     );
     
     operations[TEST_STRIP] = Operation(
       MODES_TEXTS[TEST_STRIP], 
-      ModalityType(Modality::CONTINOUS, "CO"), 
-      PrecisionType(Precision::SECONDS, "S"), 
+      ModalityTypeStruct(ModalityType::CONTINOUS, "CO"), 
+      PrecisionTypeStruct(PrecisionType::SECONDS, "S"), 
       showTestStrip, 
       switchModality, 
-      switchPrecision, 
+      switchPrecisionType, 
       operationActions[TEST_STRIP].toStartAction,
       operationActions[TEST_STRIP].startedAction
     );
@@ -95,6 +91,11 @@ void setOperationStatus(int currentIndex) {
 
   operationStatus.last = operationStatus.current;
   operationStatus.current = operations[currentIndex];
+}
+
+void setOperationPrecision(int precisionIndex) {
+
+  operationStatus.current.setPrecision(precisionIndex);
 }
 
 #endif // OPERATIONS_H

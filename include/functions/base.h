@@ -4,6 +4,7 @@
 #define BASE_H
 
 #include <Arduino.h>
+#include <ArduinoSTL.h>
 #include "variables.h"
 
 // PROTOTYPES

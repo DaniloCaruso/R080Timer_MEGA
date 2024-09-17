@@ -4,11 +4,14 @@
 #define RUNNING_MGMT_H
 
 #include <Arduino.h>
-#include "functions/base.h"
+#include <ArduinoSTL.h>
 #include "variables.h"
+#include "functions/keypad_mgmt.h"
+#include "functions/encoder_mgmt.h"
+
+
 
 // PROTOTYPES
-void setMainButtonPressed(boolean isPressed);
 void setLastMainBtnStatus(int lastValue);
 void evaluateMainBtnStatus();
 void evaluateMainButtonActionStatus();
@@ -22,18 +25,10 @@ void setLastMainBtnStatus(int lastValue) {
   mainBtnTemporalStatus["last"] = lastValue;
 }
 
-void setMainButtonPressed(boolean isPressed) {
-  isMainBtnPressed = isPressed;
-}
-
-void setActionStarted(boolean isStarted) {
-  isActionStarted = isStarted;
-}
-
 void evaluateMainBtnStatus() {
   mainBtnTemporalStatus["current"] = digitalRead(MAIN_BTN_PIN);
   if (mainBtnTemporalStatus["current"] != mainBtnTemporalStatus["last"]) {
-    setMainButtonPressed(pushOrPullActMode == mainBtnTemporalStatus["current"]); 
+    isMainBtnPressed = pushOrPullActMode == mainBtnTemporalStatus["current"]; 
     setLastMainBtnStatus(mainBtnTemporalStatus["current"]);
   }
   setErrlet(); 
@@ -47,13 +42,15 @@ void evaluateMainButtonActionStatus() {
 }
 
 void manageStopped() {
-  
+  evaluateEncoderMod();
+  evaluateEncoderPrec();
+  evaluateKey();
 }
 
 void manageToStop() {
   releStartStop(false);
-  setActionStarted(false);
-  setMainButtonPressed(false);
+  isActionStarted = false;
+  isMainBtnPressed = false;
 }
 
 void manageStarted() {
