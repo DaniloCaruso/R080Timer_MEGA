@@ -35,4 +35,11 @@ void evaluateEncoderMod() {
   setOperationStatus(timerModeIndex);
 }
 
+void evaluateEncoderPrec() {
+  long newEncoderPosition = encoderPrecision.read() >> 2;
+  
+  int timerModeIndex = newEncoderPosition % 3 + 1;
+  setOperationStatus(timerModeIndex);
+}
+
 #endif // ENCODER_H

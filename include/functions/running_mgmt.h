@@ -47,21 +47,21 @@ void evaluateMainButtonActionStatus() {
 }
 
 void manageStopped() {
-
+  
 }
 
 void manageToStop() {
-  channelsRelayActivated[channel] ? digitalWrite(RELAY_PIN, HIGH) : noop();
+  releStartStop(false);
   setActionStarted(false);
   setMainButtonPressed(false);
 }
 
 void manageStarted() {
-
+  operationStatus.current.startedAction();
 }
 
 void manageToStart() {
-
+  operationStatus.current.toStartAction();
 }
 
 void manageMainButtonAction() {
@@ -76,7 +76,7 @@ void manageMainButtonAction() {
     manageToStop();
   } else {
     writeRow(0, "    ERROR!     ");
-    writeRow(1, " RESET W KEY D ");
+    writeRow(1, " RESET W/KEY D ");
   }
 }
 

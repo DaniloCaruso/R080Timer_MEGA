@@ -39,12 +39,25 @@ struct PrecisionType
   PrecisionType(Precision i, String v) : id(i), value(v) {}
 };
 
+struct OperationActions
+{
+  void (*toStartAction)();
+  void (*startedAction)();
+  
+  OperationActions(
+    void (*toStart)(),
+    void (*started)()
+  ) :
+    toStartAction(toStart),
+    startedAction(started) {}
+};
+
 class Operation
 {
 private:
   static void noActionOrPresentation() {}
-  static void noSwitchMod(ModalityType *type) {}
-  static void noSwitchPrec(PrecisionType *type) {}
+  static void noSwitchMod(ModalityType *type) { }
+  static void noSwitchPrec(PrecisionType *type) { }
 
 public:
   String name;
@@ -53,7 +66,8 @@ public:
   void (*showPresentation)();
   void (*switchModality)(ModalityType *);
   void (*switchPrecision)(PrecisionType *);
-  void (*action)();
+  void (*toStartAction)();
+  void (*startedAction)();
 
   // Costruttore di default
   Operation() : 
@@ -63,7 +77,8 @@ public:
     showPresentation(noActionOrPresentation),
     switchModality(noSwitchMod),
     switchPrecision(noSwitchPrec),
-    action(noActionOrPresentation) {}
+    toStartAction(noActionOrPresentation),
+    startedAction(noActionOrPresentation) {}
   
   // COSTRUTTORE NO MODALITA NO PRECISIONE SENZA ACTION (PER SOLI MESSAGGI A VIDEO)
   Operation(
@@ -76,13 +91,15 @@ public:
     showPresentation(showPres),
     switchModality(noSwitchMod),
     switchPrecision(noSwitchPrec),
-    action(noActionOrPresentation) {}
+    toStartAction(noActionOrPresentation),
+    startedAction(noActionOrPresentation) {}
 
-  // COSTRUTTORE NO MODALITA NO PRECISIONE CON ACTION (FOCUS)
+  // COSTRUTTORE NO MODALITA NO PRECISIONE CON ACTIONs (FOCUS)
   Operation(
     String n,
     void (*showPres)(),
-    void (*act)()
+    void (*toStart)(),
+    void (*started)()
   ) : 
     name(n),
     modalityType(ModalityType(NO_MODALITY, "")),
@@ -90,15 +107,17 @@ public:
     showPresentation(showPres),
     switchModality(noSwitchMod),
     switchPrecision(noSwitchPrec),
-    action(act) {}
-
+    toStartAction(toStart),
+    startedAction(started) {}
+  
   // COSTRUTTORE NO MODALITA CON PRECISIONE E ACTION (COUNTDOWN)
   Operation(
     String n,
     PrecisionType p,
     void (*showPres)(),
     void (*switchPrec)(PrecisionType *),
-    void (*act)()
+    void (*toStart)(),
+    void (*started)()
   ) : 
     name(n),
     modalityType(ModalityType(NO_MODALITY, "")),
@@ -106,7 +125,8 @@ public:
     showPresentation(showPres),
     switchModality(noSwitchMod),
     switchPrecision(switchPrec),
-    action(act) {}
+    toStartAction(toStart),
+    startedAction(started) {}
 
   // COSTRUTTORE NO PRECISIONE CON MODALITA E ACTION (INUTILE? NON USATO)
   Operation(
@@ -114,7 +134,8 @@ public:
     ModalityType m,
     void (*showPres)(),
     void (*switchMod)(ModalityType *),
-    void (*act)()
+    void (*toStart)(),
+    void (*started)()
   ) : 
     name(n),
     modalityType(m),
@@ -122,7 +143,8 @@ public:
     showPresentation(showPres),
     switchModality(switchMod),
     switchPrecision(noSwitchPrec),
-    action(act) {}
+    toStartAction(toStart),
+    startedAction(started) {}
 
   // COSTRUTTORE CON PRECISIONE MODALITA E  ACTION (PROVINO SCALARE)
   Operation(
@@ -132,7 +154,8 @@ public:
     void (*showPres)(),
     void (*switchMod)(ModalityType *),
     void (*switchPrec)(PrecisionType *),
-    void (*act)()
+    void (*toStart)(),
+    void (*started)()
   ) : 
     name(n),
     modalityType(m),
@@ -140,7 +163,8 @@ public:
     showPresentation(showPres),
     switchModality(switchMod),
     switchPrecision(switchPrec),
-    action(act) {}
+    toStartAction(toStart),
+    startedAction(started) {}
 };
 
 class OperationStatus

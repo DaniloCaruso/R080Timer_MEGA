@@ -27,6 +27,15 @@ boolean isInError() {
 
 void updateTimerMode(int index) { }
 
+void releStartStop(boolean action) {
+
+    if (channelsRelayActivated[channel]) {
+      digitalWrite(RELAY_PIN, action ? LOW : HIGH);
+    }
+}
+
+
+
 
 
 #endif // BASE_H

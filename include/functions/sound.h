@@ -15,4 +15,18 @@ void emitSound(int toneType, int duration) {
   !mute ? tone(BUZZER_PIN, toneType, duration) : noop();
 }
 
+void emitStopSound() {
+  emitSound(TONE_DOWN, 75);
+  delay(150);
+  emitSound(TONE_DOWN, 75);
+  delay(150);
+  emitSound(TONE_DOWN, 150);
+}
+
+
+void emitMetronome(int arTime) {
+  if (isActionStarted && arTime%10 == 0) {
+    emitSound(TONE_DOWN, 80);
+  }
+}
 #endif // SOUND_H

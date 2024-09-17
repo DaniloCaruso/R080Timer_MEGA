@@ -8,6 +8,7 @@
 #include "variables.h"
 #include "functions/presentation.h"
 #include "functions/base.h"
+#include "functions/actions.h"
 
 // PROTOTYPES
 void switchModality(ModalityType* type);
@@ -36,28 +37,31 @@ void switchPrecision(PrecisionType* type) {
 
 void initializeOperations() {
 
-    operations[0] = Operation(
-      MODES_TEXTS[0], 
+    operations[FOCUS] = Operation(
+      MODES_TEXTS[FOCUS], 
       showFocus, 
-      noAction
+      operationActions[FOCUS].toStartAction,
+      operationActions[FOCUS].startedAction
     );
 
-    operations[1] = Operation(
-      MODES_TEXTS[1], 
+    operations[COUNTDOWN] = Operation(
+      MODES_TEXTS[COUNTDOWN], 
       PrecisionType(Precision::SECONDS, "S"), 
       showCountdown, 
       switchPrecision, 
-      noAction
+      operationActions[COUNTDOWN].toStartAction,
+      operationActions[COUNTDOWN].startedAction
     );
     
-    operations[2] = Operation(
-      MODES_TEXTS[2], 
+    operations[TEST_STRIP] = Operation(
+      MODES_TEXTS[TEST_STRIP], 
       ModalityType(Modality::CONTINOUS, "CO"), 
       PrecisionType(Precision::SECONDS, "S"), 
-      showFocus, 
+      showTestStrip, 
       switchModality, 
       switchPrecision, 
-      noAction
+      operationActions[TEST_STRIP].toStartAction,
+      operationActions[TEST_STRIP].startedAction
     );
 
     setOperationStatus(0);
