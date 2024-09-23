@@ -19,17 +19,38 @@ void setOperationStatus(int currentIndex);
 // IMPLEMENTATIONS
 void noAction() { /* Implementazione */ } // TEMPORANEA
 
-void switchModality(ModalityTypeStruct* type) {
-    *type = (type->id == ModalityType::CONTINOUS) ? 
-      ModalityTypeStruct(ModalityType::STEP_BY_STEP, "PP") : 
-      ModalityTypeStruct(ModalityType::CONTINOUS, "CO");
+void switchModality(ModalityTypeStatus* type) {
+    // Serial.println("Switching Modality...");
+    // Serial.println("Current Modality Type: " + (String)operationStatus.current.modalityTypeStatus.current.value);
+
+    // Alterna tra CONTINUOUS e STEP_BY_STEP
+    ModalityTypeStruct newModalityType = (operationStatus.current.modalityTypeStatus.current.id == ModalityType::CONTINOUS) ? 
+    ModalityTypeStruct(ModalityType::STEP_BY_STEP, "PP") : 
+    ModalityTypeStruct(ModalityType::CONTINOUS, "CO");
+
+    operationStatus.current.modalityTypeStatus.last = operationStatus.current.modalityTypeStatus.current;
+    operationStatus.current.modalityTypeStatus.current = newModalityType;
+
+    // Serial.println("New Modality Type: " + (String)operationStatus.current.modalityTypeStatus.current.value);
+    operationStatus.current.showPresentation();
 }
 
-void switchPrecisionType(PrecisionTypeStruct* type) {
-    *type = (type->id == PrecisionType::SECONDS) ? 
-      PrecisionTypeStruct(PrecisionType::FSTOP, "F") : 
-      PrecisionTypeStruct(PrecisionType::SECONDS, "S");
+void switchPrecisionType(PrecisionTypeStatus* type) {
+    // Serial.println("Switching Precision Type...");
+    // Serial.println("Current Precision Type: " + (String)operationStatus.current.precisionTypeStatus.current.value);
+
+    // Alterna tra SECONDS e FSTOP
+    PrecisionTypeStruct newPrecisionType = (operationStatus.current.precisionTypeStatus.current.id == PrecisionType::SECONDS) ? 
+        PrecisionTypeStruct(PrecisionType::FSTOP, "F") : 
+        PrecisionTypeStruct(PrecisionType::SECONDS, "S");
+
+    operationStatus.current.precisionTypeStatus.last = operationStatus.current.precisionTypeStatus.current;
+    operationStatus.current.precisionTypeStatus.current = newPrecisionType;
+
+    // Serial.println("New Precision Type: " + (String)operationStatus.current.precisionTypeStatus.current.value);
+    operationStatus.current.showPresentation();
 }
+
 
 void initializeOperations() {
 
@@ -60,7 +81,24 @@ void initializeOperations() {
       operationActions[TEST_STRIP].startedAction
     );
 
+
+    // Serial.println("[SETUP 12] DEBUG ###########################################################################################");
+    // for (size_t i = 0; i < 3; i++) {
+    //   Serial.println("---- OPERATION["+(String)i+"]");
+    //   Serial.println("-------- NAME: " + operations[i].name);
+    //   Serial.println("-------- PRECISION TYPE: " + (String)operations[i].precisionTypeStatus.current.id + " -> ["+(String)operations[i].precisionTypeStatus.current.value+"]");
+    //   Serial.println("-------- PRECISION: " + (String)operations[i].precisionStatus.current.value + " -> ["+operations[i].precisionStatus.current.string+"]");
+    //   Serial.println("-------- MODALITY TYPE: " + (String)operations[i].modalityTypeStatus.current.id + " -> ["+(String)operations[i].modalityTypeStatus.current.value+"]");
+    // }
+    // Serial.println("###########################################################################################################");
+    
+
     setOperationStatus(0);
+//     Serial.println("[SETUP 12] DEBUG AFTER SET OPERATION STATUS 0");
+
+//     Serial.println("---------- OPERATION STATUS CURRENT, NAME: " + operationStatus.current.name );
+
+//      Serial.println("---------- OPERATION STATUS LAST, NAME: " + operationStatus.last.name );
 }
 
 Operation getOperationByName(String name) {
@@ -88,14 +126,22 @@ boolean isCurrentOpEmpty() {
 }
 
 void setOperationStatus(int currentIndex) {
+  if (operations[currentIndex].name != operationStatus.current.name) {
+  //  Serial.println("Setting operation status to index: " + (String)currentIndex);
+  //  Serial.println("Previous current precision: " + (String)operationStatus.current.precisionTypeStatus.current.value);
+   
+   operationStatus.last = operationStatus.current;
+   operationStatus.current = operations[currentIndex];
 
-  operationStatus.last = operationStatus.current;
-  operationStatus.current = operations[currentIndex];
+  //  Serial.println("New current precision: " + (String)operationStatus.current.precisionTypeStatus.current.value);
+   operationStatus.current.showPresentation();
+  }
 }
 
 void setOperationPrecision(int precisionIndex) {
 
-  operationStatus.current.setPrecision(precisionIndex);
+  operationStatus.current.setPrecisionStatus(precisionIndex);
+
 }
 
 #endif // OPERATIONS_H

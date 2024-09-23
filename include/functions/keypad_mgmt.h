@@ -70,7 +70,7 @@ void evaluateKey()
         break;
       }
 
-      switch (operationStatus.current.precisionType.id) {
+      switch (operationStatus.current.precisionTypeStatus.current.id) {
       
         case PrecisionType::FSTOP:
           multSet = pow(2.0, (1.0 / precisionSet));
@@ -99,7 +99,7 @@ void evaluateKey()
         break;
       }
       
-      switch (operationStatus.current.precisionType.id) {
+      switch (operationStatus.current.precisionTypeStatus.current.id) {
        
         case PrecisionType::FSTOP:
           multSet = pow(2.0, (1.0 / precisionSet));

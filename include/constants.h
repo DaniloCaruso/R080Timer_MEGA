@@ -17,10 +17,10 @@ const uint8_t LCD_COLS_N = 16;
 
 const byte ENC_MODE_DT_PIN = 2;
 const byte ENC_MODE_CLK_PIN = 3;
-const byte ENC_MODE_SW_PIN = 16;
+const byte ENC_MODE_SW_PIN = 17;
 const byte ENC_PRECISION_DT_PIN = 18;
 const byte ENC_PRECISION_CLK_PIN = 19;
-const byte ENC_PRECISION_SW_PIN = 17;
+const byte ENC_PRECISION_SW_PIN = 16;
 
 const byte MATRIX_ROWS_N = 4;
 const byte MATRIX_COLS_N = 4;

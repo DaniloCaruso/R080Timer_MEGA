@@ -37,15 +37,15 @@ void strip() {
     if (timeSet == nextTimeSet) {
       emitSound(TONE_UP, 150); 
 
-      if (operationStatus.current.precisionType.id == PrecisionType::FSTOP) {   
-        multSet = pow(2.0,(1.0/operationStatus.current.precision.value));  
+      if (operationStatus.current.precisionTypeStatus.current.id == PrecisionType::FSTOP) {   
+        multSet = pow(2.0,(1.0/operationStatus.current.precisionStatus.current.value));  
         //time_succ = int(float(time) * mult);
         nextTimeSet = int(((float(timeSet) * multSet) * 10 + 5)/10);
       } else {
         nextTimeSet = timeSet + precisionSet * 10;
       }
 
-      if (operationStatus.current.modalityType.id == ModalityType::STEP_BY_STEP) {
+      if (operationStatus.current.modalityTypeStatus.current.id == ModalityType::STEP_BY_STEP) {
         releStartStop(false);
         isActionStarted = false;
         delay(500);

@@ -32,11 +32,22 @@ struct PrecisionValueString {
     String string;
 };
 
+struct PrecisionStatus {
+    PrecisionValueString current;
+    PrecisionValueString last;
+};
+
 struct ModalityTypeStruct
 {
   ModalityType id;
   String value;
   ModalityTypeStruct(ModalityType i, String v) : id(i), value(v) {}
+  ModalityTypeStruct() : id(), value() {}
+};
+
+struct ModalityTypeStatus {
+  ModalityTypeStruct current;
+  ModalityTypeStruct last;
 };
 
 struct PrecisionTypeStruct
@@ -44,6 +55,12 @@ struct PrecisionTypeStruct
   PrecisionType id;
   String value;
   PrecisionTypeStruct(PrecisionType i, String v) : id(i), value(v) {}
+  PrecisionTypeStruct() : id(), value() {}
+};
+
+struct PrecisionTypeStatus {
+  PrecisionTypeStruct current;
+  PrecisionTypeStruct last;
 };
 
 struct OperationActions
@@ -96,43 +113,47 @@ class Operation
 {
 private:
   static void noActionOrPresentation() {}
-  static void noSwitchMod(ModalityTypeStruct *type) { }
-  static void noSwitchPrec(PrecisionTypeStruct *type) { }
+  static void noSwitchMod(ModalityTypeStatus *type) { }
+  static void noSwitchPrec(PrecisionTypeStatus *type) { }
 
 
 public:
   String name;
-  ModalityTypeStruct modalityType = ModalityTypeStruct(ModalityType::CONTINOUS, "CO");
-  PrecisionTypeStruct precisionType = PrecisionTypeStruct(PrecisionType::SECONDS, "S");
-  PrecisionValueString precision = PRECISION_MAP_LISTS[precisionType.id][0];
+  ModalityTypeStatus modalityTypeStatus = { current: ModalityTypeStruct(ModalityType::CONTINOUS, "C"), last: {} };
+  PrecisionTypeStatus precisionTypeStatus = { current: PrecisionTypeStruct(PrecisionType::SECONDS, "S"), last: {} };
+  PrecisionStatus precisionStatus = { current: PRECISION_MAP_LISTS[precisionTypeStatus.current.id][0], last: { }};
   void (*showPresentation)();
-  void (*switchModality)(ModalityTypeStruct *);
-  void (*switchPrecisionType)(PrecisionTypeStruct *);
+  void (*switchModality)(ModalityTypeStatus *);
+  void (*switchPrecisionType)(PrecisionTypeStatus *);
   void (*toStartAction)();
   void (*startedAction)();
-  void setPrecision(int index) {
-    // Trova la lista di precisioni associata al tipo di precisione attuale
-    if (PRECISION_MAP_LISTS.count(precisionType.id) > 0) {
-        std::vector<PrecisionValueString>& precisionList = PRECISION_MAP_LISTS[precisionType.id];
-        
-        // Verifica se l'indice è valido
-        if (index >= 0 && index < static_cast<signed int>(precisionList.size())) {
-            // Imposta il valore di precisione
-            precision = precisionList[index];
-        } else {
-            Serial.println("Indice di precisione non valido.");
-        }
-    } else {
-        Serial.println("Tipo di precisione non trovato nella mappa.");
-    }
-  }
 
+  void setPrecisionStatus(int index) {
+      // Trova la lista di precisioni associata al tipo di precisione attuale
+      // Serial.println("id di precisione: " + (String)precisionTypeStatus.current.id);
+      
+      if (precisionTypeStatus.current.id == NO_PRECISION) { return; };
+      
+      std::vector<PrecisionValueString>& precisionList = PRECISION_MAP_LISTS[precisionTypeStatus.current.id];  // Ottieni la lista associata alla precisione
+      precisionStatus.last = precisionStatus.current;
+      precisionStatus.current = precisionList[index];      
+    };
+
+  boolean isPrecisionChanged () {
+    return !precisionStatus.last.value || precisionStatus.current.value != precisionStatus.last.value;
+  };
+  boolean isPrecisionTypeChanged() {
+    return !precisionTypeStatus.last.value || precisionTypeStatus.current.value != precisionTypeStatus.last.value;
+  };
+  boolean isModalityTypeChanged() {
+    return !modalityTypeStatus.last.value || modalityTypeStatus.current.value != modalityTypeStatus.last.value;
+  };
 
   // Costruttore di default
   Operation() : 
     name(""),
-    modalityType(ModalityTypeStruct(NO_MODALITY, "")),
-    precisionType(PrecisionTypeStruct(NO_PRECISION, "")),
+    modalityTypeStatus({ current: ModalityTypeStruct(NO_MODALITY, ""), last: {} }),
+    precisionTypeStatus({ current: PrecisionTypeStruct(NO_PRECISION, ""), last: {} }),
     showPresentation(noActionOrPresentation),
     switchModality(noSwitchMod),
     switchPrecisionType(noSwitchPrec),
@@ -145,8 +166,8 @@ public:
       void (*showPres)()
   ) : 
     name(n),
-    modalityType(ModalityTypeStruct(NO_MODALITY, "")),
-    precisionType(PrecisionTypeStruct(NO_PRECISION, "")),
+    modalityTypeStatus({ current: ModalityTypeStruct(NO_MODALITY, ""), last: {} }),
+    precisionTypeStatus({ current: PrecisionTypeStruct(NO_PRECISION, ""), last: {} }),
     showPresentation(showPres),
     switchModality(noSwitchMod),
     switchPrecisionType(noSwitchPrec),
@@ -161,8 +182,8 @@ public:
     void (*started)()
   ) : 
     name(n),
-    modalityType(ModalityTypeStruct(NO_MODALITY, "")),
-    precisionType(PrecisionTypeStruct(NO_PRECISION, "")),
+    modalityTypeStatus({ current: ModalityTypeStruct(NO_MODALITY, ""), last: {} }),
+    precisionTypeStatus({ current: PrecisionTypeStruct(NO_PRECISION, ""), last: {} }),
     showPresentation(showPres),
     switchModality(noSwitchMod),
     switchPrecisionType(noSwitchPrec),
@@ -174,13 +195,13 @@ public:
     String n,
     PrecisionTypeStruct p,
     void (*showPres)(),
-    void (*switchPrec)(PrecisionTypeStruct *),
+    void (*switchPrec)(PrecisionTypeStatus *),
     void (*toStart)(),
     void (*started)()
   ) : 
     name(n),
-    modalityType(ModalityTypeStruct(NO_MODALITY, "")),
-    precisionType(p),
+    modalityTypeStatus({ current: ModalityTypeStruct(NO_MODALITY, ""), last: {} }),
+    precisionTypeStatus({ current: p, last: {} }),
     showPresentation(showPres),
     switchModality(noSwitchMod),
     switchPrecisionType(switchPrec),
@@ -192,13 +213,13 @@ public:
     String n,
     ModalityTypeStruct m,
     void (*showPres)(),
-    void (*switchMod)(ModalityTypeStruct *),
+    void (*switchMod)(ModalityTypeStatus *),
     void (*toStart)(),
     void (*started)()
   ) : 
     name(n),
-    modalityType(m),
-    precisionType(PrecisionTypeStruct(NO_PRECISION, "")),
+    modalityTypeStatus({ current: m, last: {} }),
+    precisionTypeStatus({ current: PrecisionTypeStruct(NO_PRECISION, ""), last: {} }),
     showPresentation(showPres),
     switchModality(switchMod),
     switchPrecisionType(noSwitchPrec),
@@ -211,14 +232,14 @@ public:
     ModalityTypeStruct m,
     PrecisionTypeStruct p,
     void (*showPres)(),
-    void (*switchMod)(ModalityTypeStruct *),
-    void (*switchPrec)(PrecisionTypeStruct *),
+    void (*switchMod)(ModalityTypeStatus *),
+    void (*switchPrec)(PrecisionTypeStatus *),
     void (*toStart)(),
     void (*started)()
   ) : 
     name(n),
-    modalityType(m),
-    precisionType(p),
+    modalityTypeStatus({ current: m, last: {}}),
+    precisionTypeStatus({current: p, last: {}}),
     showPresentation(showPres),
     switchModality(switchMod),
     switchPrecisionType(switchPrec),

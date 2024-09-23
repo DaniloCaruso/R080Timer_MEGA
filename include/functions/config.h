@@ -22,11 +22,14 @@ void initializePinMode() {
   digitalWrite(RELAY_PIN, HIGH);
   pinMode(RELAY_PIN, OUTPUT);
   pinMode(MAIN_BTN_PIN, INPUT);
+
+  // Serial.println("[SETUP 1] PINMODE INITIALIZED");
 }
 
 void configKeypad() {
-
+  
   keypad.setDebounceTime(50);
+  // Serial.println("[SETUP 2] KEYPAD CONFIGURED");
 }
 
 //TODO: DA MODIFICARE CON WONDERSHARE
@@ -38,6 +41,8 @@ void configLCD() {
   lcd.createChar(2, spina); //Inizializzo caratteri speciali Orologio
   lcd.createChar(3, frecciasu); //Inizializzo caratteri speciali Freccia in Su
   lcd.createChar(4, frecciagiu); //Inizializzo caratteri speciali Freccia in Giù
+
+  // Serial.println("[SETUP 3] LCD CONFIGURED");
 }
 
 void config7SegmentsDisplay() {
@@ -46,6 +51,8 @@ void config7SegmentsDisplay() {
   sevenSegmentsDisplay.write(0x76); // Display reset
   sevenSegmentsDisplay.write(0x7A); // Comando per controllo luminosità
   sevenSegmentsDisplay.write((byte) brightness);
+
+  // Serial.println("[SETUP 4] 7SEG CONFIGURED");
 }
 
 void reset7SegmentsDisplay() {
@@ -53,6 +60,9 @@ void reset7SegmentsDisplay() {
     sevenSegmentsDisplay.print("0000");
     sevenSegmentsDisplay.write(0x77);
     sevenSegmentsDisplay.write(0b00000100); // punto dec alla 1 cifra
+
+    // Serial.println("[SETUP 6] 7SEG RESETTED");
+
 }
 
 void resetLCD() {
@@ -60,6 +70,9 @@ void resetLCD() {
   lcd.print("                ");
   lcd.setCursor(0,1);
   lcd.print("                ");
+
+  // Serial.println("[SETUP 7] LCD RESETTED");
+
 }
 
 

@@ -76,11 +76,14 @@ void showPushOrPullActMode() {
 void showWelcomeMessage() {
   writeRow(0, " - R080 Timer - " );
   writeRow(1, "    - MEGA -    " );
+
+  //Serial.println("[SETUP 5] WELCOME DISPLAYED");
+
 }
 
 void clearPrecision() {  
   writeRow(1, "        ");
-  writePosition(12,0, operationStatus.current.precisionType.value);
+  writePosition(11,0, operationStatus.current.precisionTypeStatus.current.value);
 }
 
 void clearModality() {
@@ -88,40 +91,51 @@ void clearModality() {
 }
 
 void showFocus() {
-  writeRow(0, "FOCUS           ");
+  writeRow(0, "FOCUS          ");
   clearPrecision();
+  clearModality();
   //beep(tone_down, 200); //beep al passaggio di programma
   delay(500);
   reset7SegmentsDisplay();
 }
 
 void showCountdown() {
-  writeRow(0, "COUNTDOWN ( )   ");
+  writePosition(0,0, "COUNTDOWN [ ]   ");
   //beep(tone_down, 200); //beep al passaggio di programma
   showTime(countdownTime[channel]);
-  showPrecisionType();
-  showPrecision();
+  if (operationStatus.current.isPrecisionTypeChanged()) {
+    showPrecisionType();
+  }
+  if (operationStatus.current.isPrecisionChanged()) {
+    showPrecision();
+  }
 }
 
 void showTestStrip() {
-  writeRow(0, "TEST STRIP ( )  ");
+  writePosition(0,0, "TEST STRIP[ ]   ");
   //beep(tone_down, 200); //beep al passaggio di programma
   showTime(testStripTime[channel]);
-  showPrecisionType();
-  showModalityType();
-  showPrecision();
+  if (operationStatus.current.isModalityTypeChanged()) {
+    showModalityType();
+  }
+  if (operationStatus.current.isPrecisionTypeChanged()) {
+    showPrecisionType();
+  }
+  if (operationStatus.current.isPrecisionChanged()) {
+    showPrecision();
+  }
 }
 
 void showModalityType() {
-  writePosition(14,0, operationStatus.current.modalityType.value);
+  writePosition(14,0, operationStatus.current.modalityTypeStatus.current.value);
 }
 
 void showPrecisionType() {
-  writePosition(12,0, operationStatus.current.precisionType.value);
+  writePosition(11,0, operationStatus.current.precisionTypeStatus.current.value);
 }
 
 void showPrecision() {
-   writePosition(0,1, operationStatus.current.precision.string);
+   writePosition(0,1, operationStatus.current.precisionStatus.current.string);
 }
 
 
