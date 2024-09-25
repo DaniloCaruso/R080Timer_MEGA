@@ -25,7 +25,7 @@ const byte ENC_PRECISION_SW_PIN = 16;
 const byte MATRIX_ROWS_N = 4;
 const byte MATRIX_COLS_N = 4;
 
-char MATRIX_KEYS[MATRIX_ROWS_N][MATRIX_COLS_N] = {
+char MATRIX_KEYS[MATRIX_COLS_N][MATRIX_ROWS_N] = {
   { '1', '2', '3', 'A' },
   { '4', '5', '6', 'B' },
   { '7', '8', '9', 'C' },
@@ -34,8 +34,8 @@ char MATRIX_KEYS[MATRIX_ROWS_N][MATRIX_COLS_N] = {
 
 const String CHANNELS_STR[] = { "Ch:A", "Ch:B", "Ch:C" };
 
-byte MATRIX_ROWS_PIN[MATRIX_ROWS_N] = { 31, 33, 35, 37 };
-byte MATRIX_COLS_PIN[MATRIX_COLS_N] = { 39, 41, 43, 45 };
+byte MATRIX_COLS_PIN[MATRIX_ROWS_N] = { 41, 39, 37, 35 };
+byte MATRIX_ROWS_PIN[MATRIX_ROWS_N] = { 33, 31, 29, 27 };
 
 const int TONE_UP = 600;
 const int TONE_DOWN = 300;

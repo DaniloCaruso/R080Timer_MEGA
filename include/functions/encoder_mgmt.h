@@ -53,6 +53,7 @@ void evaluateEncoderMod() {
   // Serial.println("ENCODER MODE INDEX: " + (String)timerModeIndex);
   setOperationStatus(timerModeIndex);
   showModalityType();
+  
 }
 
 void evaluateEncoderPrec() {

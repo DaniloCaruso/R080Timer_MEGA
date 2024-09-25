@@ -20,6 +20,8 @@ void evaluateKey()
   boolean isFocus = operationStatus.current.name == MODES_TEXTS[MODES_IDS::FOCUS];
   
   char key = ' ';
+  int rawTime = 0;
+  int precisionSet = operationStatus.current.precisionStatus.current.value;
 
   if (keypad.getKeys()) { // Riempie un array con tutti i tasti premuti
 
@@ -41,7 +43,7 @@ void evaluateKey()
       }
     }
 
-    int rawTime = 0;
+    
     switch (key) {
     case 'A':
       channel = 1;
@@ -56,9 +58,9 @@ void evaluateKey()
       showChannel(); /*init_timermode();*/
       break;
     case 'D': // reset
-      // say_clr(); //M. TODO
+      clear7Seg();
       delay(250);
-      // reset(); TODO
+      resetTime();
       break;
 
     case '*':
@@ -71,13 +73,13 @@ void evaluateKey()
       }
 
       switch (operationStatus.current.precisionTypeStatus.current.id) {
-      
         case PrecisionType::FSTOP:
           multSet = pow(2.0, (1.0 / precisionSet));
           rawTime = int(((float(timeSet) / multSet) * 10 + 5) / 10);
-          timeSet = rawTime > 1 ? rawTime : 1;
+          timeSet = rawTime >= 1 ? rawTime : 1;
           appoTimeSet = timeSet;
           showTime(timeSet);
+          rawTime = 0;
           break;
 
         case PrecisionType::SECONDS:
@@ -86,6 +88,7 @@ void evaluateKey()
           timeSet = rawTime > 1 ? rawTime : 1;
           appoTimeSet = timeSet;
           showTime(timeSet);
+          rawTime = 0;
           break;
         }
       break;
@@ -107,14 +110,16 @@ void evaluateKey()
           timeSet = rawTime <= 9999 ? rawTime : 9999;
           appoTimeSet = timeSet;
           showTime(timeSet);
+          rawTime = 0;
         break;
 
         case PrecisionType::SECONDS:
         default:
           rawTime = timeSet + precisionSet * 10;
-          timeSet = rawTime > 1 ? rawTime : 1;
+          timeSet = rawTime <= 9999 ? rawTime : 9999;
           appoTimeSet = timeSet;
           showTime(timeSet);
+          rawTime = 0;
         break;
 
       }

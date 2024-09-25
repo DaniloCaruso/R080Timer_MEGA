@@ -19,7 +19,7 @@ uint8_t spina[8] = { 0xa, 0xa, 0x1f, 0x11, 0x11, 0xe, 0x4, 0x4 };
 uint8_t frecciasu[8] = { 0x4, 0xe, 0x1f, 0x4, 0x4, 0x4, 0x4, 0x4 };
 uint8_t frecciagiu[8] = { 0x4, 0x4, 0x4, 0x4, 0x4, 0x1f, 0xe, 0x4 };
 
-int brightness = 0;
+int brightness = 10;
 char keyBuffer[17];
 int countdownTime[4];
 int testStripTime[4];
@@ -27,7 +27,6 @@ int timeSet = 0;
 int lastTimeSet = 0;
 int nextTimeSet = 0;
 int appoTimeSet;
-int precisionSet = 1;
 byte nCifra = 0;
 float multSet = 1.0;
 byte channel = 1;
@@ -52,8 +51,7 @@ std::map<String, boolean> mainBtnActionStatus = {
   { "STOPPED", true }
 };
 
-char *keymap = makeKeymap(MATRIX_KEYS);
-Keypad keypad = Keypad(keymap, MATRIX_ROWS_PIN, MATRIX_COLS_PIN, MATRIX_ROWS_N, MATRIX_COLS_N);
+Keypad keypad = Keypad(makeKeymap(MATRIX_KEYS), MATRIX_ROWS_PIN, MATRIX_COLS_PIN, MATRIX_ROWS_N, MATRIX_COLS_N);
 SoftwareSerial sevenSegmentsDisplay(1, DISPLAY_7_SEG_PIN);
 LiquidCrystal_I2C lcd(LCD_ADDRESS, LCD_COLS_N, LCD_ROWS_N);
 

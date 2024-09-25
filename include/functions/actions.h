@@ -30,6 +30,8 @@ void countdown() {
 }
 
 void strip() {
+  int precisionSet = operationStatus.current.precisionStatus.current.value;
+  
   if (millis() - lastTimeSet >= 100) {
     lastTimeSet = millis();
     timeSet++;

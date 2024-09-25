@@ -138,5 +138,22 @@ void showPrecision() {
    writePosition(0,1, operationStatus.current.precisionStatus.current.string);
 }
 
+void clear7Seg() {
+  sevenSegmentsDisplay.write(0x76);
+  String message = "CLEAR";
+  int messageLength = sizeof(message) - 1;
+  int displayLength = 4;
+
+  for (int i = 0; i < messageLength + displayLength; i++) {
+    for (int j = 0; j < displayLength; j++) {
+      int charIndex = i - (displayLength - 1) + j;
+      (charIndex >= 0 && charIndex < messageLength) ? sevenSegmentsDisplay.write(message[charIndex]) : sevenSegmentsDisplay.write(' ');
+    }
+
+    delay(100);
+    sevenSegmentsDisplay.write(0x76);  
+  }
+}
+
 
 #endif // PRESENTATION_H

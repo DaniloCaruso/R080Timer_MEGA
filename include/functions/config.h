@@ -26,6 +26,13 @@ void initializePinMode() {
   // Serial.println("[SETUP 1] PINMODE INITIALIZED");
 }
 
+void resetTime() {
+  reset7SegmentsDisplay();
+  timeSet = 0;
+  nCifra = 0;
+  appoTimeSet = 0;
+}
+
 void configKeypad() {
   
   keypad.setDebounceTime(50);

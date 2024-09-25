@@ -135,6 +135,7 @@ void setOperationStatus(int currentIndex) {
 
   //  Serial.println("New current precision: " + (String)operationStatus.current.precisionTypeStatus.current.value);
    operationStatus.current.showPresentation();
+   resetTime();
   }
 }
 
