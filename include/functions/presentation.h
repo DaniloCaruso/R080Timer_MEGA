@@ -13,7 +13,6 @@ void writeRow(int row, String string);
 void showSound();
 void showRel();
 void showChannel();
-void showPushOrPullActMode();
 void showWelcomeMessage();
 void clearPrecision();
 void clearModality();
@@ -40,12 +39,12 @@ void writeRow(int row, String string) {
 }
 
 void showSound() {
-  writePosition(13,1,1);
+  writePosition(14,1,1);
   emitSound(TONE_DOWN, 200);
 }
 
 void showMute() {
-  writePosition(13,1," ");
+  writePosition(14,1," ");
   emitSound(TONE_DOWN, 200);
 }
 
@@ -57,20 +56,14 @@ void showTime(int ar_time) {
 }
 
 void showRel() {
-  lcd.setCursor(14,1);
+  lcd.setCursor(15,1);
   channelsRelayActivated[channel] ? lcd.write(2) : lcd.print(" ");
   emitSound(TONE_DOWN, 200);
 }
 
 void showChannel() {
-  writePosition(8,1, CHANNELS_STR[channel-1]);
+  writePosition(9,1, CHANNELS_STR[channel-1]);
   showRel();
-}
-
-void showPushOrPullActMode() {
-  int symbol = pushOrPullActMode == LOW ? 3 : 4;
-  writePosition(15,1,symbol);
-  emitSound(TONE_DOWN, 200);
 }
 
 void showWelcomeMessage() {

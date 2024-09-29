@@ -51,14 +51,12 @@ void switchPrecisionType(PrecisionTypeStatus* type) {
     operationStatus.current.showPresentation();
 }
 
-
 void initializeOperations() {
 
     operations[FOCUS] = Operation(
       MODES_TEXTS[FOCUS], 
       showFocus, 
-      operationActions[FOCUS].toStartAction,
-      operationActions[FOCUS].startedAction
+      focus
     );
 
     operations[COUNTDOWN] = Operation(
@@ -66,8 +64,7 @@ void initializeOperations() {
       PrecisionTypeStruct(PrecisionType::SECONDS, "S"), 
       showCountdown, 
       switchPrecisionType, 
-      operationActions[COUNTDOWN].toStartAction,
-      operationActions[COUNTDOWN].startedAction
+      countdown
     );
     
     operations[TEST_STRIP] = Operation(
@@ -77,8 +74,7 @@ void initializeOperations() {
       showTestStrip, 
       switchModality, 
       switchPrecisionType, 
-      operationActions[TEST_STRIP].toStartAction,
-      operationActions[TEST_STRIP].startedAction
+      testStrip
     );
 
 

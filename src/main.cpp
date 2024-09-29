@@ -17,38 +17,30 @@
 #include "functions/operations.h"
 #include "functions/encoder_mgmt.h"
 #include "functions/keypad_mgmt.h"
-
-boolean isRunnninng = false;
+#include <EncoderButton.h>
 
 void setup() {
 
   Serial.begin(9600);
+  digitalWrite(ENLARGER_RELAY_PIN, LOW); // RELE SPENTO
   initializePinMode();
   configKeypad();
   configLCD();
   config7SegmentsDisplay();
   showWelcomeMessage();
-  delay(2000);
+  delay(5000);
   reset7SegmentsDisplay();
   resetLCD();
   showSound();
-  // Serial.println("[SETUP 8] SOUND EMITTED");
   showChannel();
-  // Serial.println("[SETUP 9] CHANNEL SHOWED");
   setErrlet();
-  // Serial.println("[SETUP 10] ERRLET SETTED");
-  digitalWrite(RELAY_PIN, HIGH); // RELE SPENTO
-  // Serial.println("[SETUP 11] CLOSE RELE");
   initializeOperations();
-  // Serial.println("[SETUP 12] OPERATIONS INITIALIZED");
   registerClickHandler();
-  // Serial.println("[SETUP 13] CLICK HANDLER REGISTERED");
+  attachInterrupt(digitalPinToInterrupt(MAIN_BTN_PIN), mainButtonHandler, FALLING);
 }
 
 void loop() {
 
-  if (isInError()) return;
-  evaluateMainBtnStatus();
+  
   manageMainButtonAction();
 }
-

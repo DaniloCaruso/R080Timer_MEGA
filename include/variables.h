@@ -31,17 +31,19 @@ byte nCifra = 0;
 float multSet = 1.0;
 byte channel = 1;
 boolean mute = false;
-boolean channelsRelayActivated[4]; // ATTIVAZIONE RELE?
+boolean channelsRelayActivated[4] = { true, true, true, true }; // ATTIVAZIONE RELE SEMPRE DI DEFAULT
 int channelsCountdownTime[4];
 int channelsStripTestTime[4];
-int pushOrPullActMode; // = LOW;  //Modalità di attivazione alla pressione o al rilascio del pedale/pulsante (LOW = Rilascio; HIGH = pressione)
 long errlet = 0;
-boolean isMainBtnPressed = false;
-boolean isActionStarted = false;
+
+volatile boolean isMainBtnPressed = false;
+volatile unsigned long lastInterruptTime = 0;
+volatile boolean isActionStarted = false;
+const unsigned long DEBOUNCE_TIME = 20; 
 
 std::map<String, int> mainBtnTemporalStatus = { 
-  { "current", LOW }, 
-  { "last",  LOW } 
+  { "current", HIGH }, 
+  { "last",  HIGH } 
 };
 
 std::map<String, boolean> mainBtnActionStatus = { 

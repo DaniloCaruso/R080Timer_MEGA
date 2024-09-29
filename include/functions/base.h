@@ -26,12 +26,10 @@ boolean isInError() {
   return (millis() - errlet) <= 20;
 }
 
-void updateTimerMode(int index) { }
-
-void releStartStop(boolean action) {
+void relayStart(boolean start) {
 
     if (channelsRelayActivated[channel]) {
-      digitalWrite(RELAY_PIN, action ? LOW : HIGH);
+      digitalWrite(ENLARGER_RELAY_PIN, start ? HIGH : LOW);
     }
 }
 

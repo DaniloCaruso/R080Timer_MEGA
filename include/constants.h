@@ -7,16 +7,16 @@
 #include <ArduinoSTL.h>
 
 const byte BUZZER_PIN = 10;
-const byte RELAY_PIN = 11;
-const byte MAIN_BTN_PIN = 12;
+const byte ENLARGER_RELAY_PIN = 47;
+const byte MAIN_BTN_PIN = 2;
 const byte DISPLAY_7_SEG_PIN = A2;
 
 const uint8_t LCD_ADDRESS = 0x27;
 const uint8_t LCD_ROWS_N = 2;
 const uint8_t LCD_COLS_N = 16;
 
-const byte ENC_MODE_DT_PIN = 2;
-const byte ENC_MODE_CLK_PIN = 3;
+const byte ENC_MODE_DT_PIN = 3;
+const byte ENC_MODE_CLK_PIN = 4;
 const byte ENC_MODE_SW_PIN = 17;
 const byte ENC_PRECISION_DT_PIN = 18;
 const byte ENC_PRECISION_CLK_PIN = 19;

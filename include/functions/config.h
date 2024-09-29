@@ -19,11 +19,10 @@ void resetLCD();
 void initializePinMode() {
 
   pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, HIGH);
-  pinMode(RELAY_PIN, OUTPUT);
-  pinMode(MAIN_BTN_PIN, INPUT);
+  pinMode(ENLARGER_RELAY_PIN, OUTPUT);
+  digitalWrite(ENLARGER_RELAY_PIN, LOW);
+  pinMode(MAIN_BTN_PIN, INPUT_PULLUP);
 
-  // Serial.println("[SETUP 1] PINMODE INITIALIZED");
 }
 
 void resetTime() {

@@ -65,15 +65,12 @@ struct PrecisionTypeStatus {
 
 struct OperationActions
 {
-  void (*toStartAction)();
-  void (*startedAction)();
+  void (*startAction)();
   
   OperationActions(
-    void (*toStart)(),
-    void (*started)()
+    void (*start)()
   ) :
-    toStartAction(toStart),
-    startedAction(started) {}
+    startAction(start) {}
 };
 
 std::map<PrecisionType, std::vector<PrecisionValueString>> PRECISION_MAP_LISTS = {
@@ -125,7 +122,6 @@ public:
   void (*showPresentation)();
   void (*switchModality)(ModalityTypeStatus *);
   void (*switchPrecisionType)(PrecisionTypeStatus *);
-  void (*toStartAction)();
   void (*startedAction)();
 
   void setPrecisionStatus(int index) {
@@ -157,7 +153,6 @@ public:
     showPresentation(noActionOrPresentation),
     switchModality(noSwitchMod),
     switchPrecisionType(noSwitchPrec),
-    toStartAction(noActionOrPresentation),
     startedAction(noActionOrPresentation) {}
   
   // COSTRUTTORE NO MODALITA NO PRECISIONE SENZA ACTION (PER SOLI MESSAGGI A VIDEO)
@@ -171,14 +166,12 @@ public:
     showPresentation(showPres),
     switchModality(noSwitchMod),
     switchPrecisionType(noSwitchPrec),
-    toStartAction(noActionOrPresentation),
     startedAction(noActionOrPresentation) {}
 
   // COSTRUTTORE NO MODALITA NO PRECISIONE CON ACTIONs (FOCUS)
   Operation(
     String n,
     void (*showPres)(),
-    void (*toStart)(),
     void (*started)()
   ) : 
     name(n),
@@ -187,7 +180,6 @@ public:
     showPresentation(showPres),
     switchModality(noSwitchMod),
     switchPrecisionType(noSwitchPrec),
-    toStartAction(toStart),
     startedAction(started) {}
   
   // COSTRUTTORE NO MODALITA CON PRECISIONE E ACTION (COUNTDOWN)
@@ -196,7 +188,6 @@ public:
     PrecisionTypeStruct p,
     void (*showPres)(),
     void (*switchPrec)(PrecisionTypeStatus *),
-    void (*toStart)(),
     void (*started)()
   ) : 
     name(n),
@@ -205,7 +196,6 @@ public:
     showPresentation(showPres),
     switchModality(noSwitchMod),
     switchPrecisionType(switchPrec),
-    toStartAction(toStart),
     startedAction(started) {}
 
   // COSTRUTTORE NO PRECISIONE CON MODALITA E ACTION (INUTILE? NON USATO)
@@ -214,7 +204,6 @@ public:
     ModalityTypeStruct m,
     void (*showPres)(),
     void (*switchMod)(ModalityTypeStatus *),
-    void (*toStart)(),
     void (*started)()
   ) : 
     name(n),
@@ -223,7 +212,6 @@ public:
     showPresentation(showPres),
     switchModality(switchMod),
     switchPrecisionType(noSwitchPrec),
-    toStartAction(toStart),
     startedAction(started) {}
 
   // COSTRUTTORE CON PRECISIONE MODALITA E  ACTION (PROVINO SCALARE)
@@ -234,7 +222,6 @@ public:
     void (*showPres)(),
     void (*switchMod)(ModalityTypeStatus *),
     void (*switchPrec)(PrecisionTypeStatus *),
-    void (*toStart)(),
     void (*started)()
   ) : 
     name(n),
@@ -243,7 +230,6 @@ public:
     showPresentation(showPres),
     switchModality(switchMod),
     switchPrecisionType(switchPrec),
-    toStartAction(toStart),
     startedAction(started) {}
 };
 

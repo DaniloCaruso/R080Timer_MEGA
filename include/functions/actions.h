@@ -1,7 +1,3 @@
-// ACTIONS_H
-#ifndef ACTIONS_H
-#define ACTIONS_H
-
 #include <Arduino.h>
 #include "variables.h"
 #include "functions/base.h"
@@ -10,87 +6,106 @@
 #include "functions/operations.h"
 #include "types.h"
 
-void stopAction() {
-    releStartStop(false);
-    isActionStarted = false;
-    timeSet = appoTimeSet;
-    emitStopSound();
-    showTime(timeSet);
+// ACTIONS_H
+#ifndef ACTIONS_H
+#define ACTIONS_H
+
+void stopCountDown() {
+  relayStart(false);
+  isActionStarted = false;
+  isMainBtnPressed = false;
+  timeSet = appoTimeSet;
+  emitStopSound();
+  showTime(timeSet);
 }
 
-void countdown() {
-  if (timeSet < 0) { stopAction(); }
-  if (timeSet > 0 && (millis() - lastTimeSet >= 100)) {
+void initTestStrip() {
+    testStripTime[channel] = appoTimeSet;
+    relayStart(true);
+    isActionStarted = true;
+    nextTimeSet = timeSet < 10 ? 10 : timeSet;
+    timeSet = 0;
+}
+
+void initCountdown() {
+    countdownTime[channel] = appoTimeSet;
+    relayStart(true); 
+    isActionStarted = true;
     lastTimeSet = millis();
-    timeSet--;
-    emitMetronome(timeSet);
+}
+
+void initFocus() {
+  relayStart(true);
+  isActionStarted = true;
+}
+
+void focus() {
+  int currentTimeSet = millis();
+  int timePassed = (currentTimeSet - lastTimeSet);
+  if (!isActionStarted) { initFocus(); }
+  if (timePassed >= 100) {
+    timeSet++;
     showTime(timeSet);
-    if (timeSet == 0) { stopAction(); }
   }
 }
 
-void strip() {
+void testStrip() {
+  if (!isActionStarted) { 
+    initTestStrip();
+  }
+
+  int currentTimeSet = millis();
+  int timePassed = (currentTimeSet - lastTimeSet);
   int precisionSet = operationStatus.current.precisionStatus.current.value;
-  
-  if (millis() - lastTimeSet >= 100) {
+
+
+  if (timePassed >= 100) {
     lastTimeSet = millis();
     timeSet++;
     showTime(timeSet);
     if (timeSet == nextTimeSet) {
       emitSound(TONE_UP, 150); 
 
-      if (operationStatus.current.precisionTypeStatus.current.id == PrecisionType::FSTOP) {   
-        multSet = pow(2.0,(1.0/operationStatus.current.precisionStatus.current.value));  
-        //time_succ = int(float(time) * mult);
-        nextTimeSet = int(((float(timeSet) * multSet) * 10 + 5)/10);
-      } else {
-        nextTimeSet = timeSet + precisionSet * 10;
+      switch(operationStatus.current.precisionTypeStatus.current.id) {
+        case PrecisionType::FSTOP:
+          multSet = pow(2.0,(1.0/operationStatus.current.precisionStatus.current.value));  
+          nextTimeSet = int(((float(timeSet) * multSet) * 10 + 5)/10);
+          break;
+        default: 
+          nextTimeSet = timeSet + precisionSet * 10;
+          break;
       }
-
+     
       if (operationStatus.current.modalityTypeStatus.current.id == ModalityType::STEP_BY_STEP) {
-        releStartStop(false);
+        relayStart(false);
         isActionStarted = false;
         delay(500);
         timeSet = nextTimeSet;
         showTime(timeSet);
       }
     }
+    
     if (nextTimeSet - timeSet <= 3) {
       emitSound(TONE_UP, 50);
     }
   }
 }
 
-OperationActions operationActions[3] = {
-    OperationActions(
-      []() -> void { 
-          releStartStop(true);
-          isActionStarted = true;
-      },
-      []() -> void { }
-    ), 
-  // 0 => FOCUS, 1 => COUNTDOWN, 2 => TEST_STRIP
-    OperationActions(
-        []() -> void { 
-            countdownTime[channel] = appoTimeSet;
-            if (timeSet > 0) { releStartStop(true); 
-                isActionStarted = true;
-                lastTimeSet = millis();
-                countdown();
-            }        },
-        []() -> void { countdown(); }
-    ),
-    OperationActions(
-        []() -> void {
-            testStripTime[channel] = appoTimeSet;
-            releStartStop(true);
-            isActionStarted = true;
-            nextTimeSet = timeSet < 10 ? 10 : timeSet;
-            timeSet = 0;
-            strip();
-        },
-        []() -> void { strip(); }
-    )
- };
+void countdown() {
+
+  if (!isActionStarted) { initCountdown(); }
+
+  int currentTimeSet = millis();
+  int timePassed = (currentTimeSet - lastTimeSet);
+
+  if (timeSet <= 0) { stopCountDown(); }
+
+  if (timePassed >= 100) {
+    lastTimeSet = millis();
+    timeSet--;
+    emitMetronome(timeSet);
+    showTime(timeSet);
+  }
+}
 
 #endif //ACTIONS_H
