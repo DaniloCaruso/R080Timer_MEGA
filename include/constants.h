@@ -4,7 +4,7 @@
 #define CONSTANTS_H
 
 #include <Arduino.h>
-#include <ArduinoSTL.h>
+#include <avr/pgmspace.h>
 
 const byte BUZZER_PIN = 49;
 const byte ENLARGER_RELAY_PIN = 47;
@@ -33,7 +33,8 @@ char MATRIX_KEYS[MATRIX_COLS_N][MATRIX_ROWS_N] = {
   { '*', '0', '#', 'D' }
 };
 
-const String CHANNELS_STR[] = { "Ch:A", "Ch:B", "Ch:C" };
+// Etichette canale (4 char, trascurabile in RAM)
+const char* const CHANNELS_STR[] = { "Ch:A", "Ch:B", "Ch:C" };
 
 byte MATRIX_COLS_PIN[MATRIX_ROWS_N] = { 41, 39, 37, 35 };
 byte MATRIX_ROWS_PIN[MATRIX_ROWS_N] = { 33, 31, 29, 27 };
@@ -41,10 +42,12 @@ byte MATRIX_ROWS_PIN[MATRIX_ROWS_N] = { 33, 31, 29, 27 };
 const int TONE_UP = 600;
 const int TONE_DOWN = 300;
 
-const String MODES_TEXTS[] = {
-  "FOCUS",
-  "COUNTDOWN",
-  "TEST STRIP"
+// Nomi modalita' in PROGMEM (flash) — lettura via pgm_read_ptr + strcpy_P.
+const char MODES_TEXT_0[] PROGMEM = "FOCUS";
+const char MODES_TEXT_1[] PROGMEM = "COUNTDOWN";
+const char MODES_TEXT_2[] PROGMEM = "TEST STRIP";
+const char* const MODES_TEXTS[] PROGMEM = {
+  MODES_TEXT_0, MODES_TEXT_1, MODES_TEXT_2
 };
 
 

@@ -2,40 +2,32 @@
 #define ENCODER_H
 
 #include <Arduino.h>
-#include <ArduinoSTL.h>
-#include <ArduinoSTL.h>
 #include <EncoderButton.h>
-#include "variables.h" 
+#include "variables.h"
 #include "functions/operations.h"
 
-
 // PROTOTYPES
-
 void onModeButtonEvent(EncoderButton& encoderButton);
 void onPrecisionButtonEvent(EncoderButton& encoderButton);
 void registerClickHandler();
-
+void evaluateButtons();
+void evaluateEncoderMod();
+void evaluateEncoderPrec();
 
 // IMPLEMENTATIONS
 
 void onModeButtonEvent(EncoderButton& encoderButton) {
-  // Serial.println("MODE BUTTON CLICKED");
-  // Serial.println("Current Modality before change: " + (String)operationStatus.current.modalityTypeStatus.current.value);
-  
   operationStatus.current.switchModality(&operationStatus.current.modalityTypeStatus);
-
-  // Serial.println("Current Modality after change: " + (String)operationStatus.current.modalityTypeStatus.current.value);
 }
 
 void onPrecisionButtonEvent(EncoderButton& encoderButton) {
-  // Serial.println("PRECISION BUTTON CLICKED");
-  // Serial.println("Current Precision before change: " + (String)operationStatus.current.precisionTypeStatus.current.value);
-  
+  // Quando si cambia tipo precisione (SECONDS <-> FSTOP)
+  // inizializza F-stop state col tempo corrente come base
   operationStatus.current.switchPrecisionType(&operationStatus.current.precisionTypeStatus);
-
-  // Serial.println("Current Precision after change: " + (String)operationStatus.current.precisionTypeStatus.current.value);
+  if (operationStatus.current.precisionTypeStatus.current.id == FSTOP) {
+    fstopState.setBase(timeSet > 0 ? timeSet : 1);
+  }
 }
-
 
 void registerClickHandler() {
   encoderModeButton.setClickHandler(onModeButtonEvent);
@@ -50,18 +42,24 @@ void evaluateButtons() {
 void evaluateEncoderMod() {
   long newEncoderPosition = encoderMode.read() >> 2;
   int timerModeIndex = (newEncoderPosition % 3 + 3) % 3;
-  // Serial.println("ENCODER MODE INDEX: " + (String)timerModeIndex);
   setOperationStatus(timerModeIndex);
   showModalityType();
-  
 }
 
 void evaluateEncoderPrec() {
   long newEncoderPosition = encoderPrecision.read() >> 2;
-  int precisionIndex = (newEncoderPosition % 11 + 11) % 11;
-  // Serial.println("ENCODER PREC INDEX: " + (String)precisionIndex);
+  int precisionIndex = (newEncoderPosition % PRECISION_COUNT + PRECISION_COUNT) % PRECISION_COUNT;
   setOperationPrecision(precisionIndex);
   showPrecision();
+
+  // Se in modalità F-stop, ricalcola il tempo col nuovo valore di precisione
+  if (operationStatus.current.precisionTypeStatus.current.id == FSTOP && fstopState.baseTime > 0) {
+    int precisionValue = operationStatus.current.precisionStatus.current.value;
+    timeSet = fstopState.getCalculatedTime(precisionValue);
+    appoTimeSet = timeSet;
+    channelTime[channel - 1] = timeSet;
+    showTime(timeSet);
+  }
 }
 
 #endif // ENCODER_H

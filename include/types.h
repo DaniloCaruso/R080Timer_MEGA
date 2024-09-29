@@ -2,9 +2,7 @@
 #define TYPES_H
 
 #include <Arduino.h>
-#include <ArduinoSTL.h>
-#include <map>
-#include <vector>
+#include <avr/pgmspace.h>
 
 typedef enum {
   FOCUS,
@@ -12,24 +10,23 @@ typedef enum {
   TEST_STRIP
 } MODES_IDS;
 
-
-typedef enum
-{
+typedef enum {
   CONTINOUS,
   STEP_BY_STEP,
   NO_MODALITY
 } ModalityType;
 
-typedef enum
-{
+typedef enum {
   FSTOP,
   SECONDS,
   NO_PRECISION
 } PrecisionType;
 
+// `str` punta a una stringa PROGMEM di 8 caratteri (+'\0'). Lettura via
+// strcpy_P in keyBuffer prima di passare al rendering LCD.
 struct PrecisionValueString {
-    int value;
-    String string;
+    uint8_t     value;
+    const char* str;
 };
 
 struct PrecisionStatus {
@@ -37,12 +34,11 @@ struct PrecisionStatus {
     PrecisionValueString last;
 };
 
-struct ModalityTypeStruct
-{
+struct ModalityTypeStruct {
   ModalityType id;
-  String value;
-  ModalityTypeStruct(ModalityType i, String v) : id(i), value(v) {}
-  ModalityTypeStruct() : id(), value() {}
+  const char*  value;
+  ModalityTypeStruct(ModalityType i, const char* v) : id(i), value(v) {}
+  ModalityTypeStruct() : id(NO_MODALITY), value("") {}
 };
 
 struct ModalityTypeStatus {
@@ -50,12 +46,11 @@ struct ModalityTypeStatus {
   ModalityTypeStruct last;
 };
 
-struct PrecisionTypeStruct
-{
+struct PrecisionTypeStruct {
   PrecisionType id;
-  String value;
-  PrecisionTypeStruct(PrecisionType i, String v) : id(i), value(v) {}
-  PrecisionTypeStruct() : id(), value() {}
+  const char*   value;
+  PrecisionTypeStruct(PrecisionType i, const char* v) : id(i), value(v) {}
+  PrecisionTypeStruct() : id(NO_PRECISION), value("") {}
 };
 
 struct PrecisionTypeStatus {
@@ -63,90 +58,93 @@ struct PrecisionTypeStatus {
   PrecisionTypeStruct last;
 };
 
-struct OperationActions
-{
-  void (*startAction)();
-  
-  OperationActions(
-    void (*start)()
-  ) :
-    startAction(start) {}
+// Array costanti al posto di std::map<std::vector>
+const int PRECISION_COUNT = 11;
+
+// Stringhe precisioni in PROGMEM (flash): ciascuna 8 caratteri + '\0',
+// allineate sulla riga 1 cols 0..7 dell'LCD. showPrecision legge via
+// strcpy_P in keyBuffer.
+const char FSTOP_STR_0[]  PROGMEM = "Pr:1/1  ";
+const char FSTOP_STR_1[]  PROGMEM = "Pr:1/2  ";
+const char FSTOP_STR_2[]  PROGMEM = "Pr:1/3  ";
+const char FSTOP_STR_3[]  PROGMEM = "Pr:1/4  ";
+const char FSTOP_STR_4[]  PROGMEM = "Pr:1/6  ";
+const char FSTOP_STR_5[]  PROGMEM = "Pr:1/8  ";
+const char FSTOP_STR_6[]  PROGMEM = "Pr:1/12 ";
+const char FSTOP_STR_7[]  PROGMEM = "Pr:1/16 ";
+const char FSTOP_STR_8[]  PROGMEM = "Pr:1/24 ";
+const char FSTOP_STR_9[]  PROGMEM = "Pr:1/32 ";
+const char FSTOP_STR_10[] PROGMEM = "Pr:1/64 ";
+
+const PrecisionValueString FSTOP_PRECISIONS[PRECISION_COUNT] = {
+  {   1, FSTOP_STR_0 },
+  {   2, FSTOP_STR_1 },
+  {   3, FSTOP_STR_2 },
+  {   4, FSTOP_STR_3 },
+  {   6, FSTOP_STR_4 },
+  {   8, FSTOP_STR_5 },
+  {  12, FSTOP_STR_6 },
+  {  16, FSTOP_STR_7 },
+  {  24, FSTOP_STR_8 },
+  {  32, FSTOP_STR_9 },
+  {  64, FSTOP_STR_10 }
 };
 
-std::map<PrecisionType, std::vector<PrecisionValueString>> PRECISION_MAP_LISTS = {
-  { 
-    PrecisionType::FSTOP, { 
-      {   1, "Pr:1/1  "}, 
-      {   2, "Pr:1/2  "}, 
-      {   3, "Pr:1/3  "}, 
-      {   4, "Pr:1/4  "}, 
-      {   6, "Pr:1/6  "}, 
-      {   8, "Pr:1/8  "}, 
-      {  12, "Pr:1/12 "}, 
-      {  16, "Pr:1/16 "}, 
-      {  24, "Pr:1/24 "}, 
-      {  32, "Pr:1/32 "}, 
-      {  64, "Pr:1/64 "}, 
-    }
-  },
-  { 
-    PrecisionType::SECONDS, { 
-      {  1, "Pr: 1s  " },
-      {  2, "Pr: 2s  " },
-      {  3, "Pr: 3s  " },
-      {  4, "Pr: 4s  " },
-      {  5, "Pr: 5s  " },
-      {  6, "Pr: 6s  " },
-      {  7, "Pr: 7s  " },
-      {  8, "Pr: 8s  " },
-      { 10, "Pr: 10s " },
-      { 15, "Pr: 15s " },
-      { 20, "Pr: 20s " },
-    } 
-  }
+const char SEC_STR_0[]  PROGMEM = "Pr: 1s  ";
+const char SEC_STR_1[]  PROGMEM = "Pr: 2s  ";
+const char SEC_STR_2[]  PROGMEM = "Pr: 3s  ";
+const char SEC_STR_3[]  PROGMEM = "Pr: 4s  ";
+const char SEC_STR_4[]  PROGMEM = "Pr: 5s  ";
+const char SEC_STR_5[]  PROGMEM = "Pr: 6s  ";
+const char SEC_STR_6[]  PROGMEM = "Pr: 7s  ";
+const char SEC_STR_7[]  PROGMEM = "Pr: 8s  ";
+const char SEC_STR_8[]  PROGMEM = "Pr: 10s ";
+const char SEC_STR_9[]  PROGMEM = "Pr: 15s ";
+const char SEC_STR_10[] PROGMEM = "Pr: 20s ";
+
+const PrecisionValueString SECONDS_PRECISIONS[PRECISION_COUNT] = {
+  {  1, SEC_STR_0 },
+  {  2, SEC_STR_1 },
+  {  3, SEC_STR_2 },
+  {  4, SEC_STR_3 },
+  {  5, SEC_STR_4 },
+  {  6, SEC_STR_5 },
+  {  7, SEC_STR_6 },
+  {  8, SEC_STR_7 },
+  { 10, SEC_STR_8 },
+  { 15, SEC_STR_9 },
+  { 20, SEC_STR_10 }
 };
 
-class Operation
-{
+class Operation {
 private:
   static void noActionOrPresentation() {}
   static void noSwitchMod(ModalityTypeStatus *type) { }
   static void noSwitchPrec(PrecisionTypeStatus *type) { }
 
-
 public:
-  String name;
+  const char* name;
   ModalityTypeStatus modalityTypeStatus = { current: ModalityTypeStruct(ModalityType::CONTINOUS, "C"), last: {} };
   PrecisionTypeStatus precisionTypeStatus = { current: PrecisionTypeStruct(PrecisionType::SECONDS, "S"), last: {} };
-  PrecisionStatus precisionStatus = { current: PRECISION_MAP_LISTS[precisionTypeStatus.current.id][0], last: { }};
+  PrecisionStatus precisionStatus = { current: SECONDS_PRECISIONS[0], last: {} };
   void (*showPresentation)();
   void (*switchModality)(ModalityTypeStatus *);
   void (*switchPrecisionType)(PrecisionTypeStatus *);
   void (*startedAction)();
 
   void setPrecisionStatus(int index) {
-      // Trova la lista di precisioni associata al tipo di precisione attuale
-      // Serial.println("id di precisione: " + (String)precisionTypeStatus.current.id);
-      
-      if (precisionTypeStatus.current.id == NO_PRECISION) { return; };
-      
-      std::vector<PrecisionValueString>& precisionList = PRECISION_MAP_LISTS[precisionTypeStatus.current.id];  // Ottieni la lista associata alla precisione
-      precisionStatus.last = precisionStatus.current;
-      precisionStatus.current = precisionList[index];      
-    };
+      if (precisionTypeStatus.current.id == NO_PRECISION) { return; }
 
-  boolean isPrecisionChanged () {
-    return !precisionStatus.last.value || precisionStatus.current.value != precisionStatus.last.value;
-  };
-  boolean isPrecisionTypeChanged() {
-    return !precisionTypeStatus.last.value || precisionTypeStatus.current.value != precisionTypeStatus.last.value;
-  };
-  boolean isModalityTypeChanged() {
-    return !modalityTypeStatus.last.value || modalityTypeStatus.current.value != modalityTypeStatus.last.value;
-  };
+      precisionStatus.last = precisionStatus.current;
+      if (precisionTypeStatus.current.id == FSTOP) {
+        precisionStatus.current = FSTOP_PRECISIONS[index];
+      } else {
+        precisionStatus.current = SECONDS_PRECISIONS[index];
+      }
+    }
 
   // Costruttore di default
-  Operation() : 
+  Operation() :
     name(""),
     modalityTypeStatus({ current: ModalityTypeStruct(NO_MODALITY, ""), last: {} }),
     precisionTypeStatus({ current: PrecisionTypeStruct(NO_PRECISION, ""), last: {} }),
@@ -154,26 +152,13 @@ public:
     switchModality(noSwitchMod),
     switchPrecisionType(noSwitchPrec),
     startedAction(noActionOrPresentation) {}
-  
-  // COSTRUTTORE NO MODALITA NO PRECISIONE SENZA ACTION (PER SOLI MESSAGGI A VIDEO)
-  Operation(
-      String n,
-      void (*showPres)()
-  ) : 
-    name(n),
-    modalityTypeStatus({ current: ModalityTypeStruct(NO_MODALITY, ""), last: {} }),
-    precisionTypeStatus({ current: PrecisionTypeStruct(NO_PRECISION, ""), last: {} }),
-    showPresentation(showPres),
-    switchModality(noSwitchMod),
-    switchPrecisionType(noSwitchPrec),
-    startedAction(noActionOrPresentation) {}
 
-  // COSTRUTTORE NO MODALITA NO PRECISIONE CON ACTIONs (FOCUS)
+  // FOCUS: no modalita, no precisione, con action
   Operation(
-    String n,
+    const char* n,
     void (*showPres)(),
     void (*started)()
-  ) : 
+  ) :
     name(n),
     modalityTypeStatus({ current: ModalityTypeStruct(NO_MODALITY, ""), last: {} }),
     precisionTypeStatus({ current: PrecisionTypeStruct(NO_PRECISION, ""), last: {} }),
@@ -181,15 +166,15 @@ public:
     switchModality(noSwitchMod),
     switchPrecisionType(noSwitchPrec),
     startedAction(started) {}
-  
-  // COSTRUTTORE NO MODALITA CON PRECISIONE E ACTION (COUNTDOWN)
+
+  // COUNTDOWN: no modalita, con precisione e action
   Operation(
-    String n,
+    const char* n,
     PrecisionTypeStruct p,
     void (*showPres)(),
     void (*switchPrec)(PrecisionTypeStatus *),
     void (*started)()
-  ) : 
+  ) :
     name(n),
     modalityTypeStatus({ current: ModalityTypeStruct(NO_MODALITY, ""), last: {} }),
     precisionTypeStatus({ current: p, last: {} }),
@@ -198,32 +183,16 @@ public:
     switchPrecisionType(switchPrec),
     startedAction(started) {}
 
-  // COSTRUTTORE NO PRECISIONE CON MODALITA E ACTION (INUTILE? NON USATO)
+  // TEST STRIP: con precisione, modalita e action
   Operation(
-    String n,
-    ModalityTypeStruct m,
-    void (*showPres)(),
-    void (*switchMod)(ModalityTypeStatus *),
-    void (*started)()
-  ) : 
-    name(n),
-    modalityTypeStatus({ current: m, last: {} }),
-    precisionTypeStatus({ current: PrecisionTypeStruct(NO_PRECISION, ""), last: {} }),
-    showPresentation(showPres),
-    switchModality(switchMod),
-    switchPrecisionType(noSwitchPrec),
-    startedAction(started) {}
-
-  // COSTRUTTORE CON PRECISIONE MODALITA E  ACTION (PROVINO SCALARE)
-  Operation(
-    String n,
+    const char* n,
     ModalityTypeStruct m,
     PrecisionTypeStruct p,
     void (*showPres)(),
     void (*switchMod)(ModalityTypeStatus *),
     void (*switchPrec)(PrecisionTypeStatus *),
     void (*started)()
-  ) : 
+  ) :
     name(n),
     modalityTypeStatus({ current: m, last: {}}),
     precisionTypeStatus({current: p, last: {}}),
@@ -233,15 +202,14 @@ public:
     startedAction(started) {}
 };
 
-class OperationStatus
-{
-  public: 
+class OperationStatus {
+  public:
     Operation current;
     Operation last;
 
-    OperationStatus(): 
+    OperationStatus():
       current(Operation()),
-      last (Operation()) {}  
+      last(Operation()) {}
 };
 
 #endif // TYPES_H
