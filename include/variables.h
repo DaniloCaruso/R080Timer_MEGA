@@ -19,6 +19,7 @@ uint8_t spina[8] = { 0xa, 0xa, 0x1f, 0x11, 0x11, 0xe, 0x4, 0x4 };
 uint8_t frecciasu[8] = { 0x4, 0xe, 0x1f, 0x4, 0x4, 0x4, 0x4, 0x4 };
 uint8_t frecciagiu[8] = { 0x4, 0x4, 0x4, 0x4, 0x4, 0x1f, 0xe, 0x4 };
 
+
 int brightness = 10;
 char keyBuffer[17];
 int countdownTime[4];
@@ -39,7 +40,7 @@ long errlet = 0;
 volatile boolean isMainBtnPressed = false;
 volatile unsigned long lastInterruptTime = 0;
 volatile boolean isActionStarted = false;
-const unsigned long DEBOUNCE_TIME = 20; 
+const unsigned long DEBOUNCE_TIME = 50; 
 
 std::map<String, int> mainBtnTemporalStatus = { 
   { "current", HIGH }, 
