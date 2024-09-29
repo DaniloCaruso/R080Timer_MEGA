@@ -1,42 +1,35 @@
-
 // RUNNING_MGMT_H
 #ifndef RUNNING_MGMT_H
 #define RUNNING_MGMT_H
 
 #include <Arduino.h>
-#include <ArduinoSTL.h>
 #include "variables.h"
 #include "functions/keypad_mgmt.h"
 #include "functions/encoder_mgmt.h"
-
+#include "functions/timer_manager.h"
 
 // PROTOTYPES
-void setLastMainBtnStatus(int lastValue);
-void evaluateMainBtnStatus();
-void evaluateMainButtonActionStatus();
 void onStop();
-void manageToStart();
-void manageToStop();
 void manageStarted();
+void configureMainButton();
+void onMainButtonClick();
+void manageMainButtonAction();
 
 // IMPLEMENTATIONS
 
-const unsigned long BUTTON_COOLDOWN = 50; // Tempo minimo tra le letture del pulsante in millisecondi
-unsigned long lastButtonEventTime = 0;
-
-void mainButtonHandler() {
-  unsigned long interruptTime = millis();
-  if (interruptTime - lastInterruptTime > DEBOUNCE_TIME) {
-    isMainBtnPressed = !isMainBtnPressed;
-    Serial.println("PRESSED: "+ (String)isMainBtnPressed);
-    lastInterruptTime = interruptTime;
-  }
+void configureMainButton() {
+  mainButton.attachClick(onMainButtonClick);
+  mainButton.setDebounceMs(DEBOUNCE_TIME);
+  mainButton.setClickMs(100);
+  mainButton.setPressMs(1000);
 }
 
+void onMainButtonClick() {
+  isMainBtnPressed = !isMainBtnPressed;
+}
 
 void onStop() {
-  relayStart(false);
-  isActionStarted = false;
+  stopAllTimers();
   evaluateEncoderMod();
   evaluateEncoderPrec();
   evaluateButtons();
@@ -50,7 +43,5 @@ void manageStarted() {
 void manageMainButtonAction() {
   !isMainBtnPressed ? onStop() : manageStarted();
 }
-
-
 
 #endif // RUNNING_MGMT_H
