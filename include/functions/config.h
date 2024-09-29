@@ -3,7 +3,6 @@
 #define CONFIG_H
 
 #include <Arduino.h>
-#include <ArduinoSTL.h>
 #include "variables.h"
 #include "constants.h"
 
@@ -42,11 +41,15 @@ void configKeypad() {
 void configLCD() {
 
   lcd.init(); // inizializza display lcd
-  lcd.backlight(); // attiva la retroilluminazione
-  lcd.createChar(1, note); //Inizializzo caratteri speciali Nota
-  lcd.createChar(2, spina); //Inizializzo caratteri speciali Orologio
-  lcd.createChar(3, frecciasu); //Inizializzo caratteri speciali Freccia in Su
-  lcd.createChar(4, frecciagiu); //Inizializzo caratteri speciali Freccia in Giù
+  lcd.setRGB(255, 0, 0);
+  lcd.customSymbol(1, note);
+  lcd.customSymbol(2, spina);
+
+  // lcd.backlight(); // attiva la retroilluminazione
+  // lcd.createChar(1, note); //Inizializzo caratteri speciali Nota
+  // lcd.createChar(2, spina); //Inizializzo caratteri speciali Orologio
+  // lcd.createChar(3, frecciasu); //Inizializzo caratteri speciali Freccia in Su
+  // lcd.createChar(4, frecciagiu); //Inizializzo caratteri speciali Freccia in Giù
 
   // Serial.println("[SETUP 3] LCD CONFIGURED");
 }
@@ -72,10 +75,12 @@ void reset7SegmentsDisplay() {
 }
 
 void resetLCD() {
-  lcd.setCursor(0,0);
-  lcd.print("                ");
-  lcd.setCursor(0,1);
-  lcd.print("                ");
+  for (int r = 0; r < 2; r++) {
+    lcd.setCursor(0, r);
+    for (int c = 0; c < 16; c++) {
+      lcd.write_char(' ');
+    }
+  }
 
   // Serial.println("[SETUP 7] LCD RESETTED");
 
