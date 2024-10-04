@@ -37,6 +37,7 @@ void initCountdown() {
 void initFocus() {
   relayStart(true);
   isActionStarted = true;
+  lastTimeSet = millis();
 }
 
 void focus() {
@@ -44,6 +45,7 @@ void focus() {
   int timePassed = (currentTimeSet - lastTimeSet);
   if (!isActionStarted) { initFocus(); }
   if (timePassed >= 100) {
+    lastTimeSet = millis();
     timeSet++;
     showTime(timeSet);
   }
