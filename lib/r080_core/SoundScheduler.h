@@ -7,7 +7,7 @@
 #include "Hal.h"
 
 // In ordine di priorità, dalla più alta.
-enum class Sound : uint8_t { End, Error, Start, Step, PreWarn, Metronome, Confirm };
+enum class Sound : uint8_t { End, Error, FocusWarn, Start, Step, PreWarn, Metronome, Confirm };
 
 class SoundScheduler {
  public:

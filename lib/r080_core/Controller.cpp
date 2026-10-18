@@ -3,6 +3,11 @@
 #include "TimeUnits.h"
 #include "TimingCore.h"
 
+// Un passo di luminosità, fermo ai livelli 1..LEVEL_COUNT.
+static void stepLevel(uint8_t& level, int8_t dir) {
+  if (dir > 0 ? level < LEVEL_COUNT : level > 1) level += dir;
+}
+
 static uint16_t clampDs(int32_t ds) { return ds < DS_MIN ? DS_MIN : ds > DS_MAX ? DS_MAX : ds; }
 
 void Controller::onInput(Input in, int8_t arg) {
@@ -12,14 +17,16 @@ void Controller::onInput(Input in, int8_t arg) {
     if (running) {
       timing_.cancel();
       beep(Sound::End);
-    } else if (c.timeDs > 0) {
-      if (c.mode == TEST_STRIP) {
+    } else if (c.mode == FOCUS || c.timeDs > 0) {
+      // REQ-5.6: lampada spenta se disabilitata
+      if (c.mode == FOCUS) {  // REQ-3.2, REQ-3.3
+        timing_.startFocus(kFocusLimitMinutes[set_.d.g.focusLimitIndex] * 60000UL, c.relayEnabled);
+      } else if (c.mode == TEST_STRIP) {
         stripK_ = 0;  // REQ-3.13: ogni prova riparte dal primo Step
         stripDs_ = c.timeDs;
         timing_.startStrip(dsToMs(c.timeDs), c.relayEnabled);
       } else {
-        // shortcut: il Focus esegue un Countdown finché non ha il suo ticket.
-        timing_.startCountdown(dsToMs(c.timeDs), c.relayEnabled);  // REQ-5.6: lampada spenta se disabilitata
+        timing_.startCountdown(dsToMs(c.timeDs), c.relayEnabled);
       }
       beep(Sound::Start);
       set_.save();  // REQ-6.7
@@ -42,10 +49,15 @@ void Controller::onInput(Input in, int8_t arg) {
     case Input::Star:
     case Input::Hash: {
       int8_t dir = in == Input::Hash ? 1 : -1;
-      if (c.precisionKind) stepFStop(c, dir);
+      if (c.mode == FOCUS) stepLevel(set_.d.g.lcdLevel, dir);  // REQ-5.7
+      else if (c.precisionKind) stepFStop(c, dir);
       else c.timeDs = clampDs(c.timeDs + dir * int32_t(kSecondsSteps[c.precisionIndex]) * 10);
       break;
     }
+    case Input::ZeroStar:
+    case Input::ZeroHash:
+      if (c.mode == FOCUS) stepLevel(set_.d.g.segLevel, in == Input::ZeroHash ? 1 : -1);  // REQ-5.8
+      break;
     case Input::PrecTurn:
       c.precisionIndex = (c.precisionIndex + PRECISION_COUNT + arg) % PRECISION_COUNT;
       if (c.precisionKind && c.baseDs > 0)  // REQ-4.5
@@ -115,19 +127,26 @@ void Controller::nextStripStep() {
 void Controller::update() {
   uint8_t events = timing_.takeEvents();
   if ((events & EV_STEP) && !(events & EV_END)) nextStripStep();
-  if (events & EV_END) beep(Sound::End);
+  if (events & (EV_END | EV_FOCUS_OFF)) beep(Sound::End);
+  else if (events & EV_FOCUS_WARN) beep(Sound::FocusWarn);
   else if (events & EV_STEP) beep(Sound::Step);
   else if (events & EV_PREWARN) beep(Sound::PreWarn);
   else if (events & EV_METRONOME) beep(Sound::Metronome);
   bool running = timing_.running();
-  bool strip = running && set_.active().mode == TEST_STRIP;
-  stripShown_ = strip ? stripK_ + 1 : 0;
-  // Countdown: residuo arrotondato per eccesso, non mostra 0000 prima della fine.
-  // Test strip: tempo cumulativo (REQ-7.7).
-  uint16_t ds = strip     ? msToDs(timing_.elapsedMs())
-                : running ? msToDs(timing_.remainingMs() + MS_PER_DS - 1)
-                          : set_.active().timeDs;
+  uint8_t mode = set_.active().mode;
+  stripShown_ = running && mode == TEST_STRIP ? stripK_ + 1 : 0;
+  uint16_t ds = set_.active().timeDs;
+  if (running && mode != COUNTDOWN) {
+    // Test strip: tempo cumulativo (REQ-7.7). Focus: tempo trascorso (REQ-3.2).
+    ds = msToDs(timing_.elapsedMs());
+    // shortcut: il 7 segmenti ha 4 cifre, con il Focus di 20 min resta fermo a 999,9 s; da rivedere se serve.
+    if (ds > DS_MAX) ds = DS_MAX;
+  } else if (running) {
+    // Countdown: residuo arrotondato per eccesso, non mostra 0000 prima della fine.
+    ds = msToDs(timing_.remainingMs() + MS_PER_DS - 1);
+  }
   if (ds != shownDs_) seg_.showDeciseconds(shownDs_ = ds);
+  if (set_.d.g.segLevel != segLevel_) seg_.setBrightness(segLevel_ = set_.d.g.segLevel);  // REQ-7.4
 }
 
 void Controller::beep(Sound s) {

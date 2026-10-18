@@ -807,6 +807,157 @@ static void test_old_format_loads_factory_defaults() {
   assertFactoryDefaults();
 }
 
+// REQ-3.2, REQ-3.6, REQ-8.1, REQ-8.2, REQ-8.4: in Focus la lampada resta accesa e il 7 segmenti
+// mostra il tempo trascorso, senza Metronomo; la seconda pressione la spegne con il Suono di fine.
+static void test_focus_lights_lamp_and_shows_elapsed_time_until_second_press() {
+  Timer t;
+  t.type("125");
+  t.turnMode(-1);
+  t.press();
+  TEST_ASSERT_TRUE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT16(0, t.seg.shown);
+  t.advance(1500);
+  TEST_ASSERT_EQUAL_UINT16(15, t.seg.shown);
+  t.advance(60000);
+  TEST_ASSERT_TRUE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT16(615, t.seg.shown);
+  TEST_ASSERT_EQUAL_UINT8(1, t.buzzer.count);  // solo l'avvio
+  assertNote(t, 0, 0, 1000, 60);
+  t.press();
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT32(61500, t.clock.relayOffAtMs);
+  assertNote(t, 1, 61500, 600, 150);
+  TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
+}
+
+// REQ-3.2: il Focus parte anche con tempo zero; a relè disabilitato la lampada resta spenta.
+static void test_focus_starts_with_zero_time_and_respects_relay_enable() {
+  Timer t;
+  t.keyD();
+  t.turnMode(-1);
+  t.holdHash();
+  t.press();
+  TEST_ASSERT_FALSE(t.clock.relay);
+  t.advance(2000);
+  TEST_ASSERT_EQUAL_UINT16(20, t.seg.shown);
+}
+
+// REQ-3.3, REQ-3.4: Spegnimento automatico dopo 5 minuti (valore di fabbrica), avviso 10 s prima.
+static void test_focus_turns_lamp_off_after_five_minutes_with_warning() {
+  Timer t;
+  t.turnMode(-1);
+  t.press();
+  t.advance(289999);
+  TEST_ASSERT_EQUAL_UINT8(1, t.buzzer.count);
+  t.advance(1);
+  assertNote(t, 1, 290000, 450, 200);
+  t.advance(300);
+  assertNote(t, 2, 290300, 450, 200);
+  t.advance(9699);
+  TEST_ASSERT_TRUE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT16(2999, t.seg.shown);
+  t.advance(1);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT32(300000, t.clock.relayOffAtMs);
+  assertNote(t, 3, 300000, 600, 150);
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+  t.press();  // si riaccende da capo
+  TEST_ASSERT_TRUE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT16(0, t.seg.shown);
+}
+
+// REQ-7.12: valori di fabbrica 7 segmenti livello 3, LCD livello 3, LCD in Esposizione livello 1.
+static void test_factory_brightness_levels() {
+  Timer t;
+  t.settle();
+  TEST_ASSERT_EQUAL_UINT8(3, t.seg.level);
+  TEST_ASSERT_EQUAL_UINT8(3, t.lcd.level);
+  t.press();
+  TEST_ASSERT_EQUAL_UINT8(1, t.lcd.level);
+}
+
+// REQ-5.7, REQ-7.2, REQ-7.11: in Focus `*`/`#` regolano l'LCD su 8 livelli, salvati; il tempo resta.
+static void test_star_hash_in_focus_set_lcd_brightness() {
+  {
+    Timer t;
+    t.turnMode(-1);
+    t.hash();
+    TEST_ASSERT_EQUAL_UINT8(4, t.lcd.level);
+    for (int i = 0; i < 10; i++) t.hash();
+    TEST_ASSERT_EQUAL_UINT8(8, t.lcd.level);
+    for (int i = 0; i < 10; i++) t.star();
+    TEST_ASSERT_EQUAL_UINT8(1, t.lcd.level);
+    t.hash();
+    TEST_ASSERT_EQUAL_UINT8(2, t.lcd.level);
+    TEST_ASSERT_EQUAL_UINT8(3, t.seg.level);
+    TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+    t.advance(2000);
+  }
+  Timer rebooted;
+  TEST_ASSERT_EQUAL_UINT8(2, rebooted.lcd.level);
+}
+
+// REQ-5.8, REQ-7.2, REQ-7.11: in Focus `0`+`*`/`#` regolano il 7 segmenti su 8 livelli, salvati.
+static void test_zero_with_star_hash_in_focus_set_seven_seg_brightness() {
+  {
+    Timer t;
+    t.turnMode(-1);
+    t.input(Input::ZeroHash);
+    TEST_ASSERT_EQUAL_UINT8(4, t.seg.level);
+    for (int i = 0; i < 10; i++) t.input(Input::ZeroHash);
+    TEST_ASSERT_EQUAL_UINT8(8, t.seg.level);
+    for (int i = 0; i < 10; i++) t.input(Input::ZeroStar);
+    TEST_ASSERT_EQUAL_UINT8(1, t.seg.level);
+    t.input(Input::ZeroHash);
+    TEST_ASSERT_EQUAL_UINT8(2, t.seg.level);
+    TEST_ASSERT_EQUAL_UINT8(3, t.lcd.level);
+    TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+    t.advance(2000);
+  }
+  Timer rebooted;
+  TEST_ASSERT_EQUAL_UINT8(2, rebooted.seg.level);
+}
+
+// REQ-5.7, REQ-5.8: fuori dal Focus `*`/`#` restano passi di tempo e `0`+`*`/`#` non fa nulla.
+static void test_brightness_keys_work_only_in_focus() {
+  Timer t;
+  t.input(Input::ZeroHash);
+  t.hash();
+  TEST_ASSERT_EQUAL_UINT8(3, t.seg.level);
+  TEST_ASSERT_EQUAL_UINT8(3, t.lcd.level);
+  TEST_ASSERT_EQUAL_UINT16(110, t.seg.shown);
+}
+
+// REQ-7.3, REQ-7.4: durante ogni Esposizione l'LCD scende al livello di esposizione e poi torna;
+// il 7 segmenti resta alla luminosità scelta.
+static void test_lcd_dims_during_exposure_and_seven_seg_keeps_its_level() {
+  Timer t;
+  t.turnMode(-1);
+  t.hash();
+  t.input(Input::ZeroHash);
+  t.press();
+  TEST_ASSERT_EQUAL_UINT8(1, t.lcd.level);
+  TEST_ASSERT_EQUAL_UINT8(4, t.seg.level);
+  t.press();
+  TEST_ASSERT_EQUAL_UINT8(4, t.lcd.level);
+  t.turnMode(1);
+  t.press();
+  TEST_ASSERT_EQUAL_UINT8(1, t.lcd.level);
+  t.advance(10000);
+  TEST_ASSERT_EQUAL_UINT8(4, t.lcd.level);
+  TEST_ASSERT_EQUAL_UINT8(4, t.seg.level);
+}
+
+// REQ-7.10: in Focus la riga 2 non mostra la precisione, anche con la lampada accesa.
+static void test_focus_shows_no_precision_while_lit() {
+  Timer t;
+  t.settle();
+  t.clickPrecision();
+  t.turnMode(-1);
+  t.press();
+  TEST_ASSERT_EQUAL_STRING("         Ch:A \x01\x02", t.row(1));
+}
+
 // REQ-9.9: dopo un reset da watchdog l'LCD mostra `RESET: WDT` per 3 s, poi l'uso normale.
 static void test_watchdog_reset_shows_message_for_three_seconds() {
   Timer t(true);
@@ -1035,6 +1186,15 @@ static void test_strip_concludes_at_limit_and_restarts() {
 
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_factory_brightness_levels);
+  RUN_TEST(test_star_hash_in_focus_set_lcd_brightness);
+  RUN_TEST(test_zero_with_star_hash_in_focus_set_seven_seg_brightness);
+  RUN_TEST(test_brightness_keys_work_only_in_focus);
+  RUN_TEST(test_lcd_dims_during_exposure_and_seven_seg_keeps_its_level);
+  RUN_TEST(test_focus_shows_no_precision_while_lit);
+  RUN_TEST(test_focus_lights_lamp_and_shows_elapsed_time_until_second_press);
+  RUN_TEST(test_focus_starts_with_zero_time_and_respects_relay_enable);
+  RUN_TEST(test_focus_turns_lamp_off_after_five_minutes_with_warning);
   RUN_TEST(test_digits_enter_from_the_right);
   RUN_TEST(test_fifth_digit_pushes_out_the_oldest);
   RUN_TEST(test_start_runs_countdown_for_the_set_time);
