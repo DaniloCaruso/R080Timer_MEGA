@@ -48,13 +48,13 @@ La CI (`.github/workflows/firmware.yml`) esegue compilazione Mega e test native 
   - `lib/r080_core/`: libreria di dominio in C++ puro, testata sul PC; parla con l'hardware solo tramite interfacce astratte.
   - `src/drivers/`: driver Arduino sottili che implementano quelle interfacce.
   - `src/main.cpp`: collega driver e dominio e fa girare il loop.
-- **Dominio senza Arduino**: nessun file in `lib/r080_core/` include `Arduino.h`, `avr/*`, `util/*` o librerie Arduino. La CI lo verifica.
+- **Dominio senza Arduino**: nessun file in `lib/r080_core/` include `Arduino.h`, `avr/*`, `util/*` o librerie Arduino, tranne `Flash.h` che sotto `__AVR__` include `avr/pgmspace.h`. La CI lo verifica.
 - **Niente blocchi nel loop**: nessun `delay()` né attesa attiva dopo l'avvio; ogni driver lavora a passi brevi.
 - **ISR minima**: la ISR di Timer1 fa solo somme, confronti e scritture su `PORTL`, senza divisioni né chiamate a funzioni non inline.
 - **Stato condiviso**: ogni lettura o scrittura dal main di stato condiviso con una ISR, se più larga di 8 bit, sta in `ATOMIC_BLOCK(ATOMIC_RESTORESTATE)`. Anche le scritture su `PORTL` dal main, perché `tone()` scrive sullo stesso registro.
 - **Unità di tempo**: millisecondi `uint32_t` all'interno; il decimo di secondo è l'unità di interfaccia, range `1..9999` (`lib/r080_core/TimeUnits.h`).
 - **EEPROM**: scrivere con `eeprom_update_*`, mai `eeprom_write_*`.
-- **RAM**: niente `String`, niente ArduinoSTL, niente allocazione dinamica (`new`/`malloc`); i testi costanti stanno in `PROGMEM`; poche interfacce virtuali (le vtable stanno in RAM).
+- **RAM**: niente `String`, niente ArduinoSTL, niente allocazione dinamica (`new`/`malloc`); i testi costanti stanno in `PROGMEM` (nel dominio con `Flash.h`: `PROGMEM`, `FSTR`, `fmemcpy`, `fsnprintf`, `EventLog::print`); poche interfacce virtuali (le vtable stanno in RAM).
 - **Librerie**: solo `Encoder`, `Keypad` e `OneButton`; l'LCD ha un driver nostro senza `delay`.
 - **Test**: TDD sulle due seam del TECHNICAL (dominio intero con driver finti, `TimingCore` da solo); niente finti dei moduli interni.
 

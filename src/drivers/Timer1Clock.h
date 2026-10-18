@@ -3,7 +3,6 @@
 #pragma once
 
 #include <Hal.h>
-#include <ServiceMenu.h>
 
 class Timer1Clock : public TimingPort {
  public:

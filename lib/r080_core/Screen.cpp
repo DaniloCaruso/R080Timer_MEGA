@@ -16,11 +16,11 @@ static uint8_t writeNumber(char* p, uint16_t n) {
 void Screen::compose(uint32_t nowMs) {
   memset(want_, ' ', sizeof want_);
   if (watchdogReset_ && nowMs < WDT_MESSAGE_MS) {
-    memcpy(want_[0], "RESET: WDT", 10);
+    fmemcpy(want_[0], FSTR("RESET: WDT"), 10);
     return;
   }
   if (nowMs < SPLASH_MS) {
-    memcpy(want_[0], " - R080 Timer - ", 16);
+    fmemcpy(want_[0], FSTR(" - R080 Timer - "), 16);
     uint8_t n = strlen(version_);
     if (n > 15) n = 15;
     uint8_t col = (16 - n - 1) / 2;
@@ -30,33 +30,33 @@ void Screen::compose(uint32_t nowMs) {
   }
   if (const ServiceMenu* menu = ctl_.service()) return menu->compose(want_);
   // Disposizione del firmware precedente. Riga 1: Modalità, tipo di precisione 12, Avanzamento 14.
-  // Riga 2: precisione 0-8, Canale 9-12, nota 14, spina 15.
-  // shortcut: testi in RAM perché il dominio non usa PROGMEM; da spostare se la RAM stringe.
-  static const char kModeRows[MODE_COUNT][17] = {"FOCUS           ", "COUNTDOWN  [S]  ", "TEST STRIP [S]CO"};
+  // Riga 2: precisione 0-6 senza prefisso, Canale 9-12, nota 14, spina 15.
+  static const char kModeRows[MODE_COUNT][17] PROGMEM = {"FOCUS           ", "COUNTDOWN  [S]  ", "TEST STRIP [S]CO"};
   const ChannelRecord& c = ctl_.channel();
-  memcpy(want_[0], kModeRows[c.mode], 16);
-  if (c.mode == TEST_STRIP && c.advance) memcpy(&want_[0][14], "PP", 2);  // come il firmware precedente
+  fmemcpy(want_[0], kModeRows[c.mode], 16);
+  if (c.mode == TEST_STRIP && c.advance) fmemcpy(&want_[0][14], FSTR("PP"), 2);  // come il firmware precedente
   if (c.mode != FOCUS && c.precisionKind) want_[0][12] = 'F';
   uint8_t i = c.precisionIndex;
   if (c.mode == FOCUS) {
     // REQ-7.10: in Focus nessuna precisione.
   } else if (uint16_t n = ctl_.stripStep()) {
-    memcpy(want_[1], "St:", 3);  // REQ-7.6: al posto di precisione e Offset
+    fmemcpy(want_[1], FSTR("St:"), 3);  // REQ-7.6: al posto di precisione e Offset
     writeNumber(&want_[1][3], n);
   } else if (c.precisionKind) {
-    // F-Stop: precisione alle colonne 0-5 (`Pr1/64`), Offset alle 6-8 (REQ-4.4, TECHNICAL C-13).
-    memcpy(want_[1], "Pr1/", 4);
-    writeNumber(&want_[1][4], kFStopDenominators[i]);
+    // F-Stop: `1/p` alle colonne 0-3, Offset alle 4-6 (REQ-4.4).
+    fmemcpy(want_[1], FSTR("1/"), 2);
+    writeNumber(&want_[1][2], kFStopDenominators[i]);
     int8_t off = c.offset;
-    want_[1][6] = off > 0 ? '+' : off < 0 ? '-' : ' ';
+    want_[1][4] = off > 0 ? '+' : off < 0 ? '-' : ' ';
     if (off < 0) off = -off;
-    want_[1][7] = '0' + off / 10;
-    want_[1][8] = '0' + off % 10;
+    want_[1][5] = '0' + off / 10;
+    want_[1][6] = '0' + off % 10;
   } else {
-    memcpy(want_[1], "Pr: ", 4);
-    want_[1][4 + writeNumber(&want_[1][4], kSecondsSteps[i])] = 's';
+    // Secondi allineati a destra nelle colonne 0-1, poi `s`.
+    writeNumber(&want_[1][kSecondsSteps[i] < 10], kSecondsSteps[i]);
+    want_[1][2] = 's';
   }
-  memcpy(&want_[1][9], "Ch:", 3);
+  fmemcpy(&want_[1][9], FSTR("Ch:"), 3);
   want_[1][12] = 'A' + ctl_.channelIndex();
   want_[1][14] = ctl_.muted() ? ' ' : LCD_NOTE;
   want_[1][15] = c.relayEnabled ? LCD_PLUG : ' ';
@@ -64,12 +64,12 @@ void Screen::compose(uint32_t nowMs) {
 
 void Screen::render(uint32_t nowMs) {
   if (!lcd_.online()) {
-    if (online_) log_.line("LCD offline");  // REQ-2.6
+    if (online_) log_.print(FSTR("LCD offline"));  // REQ-2.6
     online_ = false;
     return;
   }
   if (!online_) {
-    log_.line("LCD online");
+    log_.print(FSTR("LCD online"));
     memset(shown_, 0, sizeof shown_);  // il driver l'ha reinizializzato: ridisegna tutto
     online_ = true;
   }
