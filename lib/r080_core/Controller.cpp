@@ -1,4 +1,6 @@
 #include "Controller.h"
+
+#include <stdio.h>
 #include "Precision.h"
 #include "TimeUnits.h"
 #include "TimingCore.h"
@@ -10,7 +12,20 @@ static void stepLevel(uint8_t& level, int8_t dir) {
 
 static uint16_t clampDs(int32_t ds) { return ds < DS_MIN ? DS_MIN : ds > DS_MAX ? DS_MAX : ds; }
 
+void Controller::boot(bool watchdogReset, bool settingsOk, bool keyD) {
+  log_.line(watchdogReset ? "BOOT reset=WDT" : "BOOT reset=POWER");  // REQ-9.10
+  if (!settingsOk) log_.line("ERROR settings=factory");
+  if (keyD) menu_.open();
+}
+
 void Controller::onInput(Input in, int8_t arg) {
+  if (menu_.active()) {  // REQ-9.14: nel Menu di servizio nessuna Esposizione
+    if (in == Input::ModeTurn) menu_.turn(arg);
+    else if (in == Input::ModeClick) menu_.click();
+    else if (in == Input::KeyD) menu_.back();
+    else if (in == Input::Digit) menu_.digit(arg);
+    return;
+  }
   update();  // prima gli eventi della ISR: uno Step appena scattato mette già in pausa
   bool running = timing_.running();
   ChannelRecord& c = set_.active();
@@ -18,6 +33,7 @@ void Controller::onInput(Input in, int8_t arg) {
     if (running) {
       timing_.cancel();
       beep(Sound::End);
+      exposureEnd("CANCEL");
     } else if (paused_) {
       // REQ-3.12: solo l'incremento fino allo Step successivo, già calcolato allo Step.
       paused_ = false;
@@ -25,15 +41,18 @@ void Controller::onInput(Input in, int8_t arg) {
       beep(Sound::Start);
     } else if (c.mode == FOCUS || c.timeDs > 0) {
       // REQ-5.6: lampada spenta se disabilitata
+      uint32_t ms = dsToMs(c.timeDs);
       if (c.mode == FOCUS) {  // REQ-3.2, REQ-3.3
-        timing_.startFocus(kFocusLimitMinutes[set_.d.g.focusLimitIndex] * 60000UL, c.relayEnabled);
+        ms = kFocusLimitMinutes[set_.d.g.focusLimitIndex] * 60000UL;
+        timing_.startFocus(ms, c.relayEnabled);
       } else if (c.mode == TEST_STRIP) {
         stripK_ = 0;  // REQ-3.13: ogni prova riparte dal primo Step
         stripDs_ = c.timeDs;
-        timing_.startStrip(c.advance, 0, dsToMs(c.timeDs), c.relayEnabled);
+        timing_.startStrip(c.advance, 0, ms, c.relayEnabled);
       } else {
-        timing_.startCountdown(dsToMs(c.timeDs), c.relayEnabled);
+        timing_.startCountdown(ms, c.relayEnabled);
       }
+      logStart(c, ms);
       beep(Sound::Start);
       set_.save();  // REQ-6.7
     } else {
@@ -49,6 +68,7 @@ void Controller::onInput(Input in, int8_t arg) {
       paused_ = false;
       timing_.cancel();
       beep(Sound::End);
+      exposureEnd("END");  // la prova passo-passo è conclusa: una sola Esposizione
     }
     return;
   }
@@ -140,6 +160,7 @@ void Controller::nextStripStep() {
 
 void Controller::update() {
   uint8_t events = timing_.takeEvents();
+  if (events & (EV_END | EV_FOCUS_OFF)) exposureEnd("END");
   if ((events & EV_STEP) && !(events & EV_END)) {
     nextStripStep();
     paused_ = set_.active().advance;  // REQ-3.12: il TimingCore ha già spento il relè
@@ -167,6 +188,26 @@ void Controller::update() {
   }
   if (ds != shownDs_) seg_.showDeciseconds(shownDs_ = ds);
   if (set_.d.g.segLevel != segLevel_) seg_.setBrightness(segLevel_ = set_.d.g.segLevel);  // REQ-7.4
+}
+
+// REQ-9.10: inizio di ogni Esposizione nel log, come `START mode=CD ch=A ms=10000`.
+void Controller::logStart(const ChannelRecord& c, uint32_t ms) {
+  static const char kModes[MODE_COUNT][3] = {"FO", "CD", "TS"};
+  char b[40];
+  snprintf(b, sizeof b, "START mode=%s ch=%c ms=%lu", kModes[c.mode], 'A' + set_.d.g.activeChannel, (unsigned long)ms);
+  log_.line(b);
+  startMs_ = ms;
+}
+
+// REQ-9.10, REQ-9.11: fine o Annullamento nel log con la durata misurata dalla ISR, e contatori.
+// Il Focus non è un'Esposizione ma il suo tempo a relè acceso va nelle ore di lampada.
+void Controller::exposureEnd(const char* how) {
+  const ChannelRecord& c = set_.active();
+  uint32_t measured = timing_.elapsedMs();
+  cnt_.exposureEnd(c.mode != FOCUS, c.relayEnabled ? measured : 0);
+  char b[48];
+  snprintf(b, sizeof b, "%s ms=%lu measured=%lu", how, (unsigned long)startMs_, (unsigned long)measured);
+  log_.line(b);
 }
 
 void Controller::beep(Sound s) {
