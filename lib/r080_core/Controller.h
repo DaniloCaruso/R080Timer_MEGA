@@ -39,6 +39,7 @@ class Controller {
   void nextStripStep();
   void logStart(const ChannelRecord& c, uint32_t ms);
   void exposureEnd(const char* how);
+  void calibrationLog();
 
   TimingPort& timing_;
   SevenSeg& seg_;
@@ -50,6 +51,8 @@ class Controller {
   uint32_t startMs_ = 0;  // durata chiesta all'ultimo start, per il log
   uint16_t shownDs_ = 0xFFFF;
   uint8_t segLevel_ = 0;  // livello già inviato al 7 segmenti
+  int16_t ppm_ = 0;       // Correzione del clock già inviata al TimingCore, che parte da 0
+  uint32_t calNextMs_ = 0;  // tick della prossima riga del log di calibrazione, 0 a log spento
   bool entering_ = false;  // falso: la prossima cifra inizia un tempo nuovo
   uint16_t stripK_ = 0;     // indice da 0 del prossimo Step del test strip
   uint32_t stripDs_ = 0;    // tempo cumulativo del prossimo Step
