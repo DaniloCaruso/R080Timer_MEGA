@@ -13,8 +13,14 @@ void Controller::onInput(Input in, int8_t arg) {
       timing_.cancel();
       beep(Sound::End);
     } else if (c.timeDs > 0) {
-      // shortcut: ogni Modalità esegue un Countdown, finché Focus e Test strip non hanno il loro ticket.
-      timing_.startCountdown(dsToMs(c.timeDs), c.relayEnabled);  // REQ-5.6: lampada spenta se disabilitata
+      if (c.mode == TEST_STRIP) {
+        stripK_ = 0;  // REQ-3.13: ogni prova riparte dal primo Step
+        stripDs_ = c.timeDs;
+        timing_.startStrip(dsToMs(c.timeDs), c.relayEnabled);
+      } else {
+        // shortcut: il Focus esegue un Countdown finché non ha il suo ticket.
+        timing_.startCountdown(dsToMs(c.timeDs), c.relayEnabled);  // REQ-5.6: lampada spenta se disabilitata
+      }
       beep(Sound::Start);
       set_.save();  // REQ-6.7
     } else {
@@ -68,6 +74,10 @@ void Controller::onInput(Input in, int8_t arg) {
     case Input::ModeTurn:
       c.mode = (c.mode + MODE_COUNT + arg) % MODE_COUNT;  // REQ-5.10, REQ-6.3: il tempo resta
       break;
+    case Input::ModeClick:
+      // shortcut: il passo-passo si sceglie ma il test strip gira ancora continuo; lo esegue la issue #10.
+      if (c.mode == TEST_STRIP) c.advance = !c.advance;  // REQ-4.7
+      break;
     default:
       break;
   }
@@ -87,12 +97,36 @@ void Controller::stepFStop(ChannelRecord& c, int8_t dir) {
   c.timeDs = clampDs(t);
 }
 
+// REQ-3.9, REQ-3.10: lo Step k (da 0) si calcola sempre dal Tempo base, mai dallo Step
+// precedente, così l'arrotondamento non si accumula. Float: solo nel loop.
+uint32_t Controller::stripStepDs(uint16_t k) const {
+  const ChannelRecord& c = set_.active();
+  if (c.precisionKind) return fstopTime(c.baseDs, c.offset + k, kFStopDenominators[c.precisionIndex]);
+  return c.timeDs + uint32_t(k) * kSecondsSteps[c.precisionIndex] * 10;
+}
+
+void Controller::nextStripStep() {
+  uint32_t ds = stripStepDs(++stripK_);
+  // REQ-3.10: con 1/64 e base piccola l'arrotondamento darebbe Step uguali.
+  stripDs_ = ds > stripDs_ ? ds : stripDs_ + 1;
+  timing_.setNextStep(stripDs_ * MS_PER_DS);  // oltre 999,9 s conclude prima il TimingCore
+}
+
 void Controller::update() {
   uint8_t events = timing_.takeEvents();
+  if ((events & EV_STEP) && !(events & EV_END)) nextStripStep();
   if (events & EV_END) beep(Sound::End);
+  else if (events & EV_STEP) beep(Sound::Step);
+  else if (events & EV_PREWARN) beep(Sound::PreWarn);
   else if (events & EV_METRONOME) beep(Sound::Metronome);
-  // Durante il Countdown il residuo arrotondato per eccesso: non mostra 0000 prima della fine.
-  uint16_t ds = timing_.running() ? msToDs(timing_.remainingMs() + MS_PER_DS - 1) : set_.active().timeDs;
+  bool running = timing_.running();
+  bool strip = running && set_.active().mode == TEST_STRIP;
+  stripShown_ = strip ? stripK_ + 1 : 0;
+  // Countdown: residuo arrotondato per eccesso, non mostra 0000 prima della fine.
+  // Test strip: tempo cumulativo (REQ-7.7).
+  uint16_t ds = strip     ? msToDs(timing_.elapsedMs())
+                : running ? msToDs(timing_.remainingMs() + MS_PER_DS - 1)
+                          : set_.active().timeDs;
   if (ds != shownDs_) seg_.showDeciseconds(shownDs_ = ds);
 }
 

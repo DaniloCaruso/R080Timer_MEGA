@@ -17,6 +17,7 @@ static Keypad keypad(makeKeymap(keymap), const_cast<uint8_t*>(KEYPAD_ROW_PINS),
                      const_cast<uint8_t*>(KEYPAD_COL_PINS), 4, 4);
 static OneButton mainButton;
 static OneButton precButton;
+static OneButton modeButton;
 static Encoder precEncoder(ENC_PREC_DT_PIN, ENC_PREC_CLK_PIN);
 static Encoder modeEncoder(ENC_MODE_DT_PIN, ENC_MODE_CLK_PIN);
 static int32_t precLast = 0, modeLast = 0;  // ultime posizioni già tradotte in tacche
@@ -47,6 +48,9 @@ void InputDevices::begin() {
   precButton.setup(ENC_PREC_SW_PIN, INPUT_PULLUP, true);
   precButton.setDebounceMs(20);
   precButton.attachClick([](void* c) { static_cast<Controller*>(c)->onInput(Input::PrecClick, 0); }, &ctl_);
+  modeButton.setup(ENC_MODE_SW_PIN, INPUT_PULLUP, true);
+  modeButton.setDebounceMs(20);
+  modeButton.attachClick([](void* c) { static_cast<Controller*>(c)->onInput(Input::ModeClick, 0); }, &ctl_);
 }
 
 // Variazione relativa (Modalità e precisione correnti stanno nel Canale): una tacca ogni 4 conteggi.
@@ -59,6 +63,7 @@ static void turns(Controller& ctl, Encoder& enc, int32_t& last, Input in) {
 void InputDevices::poll() {
   mainButton.tick();
   precButton.tick();
+  modeButton.tick();
   turns(ctl_, precEncoder, precLast, Input::PrecTurn);
   turns(ctl_, modeEncoder, modeLast, Input::ModeTurn);
   char key = keypad.getKey();

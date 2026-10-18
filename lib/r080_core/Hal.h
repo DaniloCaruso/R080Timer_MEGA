@@ -39,8 +39,11 @@ struct EventLog {
 // comanda il relè: acceso allo start se lamp è vero, spento all'Annullamento.
 struct TimingPort {
   virtual void startCountdown(uint32_t durationMs, bool lamp) = 0;
+  virtual void startStrip(uint32_t firstStepMs, bool lamp) = 0;
+  virtual void setNextStep(uint32_t nextStepMs) = 0;
   virtual void cancel() = 0;
   virtual bool running() = 0;
   virtual uint32_t remainingMs() = 0;
+  virtual uint32_t elapsedMs() = 0;
   virtual uint8_t takeEvents() = 0;  // eventi EV_* accumulati dalla ISR dall'ultima chiamata
 };

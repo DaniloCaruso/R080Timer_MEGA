@@ -47,6 +47,7 @@ struct Timer {
   void keyD() { input(Input::KeyD); }
   void holdHash() { input(Input::HashHold); }  // `#` tenuto 1 s, poi rilasciato
   void turnMode(int8_t dir) { input(Input::ModeTurn, dir); }
+  void clickMode() { input(Input::ModeClick); }
   void settle() { advance(1600); }  // oltre la schermata di avvio, LCD aggiornato
   // Le due righe dell'LCD dopo i giri di loop necessari a mandarle.
   const char* row(uint8_t r) { advance(2); return lcd.cells[r]; }
@@ -582,7 +583,7 @@ static void test_channels_store_and_restore_whole_setting() {
   TEST_ASSERT_EQUAL_UINT16(159, t.seg.shown);
   t.channel('B');
   TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);
-  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]C ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]CO", t.row(0));
   TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:B \x01 ", t.row(1));
   t.channel('C');
   TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
@@ -641,7 +642,7 @@ static void test_mode_encoder_steps_one_mode_and_keeps_time() {
   t.settle();
   t.type("125");
   t.turnMode(1);
-  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]C ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]CO", t.row(0));
   TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
   t.turnMode(1);
   TEST_ASSERT_EQUAL_STRING("FOCUS           ", t.row(0));
@@ -731,7 +732,7 @@ static void test_reboot_restores_active_channel_channels_and_mute() {
   TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
   t.channel('B');
   TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);
-  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]C ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]CO", t.row(0));
   TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:B   ", t.row(1));
 }
 
@@ -796,6 +797,172 @@ static void test_old_format_loads_factory_defaults() {
   assertFactoryDefaults();
 }
 
+// Istanti delle note a hz, in ordine.
+static uint8_t notesAt(const Timer& t, uint16_t hz, uint32_t* atMs, uint8_t max) {
+  uint8_t n = 0;
+  for (uint8_t i = 0; i < t.buzzer.count && n < max; i++)
+    if (t.buzzer.notes[i].hz == hz) atMs[n++] = t.buzzer.notes[i].atMs;
+  return n;
+}
+
+// Test strip dalla Modalità di fabbrica (Countdown): una tacca dell'encoder della Modalità.
+static void enterTestStrip(Timer& t) { t.turnMode(1); }
+
+// REQ-3.9, REQ-3.11, REQ-8.7: in Secondi gli Step cadono a T, T+P, T+2P; la lampada resta
+// accesa e a ogni Step suona il beep di step (600 Hz, 150 ms).
+static void test_strip_seconds_steps_keep_lamp_on_and_beep() {
+  Timer t;
+  enterTestStrip(t);
+  t.turnPrecision(1);  // 2 s
+  t.type("50");
+  t.press();
+  t.advance(9500);
+  TEST_ASSERT_TRUE(t.clock.relay);
+  uint32_t at[8];
+  TEST_ASSERT_EQUAL_UINT8(3, notesAt(t, 600, at, 8));
+  TEST_ASSERT_EQUAL_UINT32(5000, at[0]);
+  TEST_ASSERT_EQUAL_UINT32(7000, at[1]);
+  TEST_ASSERT_EQUAL_UINT32(9000, at[2]);
+  for (uint8_t i = 0; i < t.buzzer.count; i++)
+    if (t.buzzer.notes[i].hz == 600) TEST_ASSERT_EQUAL_UINT16(150, t.buzzer.notes[i].ms);
+}
+
+// REQ-3.10: F-Stop 1/2 da 10,0 s, ogni Step calcolato dalla base: 10,0, 14,1, 20,0, 28,3 s.
+static void test_strip_fstop_steps_from_base() {
+  Timer t;
+  enterTestStrip(t);
+  t.type("100");
+  t.turnPrecision(1);  // 1/2
+  t.clickPrecision();
+  t.press();
+  t.advance(30000);
+  uint32_t at[8];
+  TEST_ASSERT_EQUAL_UINT8(4, notesAt(t, 600, at, 8));
+  TEST_ASSERT_EQUAL_UINT32(10000, at[0]);
+  TEST_ASSERT_EQUAL_UINT32(14100, at[1]);
+  TEST_ASSERT_EQUAL_UINT32(20000, at[2]);
+  TEST_ASSERT_EQUAL_UINT32(28300, at[3]);
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [F]CO", t.row(0));  // il tipo resta visibile durante la prova
+}
+
+// REQ-3.10: con 1/64 e base 0,1 s l'arrotondamento darebbe Step uguali: crescono di 0,1 s.
+static void test_strip_fstop_steps_grow_at_least_a_tenth() {
+  Timer t;
+  enterTestStrip(t);
+  t.type("1");
+  t.turnPrecision(-1);  // 1/64
+  t.clickPrecision();
+  t.press();
+  t.advance(350);
+  uint32_t at[8];
+  TEST_ASSERT_EQUAL_UINT8(3, notesAt(t, 600, at, 8));
+  TEST_ASSERT_EQUAL_UINT32(100, at[0]);
+  TEST_ASSERT_EQUAL_UINT32(200, at[1]);
+  TEST_ASSERT_EQUAL_UINT32(300, at[2]);
+}
+
+// REQ-7.5, REQ-7.6, REQ-7.7: riga 1 come il firmware precedente (Avanzamento `CO`); durante la
+// prova `St:n` al posto della precisione e il 7 segmenti col tempo cumulativo.
+static void test_strip_shows_step_number_and_cumulative_time() {
+  Timer t;
+  t.settle();
+  enterTestStrip(t);
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]CO", t.row(0));
+  t.type("50");
+  t.press();
+  TEST_ASSERT_EQUAL_STRING("St:1     Ch:A \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_UINT16(0, t.seg.shown);
+  t.advance(2498);  // 2,5 s dallo start: row() ne ha fatti passare 2
+  TEST_ASSERT_EQUAL_UINT16(25, t.seg.shown);
+  t.advance(2500);
+  TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("St:2     Ch:A \x01\x02", t.row(1));
+  t.press();
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);  // REQ-3.7
+}
+
+// REQ-4.7: in Test strip il pulsante dell'encoder della Modalità alterna l'Avanzamento;
+// in Countdown non fa nulla.
+static void test_mode_click_toggles_advance_in_test_strip() {
+  Timer t;
+  t.settle();
+  t.clickMode();
+  enterTestStrip(t);
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]CO", t.row(0));
+  t.clickMode();
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]PP", t.row(0));
+  t.clickMode();
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]CO", t.row(0));
+}
+
+// REQ-3.15, REQ-3.13, REQ-8.4: il pulsante principale annulla il test strip con il Suono di
+// fine; la prova successiva riparte dal primo Step.
+static void test_strip_cancel_and_restart_from_first_step() {
+  Timer t;
+  enterTestStrip(t);
+  t.type("20");
+  t.press();
+  t.advance(3500);  // Step a 2,0 e 3,0 s
+  t.press();
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT32(3500, t.clock.relayOffAtMs);
+  t.advance(1000);
+  uint32_t at[8];
+  TEST_ASSERT_EQUAL_UINT8(1, notesAt(t, 450, at, 8));  // seconda nota del Suono di fine
+  TEST_ASSERT_EQUAL_UINT32(3730, at[0]);
+  t.press();
+  TEST_ASSERT_TRUE(t.clock.relay);
+  t.advance(3000);
+  // 600 Hz: Step a 2,0 e 3,0 s, prima nota del Suono di fine, poi i primi Step della nuova prova.
+  TEST_ASSERT_EQUAL_UINT8(5, notesAt(t, 600, at, 8));
+  TEST_ASSERT_EQUAL_UINT32(3500, at[2]);
+  TEST_ASSERT_EQUAL_UINT32(4500 + 2000, at[3]);
+  TEST_ASSERT_EQUAL_UINT32(4500 + 3000, at[4]);
+}
+
+// REQ-8.2, REQ-8.3, REQ-8.7: nel test strip niente Metronomo; prima di ogni Step il
+// Preavviso di tre tick (800 Hz, 30 ms) a -300, -200, -100 ms.
+static void test_strip_prewarns_and_has_no_metronome() {
+  Timer t;
+  enterTestStrip(t);
+  t.type("50");
+  t.press();
+  t.advance(5500);
+  uint32_t at[8];
+  TEST_ASSERT_EQUAL_UINT8(0, notesAt(t, 300, at, 8));
+  TEST_ASSERT_EQUAL_UINT8(3, notesAt(t, 800, at, 8));
+  TEST_ASSERT_EQUAL_UINT32(4700, at[0]);
+  TEST_ASSERT_EQUAL_UINT32(4800, at[1]);
+  TEST_ASSERT_EQUAL_UINT32(4900, at[2]);
+  for (uint8_t i = 0; i < t.buzzer.count; i++)
+    if (t.buzzer.notes[i].hz == 800) TEST_ASSERT_EQUAL_UINT16(30, t.buzzer.notes[i].ms);
+}
+
+// REQ-3.14, REQ-3.13: a 999,9 s il test strip si conclude con il Suono di fine; la prova
+// successiva riparte dal primo Step.
+static void test_strip_concludes_at_limit_and_restarts() {
+  Timer t;
+  enterTestStrip(t);
+  t.type("9000");
+  t.turnPrecision(-1);  // 20 s: Step a 900,0, 920,0, ... 980,0 s
+  t.press();
+  t.advance(999899);
+  TEST_ASSERT_TRUE(t.clock.relay);
+  t.advance(1);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT32(999900, t.clock.relayOffAtMs);
+  t.advance(1000);
+  uint32_t at[8];
+  TEST_ASSERT_EQUAL_UINT8(1, notesAt(t, 450, at, 8));
+  TEST_ASSERT_EQUAL_UINT32(999900 + 230, at[0]);
+  TEST_ASSERT_EQUAL_UINT16(9000, t.seg.shown);
+  t.press();
+  t.advance(900000);
+  TEST_ASSERT_EQUAL_UINT8(7, notesAt(t, 600, at, 8));  // 5 Step, fine, primo Step della nuova prova
+  TEST_ASSERT_EQUAL_UINT32(1000900 + 900000, at[6]);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_digits_enter_from_the_right);
@@ -848,5 +1015,13 @@ int main() {
   RUN_TEST(test_out_of_range_channel_loads_factory_defaults);
   RUN_TEST(test_unknown_version_loads_factory_defaults);
   RUN_TEST(test_old_format_loads_factory_defaults);
+  RUN_TEST(test_strip_seconds_steps_keep_lamp_on_and_beep);
+  RUN_TEST(test_strip_fstop_steps_from_base);
+  RUN_TEST(test_strip_fstop_steps_grow_at_least_a_tenth);
+  RUN_TEST(test_strip_shows_step_number_and_cumulative_time);
+  RUN_TEST(test_mode_click_toggles_advance_in_test_strip);
+  RUN_TEST(test_strip_cancel_and_restart_from_first_step);
+  RUN_TEST(test_strip_prewarns_and_has_no_metronome);
+  RUN_TEST(test_strip_concludes_at_limit_and_restarts);
   return UNITY_END();
 }
