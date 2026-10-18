@@ -27,7 +27,7 @@ Le modifiche comuni (documentazione, configurazione agenti) vanno su `main`; i d
 
 ## 3. Questo branch: Arduino Mega 2560
 
-Firmware C++ su **Arduino Mega 2560** con **PlatformIO** (env `megaatmega2560`). Non generare codice MicroPython su questo branch: quello vive su `feature/micropython-esp32-port`.
+Firmware C++ su **Arduino Mega 2560** con **PlatformIO** (env `megaatmega2560`). Non generare codice MicroPython su questo branch: quello vive su `feature/esp32-micropython-firmware`.
 
 Riferimenti: `TECNICO.md` (architettura completa), `PINOUT.md` (pin e risorse AVR), `DIAGRAMS.md` (flussi e state machine).
 
