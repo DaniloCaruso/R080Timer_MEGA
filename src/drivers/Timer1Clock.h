@@ -7,7 +7,7 @@
 class Timer1Clock : public TimingPort {
  public:
   void begin();  // chiamare per primo in setup(): mette il relè in uscita a livello basso
-  void startCountdown(uint32_t durationMs) override;
+  void startCountdown(uint32_t durationMs, bool lamp) override;
   void cancel() override;
   bool running() override;
   uint32_t remainingMs() override;
