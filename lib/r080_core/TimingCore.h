@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 
-enum class Run : uint8_t { Idle, Focus, Countdown, StripContinuous };
+enum class Run : uint8_t { Idle, Focus, Countdown, StripContinuous, StripStepped };
 
 // Eventi di un tick, a bit: la ISR li accumula, il loop li raccoglie.
 enum : uint8_t { EV_END = 1, EV_STEP = 2, EV_METRONOME = 4, EV_PREWARN = 8, EV_FOCUS_WARN = 16, EV_FOCUS_OFF = 32 };
@@ -33,16 +33,17 @@ class TimingCore {
     run_ = Run::Focus;
   }
   // Test strip: il loop calcola ogni Step (float, C-9) e lo passa con setNextStep().
-  void startStrip(uint32_t firstStepMs) {
-    elapsed_ = 0;
-    next_ = firstStepMs;
-    run_ = Run::StripContinuous;
+  // Passo-passo: allo Step il core si ferma; la ripresa riparte da elapsedMs.
+  void startStrip(bool stepped, uint32_t elapsedMs, uint32_t nextStepMs) {
+    elapsed_ = elapsedMs;
+    next_ = nextStepMs;
+    run_ = stepped ? Run::StripStepped : Run::StripContinuous;
   }
   void setNextStep(uint32_t nextStepMs) { next_ = nextStepMs; }
   void cancel() { run_ = Run::Idle; }
 
   TickOut tick() {
-    if (run_ == Run::StripContinuous) return stripTick();
+    if (run_ == Run::StripContinuous || run_ == Run::StripStepped) return stripTick();
     if (run_ == Run::Focus) return focusTick();
     if (run_ != Run::Countdown) return {0, false};
     if (++elapsed_ >= target_) {
@@ -67,7 +68,9 @@ class TimingCore {
     }
     if (elapsed_ >= next_) {
       next_ = NO_STEP;
-      return {EV_STEP, false};
+      bool pause = run_ == Run::StripStepped;  // REQ-1.3: relè spento al tick dello Step
+      if (pause) run_ = Run::Idle;
+      return {EV_STEP, pause};
     }
     uint32_t left = next_ - elapsed_;
     return {static_cast<uint8_t>(left == 300 || left == 200 || left == 100 ? EV_PREWARN : 0), false};  // REQ-8.3

@@ -41,6 +41,7 @@ class Controller {
   uint16_t stripK_ = 0;     // indice da 0 del prossimo Step del test strip
   uint32_t stripDs_ = 0;    // tempo cumulativo del prossimo Step
   uint16_t stripShown_ = 0;
+  bool paused_ = false;     // passo-passo fermo a uno Step, in attesa del pulsante principale
 
   void stepFStop(ChannelRecord& c, int8_t dir);
 };

@@ -1184,6 +1184,127 @@ static void test_strip_concludes_at_limit_and_restarts() {
   TEST_ASSERT_EQUAL_UINT32(1000900 + 900000, at[6]);
 }
 
+// Test strip passo-passo dalla Modalità di fabbrica.
+static void enterSteppedStrip(Timer& t) {
+  enterTestStrip(t);
+  t.clickMode();
+}
+
+// REQ-3.12, REQ-1.3: primo impulso T, poi a ogni pressione solo l'incremento fino allo Step
+// successivo; tra gli Step la lampada resta spenta.
+static void test_stepped_strip_exposes_base_then_increments() {
+  Timer t;
+  enterSteppedStrip(t);
+  t.turnPrecision(1);  // 2 s: Step a 5,0, 7,0, 9,0 s
+  t.type("50");
+  t.press();
+  TEST_ASSERT_TRUE(t.clock.relay);
+  uint32_t on = t.clock.nowMs;
+  t.advance(5000);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT32(5000, t.clock.relayOffAtMs - on);
+  t.advance(4000);  // in pausa la lampada resta spenta
+  TEST_ASSERT_FALSE(t.clock.relay);
+  for (int k = 0; k < 2; k++) {
+    t.press();
+    TEST_ASSERT_TRUE(t.clock.relay);
+    on = t.clock.nowMs;
+    t.advance(2000);
+    TEST_ASSERT_FALSE(t.clock.relay);
+    TEST_ASSERT_EQUAL_UINT32(2000, t.clock.relayOffAtMs - on);
+  }
+}
+
+// REQ-7.8, REQ-7.6: in pausa il 7 segmenti mostra il tempo cumulativo dello Step successivo
+// (F-Stop 1/2 da 10,0 s: 14,1 poi 20,0 s) e l'LCD il numero di quello Step.
+static void test_stepped_strip_pause_shows_next_step() {
+  Timer t;
+  t.settle();
+  enterSteppedStrip(t);
+  t.type("100");
+  t.turnPrecision(1);  // 1/2
+  t.clickPrecision();
+  t.press();
+  t.advance(10000);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT16(141, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("St:2     Ch:A \x01\x02", t.row(1));
+  t.press();
+  t.advance(2000);  // durante l'incremento: tempo cumulativo
+  TEST_ASSERT_EQUAL_UINT16(120, t.seg.shown);
+  t.advance(2100);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT16(200, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("St:3     Ch:A \x01\x02", t.row(1));
+}
+
+// REQ-3.12: una pressione letta nello stesso giro di loop dello Step (evento non ancora
+// raccolto) esegue l'incremento, non riavvia la prova dal primo Step.
+static void test_press_in_same_loop_as_step_resumes() {
+  Timer t;
+  enterSteppedStrip(t);
+  t.type("50");
+  t.press();
+  t.advance(4999);
+  t.clock.tick();  // lo Step scatta nella ISR, il loop legge prima gli input
+  t.press();
+  TEST_ASSERT_TRUE(t.clock.relay);
+  uint32_t on = t.clock.nowMs;
+  t.advance(1000);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT32(1000, t.clock.relayOffAtMs - on);
+}
+
+// Porta il passo-passo da 5,0 s in pausa al secondo Step (6,0 s).
+static void pauseAtSecondStep(Timer& t) {
+  enterSteppedStrip(t);
+  t.type("50");
+  t.press();
+  t.advance(5000);
+  t.press();
+  t.advance(1000);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT16(70, t.seg.shown);
+}
+
+// Dopo la conclusione: 7 segmenti al Tempo base, nessuna ripresa, la prova riparte dal primo Step.
+static void assertStripConcludedAndRestarts(Timer& t) {
+  TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);
+  t.advance(1000);
+  uint32_t at[8];
+  TEST_ASSERT_EQUAL_UINT8(1, notesAt(t, 450, at, 8));  // Suono di fine
+  t.press();
+  TEST_ASSERT_TRUE(t.clock.relay);
+  uint32_t on = t.clock.nowMs;
+  t.advance(5000);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT32(5000, t.clock.relayOffAtMs - on);
+}
+
+// REQ-3.16: `D` in pausa conclude il test strip senza azzerare il tempo.
+static void test_key_d_in_pause_concludes_stepped_strip() {
+  Timer t;
+  pauseAtSecondStep(t);
+  t.keyD();
+  assertStripConcludedAndRestarts(t);
+}
+
+// REQ-3.16: anche A/B/C in pausa concludono il test strip.
+static void test_channel_in_pause_concludes_stepped_strip() {
+  Timer t;
+  pauseAtSecondStep(t);
+  t.channel('A');
+  assertStripConcludedAndRestarts(t);
+}
+
+// REQ-3.16: anche il cambio di Modalità in pausa conclude il test strip.
+static void test_mode_turn_in_pause_concludes_stepped_strip() {
+  Timer t;
+  pauseAtSecondStep(t);
+  t.turnMode(1);
+  assertStripConcludedAndRestarts(t);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_factory_brightness_levels);
@@ -1258,5 +1379,11 @@ int main() {
   RUN_TEST(test_strip_cancel_and_restart_from_first_step);
   RUN_TEST(test_strip_prewarns_and_has_no_metronome);
   RUN_TEST(test_strip_concludes_at_limit_and_restarts);
+  RUN_TEST(test_stepped_strip_exposes_base_then_increments);
+  RUN_TEST(test_stepped_strip_pause_shows_next_step);
+  RUN_TEST(test_press_in_same_loop_as_step_resumes);
+  RUN_TEST(test_key_d_in_pause_concludes_stepped_strip);
+  RUN_TEST(test_channel_in_pause_concludes_stepped_strip);
+  RUN_TEST(test_mode_turn_in_pause_concludes_stepped_strip);
   return UNITY_END();
 }
