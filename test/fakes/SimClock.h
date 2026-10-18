@@ -10,10 +10,10 @@ struct SimClock : TimingPort {
   uint32_t nowMs = 0;
   uint32_t relayOnAtMs = 0, relayOffAtMs = 0;
 
-  void startCountdown(uint32_t durationMs) override {
+  void startCountdown(uint32_t durationMs, bool lamp) override {
     core.startCountdown(durationMs);
-    relay = true;
-    relayOnAtMs = nowMs;
+    relay = lamp;
+    if (lamp) relayOnAtMs = nowMs;
   }
   void cancel() override { core.cancel(); relay = false; relayOffAtMs = nowMs; }
   bool running() override { return core.run() != Run::Idle; }

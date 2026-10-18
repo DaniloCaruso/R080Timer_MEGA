@@ -18,24 +18,26 @@ static Keypad keypad(makeKeymap(keymap), const_cast<uint8_t*>(KEYPAD_ROW_PINS),
 static OneButton mainButton;
 static OneButton precButton;
 static Encoder precEncoder(ENC_PREC_DT_PIN, ENC_PREC_CLK_PIN);
-static int32_t precLast = 0;  // ultima posizione già tradotta in tacche
+static Encoder modeEncoder(ENC_MODE_DT_PIN, ENC_MODE_CLK_PIN);
+static int32_t precLast = 0, modeLast = 0;  // ultime posizioni già tradotte in tacche
 static Controller* keyTarget;  // il listener di Keypad non riceve contesto
-static bool starHeld = false;
+static bool held = false;      // HOLD già scattato per il tasto che verrà rilasciato
 
 void InputDevices::begin() {
-  keypad.setHoldTime(1000);  // REQ-5.5
+  keypad.setHoldTime(1000);  // REQ-5.5, REQ-5.6
   keyTarget = &ctl_;
-  // Il listener riceve i cambi di stato del primo tasto premuto. `*` agisce al rilascio, e
-  // solo se non è scattato l'HOLD: Keypad manda sempre un RELEASED dopo l'HOLD (C-20).
+  // Il listener riceve i cambi di stato del primo tasto premuto. `*` e `#` agiscono al rilascio,
+  // e solo se non è scattato l'HOLD: Keypad manda sempre un RELEASED dopo l'HOLD (C-20).
   keypad.addEventListener([](char key) {
-    if (key != '*') return;
+    if (key != '*' && key != '#') return;
+    bool star = key == '*';
     KeyState s = keypad.getState();
     if (s == HOLD) {
-      starHeld = true;
-      keyTarget->onInput(Input::StarHold, 0);
+      held = true;
+      keyTarget->onInput(star ? Input::StarHold : Input::HashHold, 0);
     } else if (s == RELEASED) {
-      if (!starHeld) keyTarget->onInput(Input::Star, 0);
-      starHeld = false;
+      if (!held) keyTarget->onInput(star ? Input::Star : Input::Hash, 0);
+      held = false;
     }
   });
   mainButton.setup(MAIN_BTN_PIN, INPUT_PULLUP, true);
@@ -47,15 +49,20 @@ void InputDevices::begin() {
   precButton.attachClick([](void* c) { static_cast<Controller*>(c)->onInput(Input::PrecClick, 0); }, &ctl_);
 }
 
+// Variazione relativa (Modalità e precisione correnti stanno nel Canale): una tacca ogni 4 conteggi.
+static void turns(Controller& ctl, Encoder& enc, int32_t& last, Input in) {
+  int32_t pos = enc.read();
+  while (pos - last >= 4) { last += 4; ctl.onInput(in, 1); }
+  while (last - pos >= 4) { last -= 4; ctl.onInput(in, -1); }
+}
+
 void InputDevices::poll() {
   mainButton.tick();
   precButton.tick();
-  // Variazione relativa (la precisione corrente sta nel Controller): una tacca ogni 4 conteggi.
-  int32_t pos = precEncoder.read();
-  while (pos - precLast >= 4) { precLast += 4; ctl_.onInput(Input::PrecTurn, 1); }
-  while (precLast - pos >= 4) { precLast -= 4; ctl_.onInput(Input::PrecTurn, -1); }
+  turns(ctl_, precEncoder, precLast, Input::PrecTurn);
+  turns(ctl_, modeEncoder, modeLast, Input::ModeTurn);
   char key = keypad.getKey();
   if (key >= '0' && key <= '9') ctl_.onInput(Input::Digit, key - '0');
-  // shortcut: `#` agisce alla pressione finché non ha l'HOLD (Abilitazione relè), poi va al rilascio come `*`.
-  else if (key == '#') ctl_.onInput(Input::Hash, 0);
+  else if (key >= 'A' && key <= 'C') ctl_.onInput(Input::Channel, key - 'A');
+  else if (key == 'D') ctl_.onInput(Input::KeyD, 0);
 }

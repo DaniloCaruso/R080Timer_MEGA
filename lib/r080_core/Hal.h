@@ -24,15 +24,21 @@ struct Buzzer {
   virtual void play(uint16_t hz, uint16_t ms) = 0;
 };
 
+// EEPROM: update() riceve solo i byte da scrivere.
+struct Storage {
+  virtual void read(uint16_t addr, uint8_t* dst, uint16_t n) = 0;
+  virtual void update(uint16_t addr, const uint8_t* src, uint16_t n) = 0;
+};
+
 // Log degli eventi: una riga di testo per evento, mai bloccante.
 struct EventLog {
   virtual void line(const char* text) = 0;
 };
 
 // Comandi al TimingCore della ISR. Il driver li esegue in modo atomico e
-// comanda il relè: acceso allo start, spento all'Annullamento.
+// comanda il relè: acceso allo start se lamp è vero, spento all'Annullamento.
 struct TimingPort {
-  virtual void startCountdown(uint32_t durationMs) = 0;
+  virtual void startCountdown(uint32_t durationMs, bool lamp) = 0;
   virtual void cancel() = 0;
   virtual bool running() = 0;
   virtual uint32_t remainingMs() = 0;

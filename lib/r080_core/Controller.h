@@ -4,22 +4,23 @@
 
 #include <stdint.h>
 #include "Hal.h"
+#include "Settings.h"
 #include "SoundScheduler.h"
 
-enum class Input : uint8_t { Digit, Star, Hash, StarHold, PrecTurn, PrecClick, MainPress };
+enum class Input : uint8_t { Digit, Star, Hash, StarHold, HashHold, Channel, KeyD, ModeTurn, PrecTurn, PrecClick, MainPress };
 
 class Controller {
  public:
-  Controller(TimingPort& timing, SevenSeg& seg, SoundScheduler& sound)
-      : timing_(timing), seg_(seg), sound_(sound) {}
-  void onInput(Input in, int8_t arg);  // arg: la cifra per Digit, il verso (+1/-1) per PrecTurn
-  void update();                       // a ogni giro di loop
-  bool muted() const { return muted_; }
+  Controller(TimingPort& timing, SevenSeg& seg, SoundScheduler& sound, Settings& settings)
+      : timing_(timing), seg_(seg), sound_(sound), set_(settings) {}
+  // arg: la cifra per Digit, il Canale 0..2 per Channel, il verso (+1/-1) per ModeTurn e PrecTurn
+  void onInput(Input in, int8_t arg);
+  void update();  // a ogni giro di loop
 
   // Stato letto da Screen.
-  uint8_t precisionIndex() const { return precIdx_; }
-  bool fstop() const { return fstop_; }
-  int8_t offset() const { return offset_; }
+  bool muted() const { return set_.d.g.mute; }
+  uint8_t channelIndex() const { return set_.d.g.activeChannel; }
+  const ChannelRecord& channel() const { return set_.active(); }
 
  private:
   void beep(Sound s);
@@ -27,14 +28,9 @@ class Controller {
   TimingPort& timing_;
   SevenSeg& seg_;
   SoundScheduler& sound_;
-  uint16_t timeDs_ = 100;  // 10,0 s, il valore di fabbrica
+  Settings& set_;  // il Canale attivo: tempo, Tempo base, Offset (-99..+99), precisione, Modalità
   uint16_t shownDs_ = 0xFFFF;
   bool entering_ = false;  // falso: la prossima cifra inizia un tempo nuovo
-  bool muted_ = false;
-  uint8_t precIdx_ = 0;    // indice nelle liste di Precision.h
-  bool fstop_ = false;     // tipo di precisione: falso = Secondi
-  uint16_t baseDs_ = 100;  // Tempo base
-  int8_t offset_ = 0;      // Offset in frazioni di stop, -99..+99
 
-  void stepFStop(int8_t dir);
+  void stepFStop(ChannelRecord& c, int8_t dir);
 };

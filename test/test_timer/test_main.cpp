@@ -3,12 +3,17 @@
 #include <unity.h>
 #include <Controller.h>
 #include <Screen.h>
+#include <Settings.h>
 #include <SoundScheduler.h>
 #include "../fakes/FakeBuzzer.h"
 #include "../fakes/FakeLcd.h"
 #include "../fakes/FakeLog.h"
 #include "../fakes/FakeSevenSeg.h"
+#include "../fakes/FakeStorage.h"
 #include "../fakes/SimClock.h"
+
+// EEPROM della scheda: sopravvive al Timer, così un riavvio simulato è un Timer nuovo.
+static FakeStorage eeprom;
 
 struct Timer {
   SimClock clock;
@@ -17,11 +22,17 @@ struct Timer {
   FakeLog log;
   FakeBuzzer buzzer{clock.nowMs};
   SoundScheduler sound{buzzer};
-  Controller ctl{clock, seg, sound};
+  Settings settings{eeprom};
+  Controller ctl{clock, seg, sound, settings};
   Screen screen{lcd, log, ctl, "2.0.0"};
 
-  Timer() { loop(); }
-  void loop() { ctl.update(); sound.tick(clock.nowMs); screen.render(clock.nowMs); }  // un giro di loop()
+  Timer() { settings.load(); loop(); }
+  void loop() {  // un giro di loop()
+    ctl.update();
+    sound.tick(clock.nowMs);
+    screen.render(clock.nowMs);
+    settings.service(clock.nowMs);
+  }
   void type(const char* digits) {
     for (; *digits; digits++) { ctl.onInput(Input::Digit, *digits - '0'); loop(); }
   }
@@ -32,6 +43,10 @@ struct Timer {
   void hash() { input(Input::Hash); }
   void turnPrecision(int8_t dir) { input(Input::PrecTurn, dir); }
   void clickPrecision() { input(Input::PrecClick); }
+  void channel(char c) { input(Input::Channel, c - 'A'); }
+  void keyD() { input(Input::KeyD); }
+  void holdHash() { input(Input::HashHold); }  // `#` tenuto 1 s, poi rilasciato
+  void turnMode(int8_t dir) { input(Input::ModeTurn, dir); }
   void settle() { advance(1600); }  // oltre la schermata di avvio, LCD aggiornato
   // Le due righe dell'LCD dopo i giri di loop necessari a mandarle.
   const char* row(uint8_t r) { advance(2); return lcd.cells[r]; }
@@ -40,7 +55,7 @@ struct Timer {
   }
 };
 
-void setUp() {}
+void setUp() { eeprom.erase(); }
 void tearDown() {}
 
 // Controlla la nota n del buzzer: istante, frequenza e durata.
@@ -542,6 +557,245 @@ static void test_precision_encoder_is_ignored_during_countdown() {
   TEST_ASSERT_EQUAL_STRING_LEN("Pr: 1s  ", t.row(1), 8);
 }
 
+// REQ-6.1, REQ-6.2: A, B e C richiamano ciascuno la propria impostazione completa.
+static void test_channels_store_and_restore_whole_setting() {
+  Timer t;
+  t.settle();
+  t.type("100");
+  t.turnPrecision(1);
+  t.turnPrecision(1);  // 1/3
+  t.clickPrecision();
+  t.hash();
+  TEST_ASSERT_EQUAL_UINT16(126, t.seg.shown);
+  t.channel('B');
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:B \x01\x02", t.row(1));
+  t.turnMode(1);
+  t.type("50");
+  t.holdHash();
+  t.channel('A');
+  TEST_ASSERT_EQUAL_UINT16(126, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [F]  ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Pr1/3 +01Ch:A \x01\x02", t.row(1));
+  t.hash();  // Tempo base e Offset ripristinati
+  TEST_ASSERT_EQUAL_UINT16(159, t.seg.shown);
+  t.channel('B');
+  TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]C ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:B \x01 ", t.row(1));
+  t.channel('C');
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:C \x01\x02", t.row(1));
+}
+
+// REQ-5.4: `D` azzera tempo, Tempo base e Offset del solo Canale attivo.
+static void test_key_d_clears_time_base_and_offset_of_active_channel() {
+  Timer t;
+  t.settle();
+  t.type("100");
+  t.clickPrecision();
+  t.hash();
+  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1 +01", t.row(1), 9);
+  t.keyD();
+  TEST_ASSERT_EQUAL_UINT16(0, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1  00", t.row(1), 9);
+  t.hash();  // Tempo base zero: l'F-Stop non ha da dove partire
+  TEST_ASSERT_EQUAL_UINT16(0, t.seg.shown);
+  t.channel('B');
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+}
+
+// REQ-5.6: `#` tenuto 1 s alterna l'Abilitazione relè del Canale attivo con il beep di
+// conferma; a relè disabilitato l'Esposizione gira con la lampada spenta.
+static void test_holding_hash_toggles_relay_enable() {
+  Timer t;
+  t.type("15");
+  t.advance(2000);
+  t.holdHash();
+  t.advance(1);
+  TEST_ASSERT_EQUAL_UINT8(1, t.buzzer.count);
+  assertNote(t, 0, 2000, 1200, 40);
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01 ", t.lcd.cells[1]);
+  TEST_ASSERT_EQUAL_UINT16(15, t.seg.shown);
+  t.press();
+  TEST_ASSERT_FALSE(t.clock.relay);
+  t.advance(1000);
+  TEST_ASSERT_EQUAL_UINT16(5, t.seg.shown);  // il tempo gira comunque
+  TEST_ASSERT_FALSE(t.clock.relay);
+  t.advance(500);
+  TEST_ASSERT_EQUAL_UINT16(15, t.seg.shown);
+  t.channel('B');  // l'Abilitazione è per Canale
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:B \x01\x02", t.row(1));
+  t.channel('A');
+  t.holdHash();
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.row(1));
+  t.press();
+  TEST_ASSERT_TRUE(t.clock.relay);
+}
+
+// REQ-5.10, REQ-6.3, REQ-7.10: una tacca cambia Modalità di uno, in tondo, e il tempo resta.
+static void test_mode_encoder_steps_one_mode_and_keeps_time() {
+  Timer t;
+  t.settle();
+  t.type("125");
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]C ", t.row(0));
+  TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("FOCUS           ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("         Ch:A \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
+  t.turnMode(-1);
+  TEST_ASSERT_EQUAL_STRING("FOCUS           ", t.row(0));
+  TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
+}
+
+// REQ-5.9: durante l'Esposizione tastierino, encoder e cambio Canale sono ignorati.
+static void test_channel_keys_and_mode_encoder_are_ignored_during_exposure() {
+  Timer t;
+  t.settle();
+  t.press();
+  t.channel('B');
+  t.keyD();
+  t.turnMode(1);
+  t.holdHash();
+  t.press();
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.row(1));
+}
+
+// REQ-6.7: il salvataggio parte 2 s dopo l'ultima modifica.
+static void test_settings_are_saved_two_seconds_after_last_change() {
+  Timer t;
+  t.type("12");
+  t.advance(1000);
+  t.type("5");
+  t.advance(1999);
+  TEST_ASSERT_EQUAL_UINT32(0, eeprom.written);
+  t.advance(1);
+  TEST_ASSERT_TRUE(eeprom.written > 0);
+  Timer rebooted;
+  TEST_ASSERT_EQUAL_UINT16(125, rebooted.seg.shown);
+}
+
+// REQ-6.7: all'avvio di un'Esposizione si salva subito.
+static void test_settings_are_saved_when_exposure_starts() {
+  Timer t;
+  t.type("125");
+  t.press();
+  TEST_ASSERT_TRUE(eeprom.written > 0);
+  Timer rebooted;
+  TEST_ASSERT_EQUAL_UINT16(125, rebooted.seg.shown);
+}
+
+// REQ-6.8: si scrivono solo i byte cambiati; se nulla cambia, niente scritture.
+static void test_save_writes_only_changed_bytes() {
+  Timer t;
+  t.type("100");
+  t.advance(2000);
+  uint32_t first = eeprom.written;
+  t.type("125");  // cambiano tempo e Tempo base (byte basso) e il CRC
+  t.advance(2000);
+  TEST_ASSERT_EQUAL_UINT32(first + 3, eeprom.written);
+  t.turnPrecision(1);
+  t.turnPrecision(-1);
+  t.advance(2000);
+  TEST_ASSERT_EQUAL_UINT32(first + 3, eeprom.written);
+}
+
+// REQ-6.4: dopo un riavvio si ritrovano Canale attivo, impostazioni dei Canali e mute.
+static void test_reboot_restores_active_channel_channels_and_mute() {
+  {
+    Timer t;
+    t.type("125");
+    t.channel('B');
+    t.turnMode(1);
+    t.type("50");
+    t.holdHash();
+    t.channel('C');
+    t.clickPrecision();
+    t.hold();  // mute
+    t.advance(2000);
+  }
+  Timer t;
+  t.settle();
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [F]  ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Pr1/1  00Ch:C  \x02", t.row(1));
+  t.channel('A');
+  TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
+  t.channel('B');
+  TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]C ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:B   ", t.row(1));
+}
+
+// Salva un'impostazione lontana da quella di fabbrica: Canale B, 5,0 s, mute.
+static void saveNonFactorySettings() {
+  Timer t;
+  t.channel('B');
+  t.type("50");
+  t.hold();
+  t.advance(2000);
+}
+
+// Valori di fabbrica (TECHNICAL C-10): Canale A, Countdown, Secondi 1 s, 10,0 s, relè abilitato, mute spento.
+static void assertFactoryDefaults() {
+  Timer t;
+  t.settle();
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.row(1));
+  t.channel('B');
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+}
+
+// CRC8 polinomio 0x07, scritto qui per ricostruire un blocco con un CRC valido.
+static uint8_t crc8(const uint8_t* p, uint8_t n) {
+  uint8_t crc = 0;
+  while (n--) {
+    crc ^= *p++;
+    for (int i = 0; i < 8; i++) crc = (crc & 0x80) ? (uint8_t)((crc << 1) ^ 0x07) : (uint8_t)(crc << 1);
+  }
+  return crc;
+}
+
+// REQ-2.5: CRC errato porta ai valori di fabbrica.
+static void test_bad_crc_loads_factory_defaults() {
+  saveNonFactorySettings();
+  eeprom.bytes[42] ^= 0x01;
+  assertFactoryDefaults();
+}
+
+// Un Canale attivo fuori da A-C, anche con CRC giusto, non viene usato.
+static void test_out_of_range_channel_loads_factory_defaults() {
+  saveNonFactorySettings();
+  eeprom.bytes[4] = 7;  // primo byte dopo l'intestazione: Canale attivo
+  eeprom.bytes[42] = crc8(eeprom.bytes, 42);
+  assertFactoryDefaults();
+}
+
+// REQ-2.5: versione sconosciuta, anche con CRC giusto, porta ai valori di fabbrica.
+static void test_unknown_version_loads_factory_defaults() {
+  saveNonFactorySettings();
+  eeprom.bytes[2] = 2;
+  eeprom.bytes[42] = crc8(eeprom.bytes, 42);
+  assertFactoryDefaults();
+}
+
+// REQ-6.6: il vecchio formato (magic 0xA5 all'indirizzo 0, 13 byte) porta ai valori di fabbrica.
+static void test_old_format_loads_factory_defaults() {
+  saveNonFactorySettings();
+  static const uint8_t old[13] = {0xA5, 10, 0, 2, 0, 50, 0, 50, 0, 50, 1, 1, 1};
+  memcpy(eeprom.bytes, old, sizeof old);
+  assertFactoryDefaults();
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_digits_enter_from_the_right);
@@ -581,5 +835,18 @@ int main() {
   RUN_TEST(test_precision_click_toggles_type_and_rebases);
   RUN_TEST(test_typed_time_becomes_base_with_zero_offset);
   RUN_TEST(test_precision_encoder_is_ignored_during_countdown);
+  RUN_TEST(test_channels_store_and_restore_whole_setting);
+  RUN_TEST(test_key_d_clears_time_base_and_offset_of_active_channel);
+  RUN_TEST(test_holding_hash_toggles_relay_enable);
+  RUN_TEST(test_mode_encoder_steps_one_mode_and_keeps_time);
+  RUN_TEST(test_channel_keys_and_mode_encoder_are_ignored_during_exposure);
+  RUN_TEST(test_settings_are_saved_two_seconds_after_last_change);
+  RUN_TEST(test_settings_are_saved_when_exposure_starts);
+  RUN_TEST(test_save_writes_only_changed_bytes);
+  RUN_TEST(test_reboot_restores_active_channel_channels_and_mute);
+  RUN_TEST(test_bad_crc_loads_factory_defaults);
+  RUN_TEST(test_out_of_range_channel_loads_factory_defaults);
+  RUN_TEST(test_unknown_version_loads_factory_defaults);
+  RUN_TEST(test_old_format_loads_factory_defaults);
   return UNITY_END();
 }
