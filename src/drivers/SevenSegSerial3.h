@@ -8,4 +8,5 @@ class SevenSegSerial3 : public SevenSeg {
  public:
   void begin();
   void showDeciseconds(uint16_t ds) override;
+  void setBrightness(uint8_t level) override;
 };
