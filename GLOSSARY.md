@@ -65,7 +65,7 @@ Il passo con cui `*`/`#` e il test strip spostano il tempo; ha un tipo (Secondi 
 _Avoid_: risoluzione, incremento
 
 **Tempo base**:
-Il tempo di riferimento da cui si contano l'offset e gli step di un test strip.
+Il tempo di riferimento da cui si conta l'offset; gli step F-Stop di un test strip si calcolano da tempo base e offset, a partire dal tempo impostato.
 _Avoid_: baseTime, tempo di partenza
 
 **Offset**:

@@ -71,7 +71,7 @@ Every communication with the LCD **shall** end within a timeout even when the di
 The system **shall** offer the Focus, Countdown and Test strip modes, with the behaviour described in the following requirements.
 
 ### REQ-3.2 (Event-driven)
-**When** the main button is pressed in Focus with the timer stopped, the system **shall** switch the lamp on (if the Channel's Relay enable is active) and show the elapsed time on the 7-segment display.
+**When** the main button is pressed in Focus with the timer stopped, the system **shall** switch the lamp on (if the Channel's Relay enable is active) and show the elapsed time on the 7-segment display, beyond 999.9 s as minutes and seconds (`17.05` = 17 min 05 s).
 
 ### REQ-3.3 (Event-driven)
 **When** Focus stays on for the maximum time configured in the Service menu (3, 5, 10, 15 or 20 minutes, default 5), the system **shall** perform the Auto-off of the lamp.
@@ -92,10 +92,10 @@ The system **shall** offer the Focus, Countdown and Test strip modes, with the b
 **If** the main button is pressed in Countdown or Test strip with a set time equal to zero, **then** the system **shall** sound an error beep and stay idle.
 
 ### REQ-3.9 (Ubiquitous)
-In a test strip with precision in Seconds, the system **shall** place the Steps at the cumulative times T, T+P, T+2P, … where T is the Base time and P the precision value.
+In a test strip with precision in Seconds, the system **shall** place the Steps at the cumulative times T, T+P, T+2P, … where T is the set time and P the precision value.
 
 ### REQ-3.10 (Ubiquitous)
-In a test strip with F-Stop precision 1/p, the system **shall** place the k-th Step at the cumulative time T·2^(k/p), computed each time from the Base time and rounded to the tenth of a second.
+In a test strip with F-Stop precision 1/p, the system **shall** place the k-th Step (from k = 0) at the cumulative time Base time·2^((Offset+k)/p), that is the set time T multiplied by 2^(k/p), computed each time from the Base time and rounded to the tenth of a second.
 
 ### REQ-3.11 (State-driven)
 **While** a test strip with continuous Advance is running, the system **shall** keep the lamp on and sound a step beep at every Step.
@@ -113,7 +113,7 @@ In a test strip with F-Stop precision 1/p, the system **shall** place the k-th S
 **When** the main button is pressed while the lamp is on during a test strip, the system **shall** perform the Cancellation of the test strip.
 
 ### REQ-3.16 (Event-driven)
-**When** `D`, `A`, `B` or `C` is pressed or the mode is changed during the pause of a step-by-step test strip, the system **shall** end the test strip by showing the Base time on the 7-segment display, so that the next test restarts from the first Step.
+**When** `D`, `A`, `B` or `C` is pressed or the mode is changed during the pause of a step-by-step test strip, the system **shall** end the test strip, so that the next test restarts from the first Step, and then carry out the command's own action: `A`, `B` or `C` activate the chosen Channel, the encoder changes mode, `D` only ends the test. The 7-segment display goes back to the set time of the active Channel.
 
 ## REQ-4 — Precision and F-Stop
 
@@ -153,7 +153,7 @@ The system **shall** offer the F-Stop precision values 1/1, 1/2, 1/3, 1/4, 1/6, 
 **When** `D` is pressed with the timer stopped, the system **shall** reset set time, Base time and Offset of the active Channel to zero.
 
 ### REQ-5.5 (Event-driven)
-**When** `*` is held for 1 s, the system **shall** toggle mute, confirm it with a short beep and not perform the `*` action on release.
+**When** `*` is held for 1 s, the system **shall** toggle mute and not perform the `*` action on release; turning mute off is confirmed by a short beep, turning it on stays silent.
 
 ### REQ-5.6 (Event-driven)
 **When** `#` is held for 1 s, the system **shall** toggle the Relay enable of the active Channel, confirm it with a short beep and not perform the `#` action on release.
@@ -217,7 +217,7 @@ The system **shall** manage separate, persistent brightness levels for the LCD a
 **While** an Exposure is running, the system **shall** keep the 7-segment display at the brightness chosen by the user.
 
 ### REQ-7.5 (Ubiquitous)
-The system **shall** keep the LCD layout of the previous version: mode name, precision type and Advance on line 1; precision, Channel, mute icon and relay icon on line 2.
+The system **shall** keep the LCD layout of the previous version: mode name, precision type and Advance on line 1; precision without the `Pr` prefix (` 5s`, `1/3 +02`), Channel, mute icon and relay icon on line 2.
 
 ### REQ-7.6 (State-driven)
 **While** a test strip is running, the system **shall** show on line 2 of the LCD the current Step number (`St:n`) in place of the precision.
@@ -255,7 +255,7 @@ The factory brightness values **shall** be: 7-segment display at the level equiv
 **When** an Exposure ends or is cancelled, the system **shall** sound the End sound of three descending tones.
 
 ### REQ-8.5 (State-driven)
-**While** mute is active, the system **shall** not emit sounds, except for the End sound.
+**While** mute is active, the system **shall** not emit sounds, except for the End sound and the Service menu sounds.
 
 ### REQ-8.6 (Ubiquitous)
 Start, Metronome, step beep, Pre-warning, End sound, error beep and confirmation beep **shall** be distinguishable from one another by ear.
@@ -283,7 +283,7 @@ The system **shall** emit the sounds with the starting parameters of the followi
 The Service menu **shall** show the firmware version and build date.
 
 ### REQ-9.3 (Ubiquitous)
-The Service menu **shall** show the persistent counters of power-ups, of watchdog resets, of the number of Exposures and of the total lamp-on hours.
+The Service menu **shall** show the persistent counters of power-ups (every start-up, watchdog resets included), of watchdog resets, of the number of Exposures and of the total lamp-on hours.
 
 ### REQ-9.4 (Ubiquitous)
 The Service menu **shall** show the maximum main loop duration, the maximum Timer1 ISR duration and the number of Timer1 ticks lost since power-up.
@@ -298,7 +298,7 @@ The Service menu **shall** offer a test for each component: relay, buzzer, 7-seg
 The Service menu **shall** allow setting the LCD brightness during the Exposure and the maximum Focus time.
 
 ### REQ-9.8 (Event-driven)
-**When** the user confirms the factory reset from the Service menu, the system **shall** replace all settings with the factory defaults.
+**When** the user chooses the factory reset from the Service menu, the system **shall** ask for an explicit confirmation (`Confermi?`, click = yes, `D` = no) and, only after it is confirmed, replace all settings with the factory defaults.
 
 ### REQ-9.9 (Event-driven)
 **When** the board starts after a watchdog reset, the system **shall** show `RESET: WDT` on the LCD for 3 s and increment the watchdog reset counter.
@@ -316,7 +316,7 @@ The Service menu **shall** allow entering the Clock correction directly in ppm, 
 The repository **shall** contain the script `tools/calibrate.py`, which compares the calibration log with the PC clock for 30 minutes and prints the Clock correction in ppm.
 
 ### REQ-9.14 (Ubiquitous)
-The Service menu **shall** use the mode encoder to scroll through the items, its button to enter or confirm, `D` to go back, the numeric keys for values, and a last item "Exit" that restarts the timer in normal use.
+The Service menu **shall** use the mode encoder to scroll through the items, its button to enter or confirm, `D` to go back, the numeric keys for values, and a last item "Exit" that returns to normal use without rebooting the board.
 
 ## REQ-10 — Platform and hardware
 
