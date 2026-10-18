@@ -10,7 +10,7 @@
 #include "SoundScheduler.h"
 
 enum class Input : uint8_t { Digit, Star, Hash, StarHold, HashHold, ZeroStar, ZeroHash, Channel, KeyD, ModeTurn,
-                             ModeClick, PrecTurn, PrecClick, MainPress };
+                             ModeClick, PrecTurn, PrecClick, MainPress, MainRelease };
 
 class Controller {
  public:
