@@ -2,25 +2,42 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "ClockCorrection.h"
 #include "Controller.h"
 
-// shortcut: manca la voce Calibrazione (issue #14); entra in questa tabella.
-// shortcut: testi in RAM (circa 450 byte) come in Screen; da spostare in PROGMEM se la RAM stringe.
+// shortcut: testi in RAM (circa 520 byte) come in Screen; da spostare in PROGMEM se la RAM stringe.
 // Le voci T_* sono i test hardware (REQ-9.5), contigue fra T_RELAY e T_MAIN_BUTTON.
 enum : uint8_t { INFO, COUNTERS, HEALTH, T_RELAY, T_BUZZER, T_SEVEN_SEG, T_LCD, T_KEYPAD, T_ENCODERS,
-                 T_MAIN_BUTTON, LCD_EXPOSURE, FOCUS_LIMIT, FACTORY, EXIT, ITEM_COUNT };
+                 T_MAIN_BUTTON, CALIBRATION, LCD_EXPOSURE, FOCUS_LIMIT, FACTORY, EXIT, ITEM_COUNT };
 static const char kItems[ITEM_COUNT][16] = {"Info",           "Contatori",       "Salute",
                                             "Test rele",      "Test buzzer",     "Test 7 segmenti",
                                             "Test LCD",       "Test tastierino", "Test encoder",
-                                            "Test pulsante",  "LCD esposizione", "Tempo max Focus",
-                                            "Ripristino fabb", "Esci"};
-static const uint8_t kPages[ITEM_COUNT] = {1, 4, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1};  // schermate di ogni voce
+                                            "Test pulsante",  "Calibrazione",    "LCD esposizione",
+                                            "Tempo max Focus", "Ripristino fabb", "Esci"};
+static const uint8_t kPages[ITEM_COUNT] = {1, 4, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1};  // schermate di ogni voce
 static const char kCounterTitles[4][16] = {"Accensioni", "Reset watchdog", "Esposizioni", "Ore lampada"};
 static const char kHealthTitles[3][16] = {"Loop max", "ISR max", "Tick persi"};
+// REQ-9.6, REQ-9.12: le tre schermate della Calibrazione.
+enum : uint8_t { CAL_LOG, CAL_PPM, CAL_MEASURE };
+static const char kCalTitles[3][17] = {"Log calibrazione", "Correzione ppm", "Durata 600 s"};
+constexpr uint32_t CAL_NOMINAL_MS = 600000;  // Countdown di riferimento di 600,0 s
+
+void ServiceMenu::load() {
+  typed_ = false;
+  const GlobalRecord& g = set_.d.g;
+  if (item_ == FOCUS_LIMIT) value_ = kFocusLimitMinutes[g.focusLimitIndex];
+  else if (item_ == CALIBRATION) value_ = page_ == CAL_PPM ? g.clockPpm : CAL_NOMINAL_MS / 10;  // centesimi di s
+  else value_ = g.lcdExposureLevel;
+}
 
 void ServiceMenu::turn(int8_t dir) {
-  if (inside_) page_ = (page_ + kPages[item_] + dir) % kPages[item_];
-  else item_ = (item_ + ITEM_COUNT + dir) % ITEM_COUNT;
+  if (log_) return;  // il log di calibrazione si chiude solo con `D`
+  if (!inside_) {
+    item_ = (item_ + ITEM_COUNT + dir) % ITEM_COUNT;
+    return;
+  }
+  page_ = (page_ + kPages[item_] + dir) % kPages[item_];
+  load();
 }
 
 void ServiceMenu::click() {
@@ -32,12 +49,19 @@ void ServiceMenu::click() {
     inside_ = true;
     page_ = 0;
     memset(hw_, 0, sizeof hw_);
-    typed_ = false;
-    value_ = item_ == FOCUS_LIMIT ? kFocusLimitMinutes[set_.d.g.focusLimitIndex] : set_.d.g.lcdExposureLevel;
+    load();
     return;
   }
   GlobalRecord& g = set_.d.g;
-  if (item_ == LCD_EXPOSURE) {  // REQ-9.7
+  if (item_ == CALIBRATION) {
+    if (page_ == CAL_LOG) {
+      log_ = true;
+      return;
+    }
+    if (page_ == CAL_PPM ? value_ > PPM_LIMIT || value_ < -PPM_LIMIT : value_ <= 0) return refuse();
+    // value_ in centesimi di secondo per la durata misurata
+    g.clockPpm = page_ == CAL_PPM ? value_ : ppmFromMeasurement(CAL_NOMINAL_MS, value_ * 10, g.clockPpm);
+  } else if (item_ == LCD_EXPOSURE) {  // REQ-9.7
     if (value_ < 1 || value_ > LEVEL_COUNT) return refuse();
     g.lcdExposureLevel = value_;
   } else if (item_ == FOCUS_LIMIT) {  // REQ-9.7, REQ-3.3
@@ -99,11 +123,18 @@ void ServiceMenu::refuse() {
   sound_.play(Sound::Error);
 }
 
-void ServiceMenu::back() { inside_ = false; }
+void ServiceMenu::back() { inside_ = log_ = false; }
 
 void ServiceMenu::digit(uint8_t d) {
-  // A calcolatrice, due cifre: bastano per i livelli 1-8 e per i minuti del Focus.
-  value_ = typed_ ? (value_ % 10) * 10 + d : d;
+  // A calcolatrice: due cifre per livelli e minuti, quattro per i ppm, cinque per i centesimi di secondo.
+  int32_t keep = item_ != CALIBRATION ? 10 : page_ == CAL_PPM ? 1000 : 10000;
+  if (!typed_) value_ = d;
+  else value_ = value_ < 0 ? -(-value_ % keep * 10 + d) : value_ % keep * 10 + d;
+  typed_ = true;
+}
+
+void ServiceMenu::negate() {
+  value_ = -value_;
   typed_ = true;
 }
 
@@ -146,11 +177,17 @@ void ServiceMenu::compose(char rows[2][16]) const {
       else if (page_ == 1) snprintf(b, sizeof b, "%lu us", (unsigned long)health_.isrMaxUs);
       else snprintf(b, sizeof b, "%lu", (unsigned long)health_.lostTicks);
       break;
+    case CALIBRATION:
+      title = kCalTitles[page_];
+      if (page_ == CAL_LOG) snprintf(b, sizeof b, log_ ? "Attivo, D: esci" : "Clic: avvia");
+      else if (page_ == CAL_PPM) snprintf(b, sizeof b, "ppm: %+ld", (long)value_);
+      else snprintf(b, sizeof b, "%ld,%02ld s", (long)(value_ / 100), (long)(value_ % 100));
+      break;
     case LCD_EXPOSURE:
-      snprintf(b, sizeof b, "Livello 1-8: %u", value_);
+      snprintf(b, sizeof b, "Livello 1-8: %d", int(value_));  // due cifre al massimo
       break;
     case FOCUS_LIMIT:
-      snprintf(b, sizeof b, "Minuti: %u", value_);
+      snprintf(b, sizeof b, "Minuti: %ld", (long)value_);
       break;
     case T_RELAY:
       snprintf(b, sizeof b, "Clic: %s", hw_[0] ? "acceso" : "spento");

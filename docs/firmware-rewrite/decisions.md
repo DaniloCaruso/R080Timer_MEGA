@@ -192,6 +192,10 @@ Pausa e ripresa dell'esposizione; soglia di brown-out a 4,3 V via ISP con ricono
 
 **Decisione:** metodo principale: script `tools/calibrate.py` che confronta per 30 minuti il conteggio dei ms scritto dal firmware sul log USB con l'orologio del PC e stampa la correzione in ppm. Alternativa senza PC descritta nel manuale: registrazione audio dei beep di inizio e fine di un countdown di 600,0 s. Il menu di servizio accetta la correzione direttamente in ppm oppure il tempo misurato.
 
+## Dettagli della calibrazione (ticket 13, issue #14)
+
+**Decisione:** la riga `CAL ms=<conteggio>` riporta i tick di Timer1 senza correzione, così lo script stampa la Correzione del clock assoluta, indipendente da quella salvata. Nel menu il segno dei ppm si cambia con `*`; la durata misurata si inserisce in centesimi di secondo (`60012` = 600,12 s) e la correzione calcolata parte da quella salvata. Con correzione 2 ms in un tick, il `TimingCore` passa ogni ms dalle stesse regole: nessun bordo (Step, Preavviso, Metronomo) saltato o ripetuto.
+
 ## Navigazione del menu di servizio (giro 7)
 
 **Decisione:** encoder della modalità per scorrere, il suo pulsante per entrare o confermare, `D` per tornare indietro, tasti numerici per i valori; l'ultima voce "Esci" riavvia il timer in uso normale.
