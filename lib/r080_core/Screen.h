@@ -3,11 +3,13 @@
 #pragma once
 
 #include <stdint.h>
+#include "Controller.h"
 #include "Hal.h"
 
 class Screen {
  public:
-  Screen(Lcd& lcd, EventLog& log, const char* version) : lcd_(lcd), log_(log), version_(version) {}
+  Screen(Lcd& lcd, EventLog& log, const Controller& ctl, const char* version)
+      : lcd_(lcd), log_(log), ctl_(ctl), version_(version) {}
   void render(uint32_t nowMs);  // a ogni giro di loop
 
  private:
@@ -15,6 +17,7 @@ class Screen {
 
   Lcd& lcd_;
   EventLog& log_;
+  const Controller& ctl_;
   const char* version_;
   char want_[2][16];
   char shown_[2][16] = {};  // '\0' = cella sconosciuta, da riscrivere

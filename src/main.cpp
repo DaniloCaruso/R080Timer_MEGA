@@ -13,7 +13,7 @@ static SevenSegSerial3 sevenSeg;
 static LcdWaveshare lcd;
 static UsbLog usbLog;
 static Controller controller(timing, sevenSeg);
-static Screen screen(lcd, usbLog, FW_VERSION);
+static Screen screen(lcd, usbLog, controller, FW_VERSION);
 static InputDevices inputs(controller);
 
 void setup() {

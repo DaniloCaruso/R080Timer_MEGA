@@ -1,5 +1,6 @@
 #include "InputDevices.h"
 
+#include <Encoder.h>
 #include <Keypad.h>
 #include <OneButton.h>
 #include "Pins.h"
@@ -15,16 +16,29 @@ static char keymap[4][4] = {
 static Keypad keypad(makeKeymap(keymap), const_cast<uint8_t*>(KEYPAD_ROW_PINS),
                      const_cast<uint8_t*>(KEYPAD_COL_PINS), 4, 4);
 static OneButton mainButton;
+static OneButton precButton;
+static Encoder precEncoder(ENC_PREC_DT_PIN, ENC_PREC_CLK_PIN);
+static int32_t precLast = 0;  // ultima posizione già tradotta in tacche
 
 void InputDevices::begin() {
   mainButton.setup(MAIN_BTN_PIN, INPUT_PULLUP, true);
   mainButton.setDebounceMs(20);
   // REQ-5.11: l'evento scatta alla pressione, appena superato l'antirimbalzo.
   mainButton.attachPress([](void* c) { static_cast<Controller*>(c)->onInput(Input::MainPress, 0); }, &ctl_);
+  precButton.setup(ENC_PREC_SW_PIN, INPUT_PULLUP, true);
+  precButton.setDebounceMs(20);
+  precButton.attachClick([](void* c) { static_cast<Controller*>(c)->onInput(Input::PrecClick, 0); }, &ctl_);
 }
 
 void InputDevices::poll() {
   mainButton.tick();
+  precButton.tick();
+  // Variazione relativa (la precisione corrente sta nel Controller): una tacca ogni 4 conteggi.
+  int32_t pos = precEncoder.read();
+  while (pos - precLast >= 4) { precLast += 4; ctl_.onInput(Input::PrecTurn, 1); }
+  while (precLast - pos >= 4) { precLast -= 4; ctl_.onInput(Input::PrecTurn, -1); }
   char key = keypad.getKey();
   if (key >= '0' && key <= '9') ctl_.onInput(Input::Digit, key - '0');
+  else if (key == '*') ctl_.onInput(Input::Star, 0);
+  else if (key == '#') ctl_.onInput(Input::Hash, 0);
 }
