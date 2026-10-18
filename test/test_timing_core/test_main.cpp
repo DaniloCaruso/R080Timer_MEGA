@@ -58,6 +58,38 @@ static void test_no_metronome_when_idle() {
   for (int t = 0; t < 3000; t++) TEST_ASSERT_EQUAL_UINT8(0, core.tick().events);
 }
 
+// REQ-1.5, REQ-8.3: Step al tick esatto, Preavviso a -300, -200, -100 ms; dopo lo Step il
+// prossimo arriva solo quando il loop lo ha calcolato.
+static void test_strip_steps_at_exact_tick_with_prewarn() {
+  TimingCore core;
+  core.startStrip(1000);
+  for (uint32_t t = 1; t <= 3000; t++) {
+    if (t == 1100) core.setNextStep(1500);
+    uint8_t expected = (t == 700 || t == 800 || t == 900 || t == 1200 || t == 1300 || t == 1400) ? EV_PREWARN
+                       : (t == 1000 || t == 1500)                                                 ? EV_STEP
+                                                                                                  : 0;
+    TickOut out = core.tick();
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(expected, out.events, "evento fuori tempo");
+    TEST_ASSERT_FALSE(out.relayOff);
+  }
+  TEST_ASSERT_EQUAL_UINT32(3000, core.elapsedMs());
+  TEST_ASSERT_TRUE(core.run() == Run::StripContinuous);
+}
+
+// REQ-3.14: il test strip si conclude a 999,9 s esatti con relè spento ed EV_END.
+static void test_strip_ends_at_999_9_seconds() {
+  TimingCore core;
+  core.startStrip(2000000);  // nessuno Step prima del limite
+  for (uint32_t t = 1; t < 999900; t++) {
+    if (core.tick().relayOff) TEST_FAIL_MESSAGE("relè spento prima del limite");
+  }
+  TickOut out = core.tick();
+  TEST_ASSERT_TRUE(out.relayOff);
+  TEST_ASSERT_EQUAL_UINT8(EV_END, out.events);
+  TEST_ASSERT_TRUE(core.run() == Run::Idle);
+  TEST_ASSERT_EQUAL_UINT8(0, core.tick().events);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_countdown_turns_relay_off_exactly_at_last_tick);
@@ -65,5 +97,7 @@ int main() {
   RUN_TEST(test_metronome_fires_every_second_from_exposure_start);
   RUN_TEST(test_metronome_restarts_with_each_exposure);
   RUN_TEST(test_no_metronome_when_idle);
+  RUN_TEST(test_strip_steps_at_exact_tick_with_prewarn);
+  RUN_TEST(test_strip_ends_at_999_9_seconds);
   return UNITY_END();
 }
