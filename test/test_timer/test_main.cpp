@@ -1207,9 +1207,11 @@ static void test_key_d_at_power_on_opens_service_menu_and_exit_returns_to_normal
   TEST_ASSERT_TRUE(t.clock.running());
 }
 
-// Nel Menu di servizio, dalla prima voce: n tacche dell'encoder della Modalità e clic.
-static void openServiceItem(Timer& t, uint8_t n) {
-  while (n--) t.turnMode(1);
+// Nel Menu di servizio, dalla prima voce: n tacche dell'encoder della Modalità (indietro se
+// negativo, dall'ultima voce) e clic.
+static void openServiceItem(Timer& t, int8_t n) {
+  for (; n > 0; n--) t.turnMode(1);
+  for (; n < 0; n++) t.turnMode(-1);
   t.clickMode();
 }
 
@@ -1288,13 +1290,173 @@ static void test_service_health_shows_loop_isr_and_lost_ticks() {
   TEST_ASSERT_EQUAL_STRING("3               ", t.row(1));
 }
 
+// REQ-9.5: il test del relè lo accende e spegne a ogni clic, e lo lascia spento uscendo con `D`.
+// Agisce solo sul relè: niente suoni, 7 segmenti fermo.
+static void test_service_relay_test_toggles_relay_and_leaves_it_off() {
+  Timer t(false, true);
+  t.settle();
+  openServiceItem(t, 3);
+  TEST_ASSERT_EQUAL_STRING("Test rele       ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Clic: spento    ", t.row(1));
+  TEST_ASSERT_FALSE(t.clock.relay);
+  t.clickMode();
+  TEST_ASSERT_TRUE(t.clock.relay);
+  TEST_ASSERT_EQUAL_STRING("Clic: acceso    ", t.row(1));
+  t.clickMode();
+  TEST_ASSERT_FALSE(t.clock.relay);
+  t.clickMode();
+  t.keyD();
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_STRING(">Test rele      ", t.row(1));
+  TEST_ASSERT_EQUAL_UINT8(0, t.buzzer.count);
+  TEST_ASSERT_EQUAL_UINT32(1, t.seg.writes);
+}
+
+// REQ-9.5: il test del buzzer sceglie con l'encoder della Modalità uno degli 8 suoni e lo suona
+// al clic. Agisce solo sul buzzer.
+static void test_service_buzzer_test_plays_each_sound() {
+  Timer t(false, true);
+  t.settle();
+  openServiceItem(t, 4);
+  TEST_ASSERT_EQUAL_STRING("Test buzzer     ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Suono 1: clic   ", t.row(1));
+  TEST_ASSERT_EQUAL_UINT8(0, t.buzzer.count);
+  uint32_t at = t.clock.nowMs;
+  t.clickMode();
+  t.advance(1000);
+  assertEndSound(t, 0, at);
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("Suono 2: clic   ", t.row(1));
+  t.clickMode();
+  assertNote(t, 3, t.clock.nowMs, 150, 300);  // errore
+  t.advance(1000);
+  t.turnMode(-2);
+  TEST_ASSERT_EQUAL_STRING("Suono 8: clic   ", t.row(1));
+  t.clickMode();
+  assertNote(t, 4, t.clock.nowMs, 1200, 40);  // conferma
+  t.keyD();
+  TEST_ASSERT_EQUAL_STRING(">Test buzzer    ", t.row(1));
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT32(1, t.seg.writes);
+}
+
+// REQ-9.5: il test del 7 segmenti accende tutti i segmenti delle cifre; con `D` torna il tempo.
+static void test_service_seven_seg_test_lights_all_digits() {
+  Timer t(false, true);
+  t.settle();
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+  openServiceItem(t, 5);
+  TEST_ASSERT_EQUAL_STRING("Test 7 segmenti ", t.row(0));
+  TEST_ASSERT_EQUAL_UINT16(8888, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING("Accesi: 888.8   ", t.row(1));
+  t.keyD();
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+  TEST_ASSERT_EQUAL_STRING(">Test 7 segmenti", t.row(1));
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT8(0, t.buzzer.count);
+}
+
+// REQ-9.5: il test dell'LCD riempie tutte le celle con il blocco pieno.
+static void test_service_lcd_test_fills_every_cell() {
+  Timer t(false, true);
+  t.settle();
+  openServiceItem(t, 6);
+  const char* full = "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff";
+  TEST_ASSERT_EQUAL_STRING(full, t.row(0));
+  TEST_ASSERT_EQUAL_STRING(full, t.row(1));
+  t.keyD();
+  TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO   ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING(">Test LCD       ", t.row(1));
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT8(0, t.buzzer.count);
+  TEST_ASSERT_EQUAL_UINT32(1, t.seg.writes);
+}
+
+// REQ-9.5: il test del tastierino mostra l'ultimo tasto premuto senza agire sul timer; `D` esce.
+static void test_service_keypad_test_shows_last_key() {
+  Timer t(false, true);
+  t.settle();
+  openServiceItem(t, 7);
+  TEST_ASSERT_EQUAL_STRING("Test tastierino ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Tasto: -        ", t.row(1));
+  t.type("7");
+  TEST_ASSERT_EQUAL_STRING("Tasto: 7        ", t.row(1));
+  t.type("0");
+  TEST_ASSERT_EQUAL_STRING("Tasto: 0        ", t.row(1));
+  t.star();
+  TEST_ASSERT_EQUAL_STRING("Tasto: *        ", t.row(1));
+  t.holdHash();
+  TEST_ASSERT_EQUAL_STRING("Tasto: #        ", t.row(1));
+  t.channel('B');
+  TEST_ASSERT_EQUAL_STRING("Tasto: B        ", t.row(1));
+  t.hold();
+  TEST_ASSERT_EQUAL_STRING("Tasto: *        ", t.row(1));
+  t.keyD();
+  TEST_ASSERT_EQUAL_STRING(">Test tastierino", t.row(1));
+  TEST_ASSERT_EQUAL_UINT8(0, t.ctl.channelIndex());
+  TEST_ASSERT_FALSE(t.ctl.muted());
+  TEST_ASSERT_TRUE(t.ctl.channel().relayEnabled);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT8(0, t.buzzer.count);
+  TEST_ASSERT_EQUAL_UINT32(1, t.seg.writes);
+}
+
+// REQ-9.5: il test degli encoder mostra posizione (tacche dall'ingresso) e clic di entrambi,
+// senza toccare Modalità e precisione.
+static void test_service_encoder_test_shows_position_and_clicks() {
+  Timer t(false, true);
+  t.settle();
+  ChannelRecord before = t.ctl.channel();
+  openServiceItem(t, 8);
+  TEST_ASSERT_EQUAL_STRING("Test encoder    ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("M+0 c0  P+0 c0  ", t.row(1));
+  t.turnMode(1);
+  t.turnMode(1);
+  t.clickMode();
+  t.turnPrecision(-1);
+  t.clickPrecision();
+  t.clickPrecision();
+  TEST_ASSERT_EQUAL_STRING("M+2 c1  P-1 c2  ", t.row(1));
+  t.keyD();
+  TEST_ASSERT_EQUAL_STRING(">Test encoder   ", t.row(1));
+  TEST_ASSERT_EQUAL_MEMORY(&before, &t.ctl.channel(), sizeof before);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT8(0, t.buzzer.count);
+  TEST_ASSERT_EQUAL_UINT32(1, t.seg.writes);
+}
+
+// REQ-9.5: il test del pulsante principale mostra pressione e rilascio senza avviare Esposizioni.
+// In uso normale il rilascio non fa nulla.
+static void test_service_main_button_test_shows_press_and_release() {
+  Timer t(false, true);
+  t.settle();
+  openServiceItem(t, 9);
+  TEST_ASSERT_EQUAL_STRING("Test pulsante   ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Premi           ", t.row(1));
+  t.press();
+  TEST_ASSERT_EQUAL_STRING("Premuto         ", t.row(1));
+  TEST_ASSERT_FALSE(t.clock.running());
+  t.input(Input::MainRelease);
+  TEST_ASSERT_EQUAL_STRING("Rilasciato      ", t.row(1));
+  t.keyD();
+  TEST_ASSERT_EQUAL_STRING(">Test pulsante  ", t.row(1));
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT8(0, t.buzzer.count);
+  TEST_ASSERT_EQUAL_UINT32(1, t.seg.writes);
+  for (int i = 0; i < 10; i++) t.turnMode(-1);  // alla prima voce e poi all'ultima, Esci
+  t.clickMode();
+  t.press();
+  t.input(Input::MainRelease);
+  TEST_ASSERT_TRUE(t.clock.running());
+}
+
 // REQ-9.7, REQ-9.14: livello LCD in Esposizione con le cifre, il clic conferma e salva subito,
 // un livello fuori da 1-8 suona l'errore, `D` esce senza salvare.
 static void test_service_sets_lcd_exposure_level() {
   {
     Timer t(false, true);
     t.settle();
-    openServiceItem(t, 3);
+    openServiceItem(t, -4);
     TEST_ASSERT_EQUAL_STRING("LCD esposizione ", t.row(0));
     TEST_ASSERT_EQUAL_STRING("Livello 1-8: 1  ", t.row(1));
     t.type("9");
@@ -1320,7 +1482,7 @@ static void test_service_sets_focus_limit() {
   {
     Timer t(false, true);
     t.settle();
-    openServiceItem(t, 4);
+    openServiceItem(t, -3);
     TEST_ASSERT_EQUAL_STRING("Tempo max Focus ", t.row(0));
     TEST_ASSERT_EQUAL_STRING("Minuti: 5       ", t.row(1));
     t.type("7");
@@ -1345,7 +1507,7 @@ static void test_service_factory_reset_replaces_all_settings() {
   {
     Timer t(false, true);
     t.settle();
-    openServiceItem(t, 4);
+    openServiceItem(t, -3);
     t.type("20");
     t.clickMode();
     t.turnMode(1);
@@ -1533,6 +1695,13 @@ int main() {
   RUN_TEST(test_service_info_shows_version_and_build_date);
   RUN_TEST(test_service_counters_count_power_ons_resets_exposures_and_lamp_time);
   RUN_TEST(test_service_health_shows_loop_isr_and_lost_ticks);
+  RUN_TEST(test_service_relay_test_toggles_relay_and_leaves_it_off);
+  RUN_TEST(test_service_buzzer_test_plays_each_sound);
+  RUN_TEST(test_service_seven_seg_test_lights_all_digits);
+  RUN_TEST(test_service_lcd_test_fills_every_cell);
+  RUN_TEST(test_service_keypad_test_shows_last_key);
+  RUN_TEST(test_service_encoder_test_shows_position_and_clicks);
+  RUN_TEST(test_service_main_button_test_shows_press_and_release);
   RUN_TEST(test_service_sets_lcd_exposure_level);
   RUN_TEST(test_service_sets_focus_limit);
   RUN_TEST(test_service_factory_reset_replaces_all_settings);
