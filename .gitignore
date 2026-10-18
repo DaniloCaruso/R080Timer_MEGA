@@ -31,9 +31,23 @@
 *.out
 *.app
 
+# PlatformIO
 .pioenvs
 .piolibdeps
 .clang_complete
 .gcc-flags.json
-.pio
-.vscode
+.pio/
+
+# Editor
+.vscode/
+
+# Python / MicroPython
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Strumenti locali (Claude Code, mempalace)
+.claude/settings.local.json
+.docs/
+entities.json
+mempalace.yaml
