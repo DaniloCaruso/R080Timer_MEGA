@@ -7,7 +7,8 @@
 #include "Settings.h"
 #include "SoundScheduler.h"
 
-enum class Input : uint8_t { Digit, Star, Hash, StarHold, HashHold, Channel, KeyD, ModeTurn, ModeClick, PrecTurn, PrecClick, MainPress };
+enum class Input : uint8_t { Digit, Star, Hash, StarHold, HashHold, ZeroStar, ZeroHash, Channel, KeyD, ModeTurn,
+                             ModeClick, PrecTurn, PrecClick, MainPress };
 
 class Controller {
  public:
@@ -21,6 +22,8 @@ class Controller {
   bool muted() const { return set_.d.g.mute; }
   uint8_t channelIndex() const { return set_.d.g.activeChannel; }
   const ChannelRecord& channel() const { return set_.active(); }
+  // REQ-7.3: durante l'Esposizione l'LCD scende al livello di esposizione.
+  uint8_t lcdLevel() const { return timing_.running() ? set_.d.g.lcdExposureLevel : set_.d.g.lcdLevel; }
   uint16_t stripStep() const { return stripShown_; }  // Step in corso da 1, 0 fuori dal test strip
 
  private:
@@ -33,6 +36,7 @@ class Controller {
   SoundScheduler& sound_;
   Settings& set_;  // il Canale attivo: tempo, Tempo base, Offset (-99..+99), precisione, Modalità
   uint16_t shownDs_ = 0xFFFF;
+  uint8_t segLevel_ = 0;  // livello già inviato al 7 segmenti
   bool entering_ = false;  // falso: la prossima cifra inizia un tempo nuovo
   uint16_t stripK_ = 0;     // indice da 0 del prossimo Step del test strip
   uint32_t stripDs_ = 0;    // tempo cumulativo del prossimo Step

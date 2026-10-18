@@ -20,6 +20,10 @@ struct GlobalRecord {
   int16_t clockPpm;
 };
 
+// Tempo massimo del Focus, scelto con focusLimitIndex (REQ-3.3).
+constexpr uint8_t kFocusLimitMinutes[] = {3, 5, 10, 15, 20};
+constexpr uint8_t FOCUS_LIMIT_COUNT = sizeof kFocusLimitMinutes;
+
 struct SettingsData {
   GlobalRecord g;
   ChannelRecord ch[3];

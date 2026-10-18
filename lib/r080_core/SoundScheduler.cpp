@@ -11,6 +11,7 @@ struct Sequence {
 // REQ-8.7: parametri dei suoni, ritoccabili durante il collaudo.
 static constexpr Note kEnd[] = {{600, 150}, {0, 80}, {450, 150}, {0, 80}, {300, 150}};
 static constexpr Note kError[] = {{150, 300}};
+static constexpr Note kFocusWarn[] = {{450, 200}, {0, 100}, {450, 200}};
 static constexpr Note kStart[] = {{1000, 60}};
 static constexpr Note kStep[] = {{600, 150}};
 static constexpr Note kPreWarn[] = {{800, 30}};  // un tick per evento: a -300, -200 e -100 ms dallo Step
@@ -21,6 +22,7 @@ static constexpr Note kConfirm[] = {{1200, 40}};
 static constexpr Sequence kSounds[] = {
   {kEnd, 5},
   {kError, 1},
+  {kFocusWarn, 3},
   {kStart, 1},
   {kStep, 1},
   {kPreWarn, 1},
