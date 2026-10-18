@@ -2,6 +2,7 @@
 // solo con input dell'utente e tempo che passa.
 #include <unity.h>
 #include <Controller.h>
+#include <Counters.h>
 #include <Screen.h>
 #include <Settings.h>
 #include <SoundScheduler.h>
@@ -25,8 +26,15 @@ struct Timer {
   Settings settings{eeprom};
   Controller ctl{clock, seg, sound, settings};
   Screen screen{lcd, log, ctl, "2.0.0"};
+  Counters counters{eeprom};
 
-  Timer() { settings.load(); loop(); }
+  // Avvio come setup(): la causa del reset arriva dal marcatore del watchdog (SystemGuard).
+  explicit Timer(bool watchdogReset = false) {
+    settings.load();
+    counters.boot(watchdogReset);
+    if (watchdogReset) screen.showWatchdogReset();
+    loop();
+  }
   void loop() {  // un giro di loop()
     ctl.update();
     sound.tick(clock.nowMs);
@@ -673,13 +681,14 @@ static void test_channel_keys_and_mode_encoder_are_ignored_during_exposure() {
 // REQ-6.7: il salvataggio parte 2 s dopo l'ultima modifica.
 static void test_settings_are_saved_two_seconds_after_last_change() {
   Timer t;
+  uint32_t atBoot = eeprom.written;  // i contatori di avvio
   t.type("12");
   t.advance(1000);
   t.type("5");
   t.advance(1999);
-  TEST_ASSERT_EQUAL_UINT32(0, eeprom.written);
+  TEST_ASSERT_EQUAL_UINT32(atBoot, eeprom.written);
   t.advance(1);
-  TEST_ASSERT_TRUE(eeprom.written > 0);
+  TEST_ASSERT_TRUE(eeprom.written > atBoot);
   Timer rebooted;
   TEST_ASSERT_EQUAL_UINT16(125, rebooted.seg.shown);
 }
@@ -687,9 +696,10 @@ static void test_settings_are_saved_two_seconds_after_last_change() {
 // REQ-6.7: all'avvio di un'Esposizione si salva subito.
 static void test_settings_are_saved_when_exposure_starts() {
   Timer t;
+  uint32_t atBoot = eeprom.written;
   t.type("125");
   t.press();
-  TEST_ASSERT_TRUE(eeprom.written > 0);
+  TEST_ASSERT_TRUE(eeprom.written > atBoot);
   Timer rebooted;
   TEST_ASSERT_EQUAL_UINT16(125, rebooted.seg.shown);
 }
@@ -795,6 +805,66 @@ static void test_old_format_loads_factory_defaults() {
   static const uint8_t old[13] = {0xA5, 10, 0, 2, 0, 50, 0, 50, 0, 50, 1, 1, 1};
   memcpy(eeprom.bytes, old, sizeof old);
   assertFactoryDefaults();
+}
+
+// REQ-9.9: dopo un reset da watchdog l'LCD mostra `RESET: WDT` per 3 s, poi l'uso normale.
+static void test_watchdog_reset_shows_message_for_three_seconds() {
+  Timer t(true);
+  t.advance(1);
+  TEST_ASSERT_EQUAL_STRING("RESET: WDT      ", t.lcd.cells[0]);
+  TEST_ASSERT_EQUAL_STRING("                ", t.lcd.cells[1]);
+  t.advance(2997);  // 2998 ms
+  TEST_ASSERT_EQUAL_STRING("RESET: WDT      ", t.lcd.cells[0]);
+  t.advance(4);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.lcd.cells[0]);
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.lcd.cells[1]);
+}
+
+// Ogni accensione incrementa il contatore delle accensioni, che sopravvive al riavvio.
+static void test_each_power_on_is_counted() {
+  { Timer t; }
+  { Timer t; }
+  Timer t;
+  TEST_ASSERT_EQUAL_UINT16(3, t.counters.d.powerOns);
+  TEST_ASSERT_EQUAL_UINT16(0, t.counters.d.watchdogResets);
+}
+
+// REQ-9.9: un avvio dopo un reset da watchdog incrementa il suo contatore, non quello delle accensioni.
+static void test_watchdog_reset_is_counted() {
+  { Timer t; }
+  { Timer t(true); }
+  Timer t(true);
+  TEST_ASSERT_EQUAL_UINT16(1, t.counters.d.powerOns);
+  TEST_ASSERT_EQUAL_UINT16(2, t.counters.d.watchdogResets);
+}
+
+// Il blocco contatori ha il suo CRC8: se è corrotto i contatori ripartono da zero, le impostazioni restano.
+static void test_corrupt_counters_restart_from_zero_and_keep_settings() {
+  { Timer t; }
+  saveNonFactorySettings();
+  eeprom.bytes[0x040 + 16] ^= 0x01;  // CRC del blocco contatori (17 byte)
+  Timer t;
+  t.settle();
+  TEST_ASSERT_EQUAL_UINT16(1, t.counters.d.powerOns);
+  TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);  // Canale B, 5,0 s
+}
+
+// REQ-2.8, REQ-2.1: dopo un riavvio a metà Esposizione il timer è fermo con il relè spento.
+static void test_reboot_mid_exposure_stays_idle_with_relay_off() {
+  {
+    Timer t;
+    t.type("125");
+    t.press();
+    t.advance(3000);
+    TEST_ASSERT_TRUE(t.clock.relay);
+  }
+  Timer t;
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_FALSE(t.clock.running());
+  t.advance(20000);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);  // il tempo impostato, pronto per ripartire
+  TEST_ASSERT_EQUAL_UINT8(0, t.buzzer.count);  // nessun suono di fine di un'Esposizione mai ripresa
 }
 
 // Istanti delle note a hz, in ordine.
@@ -1015,6 +1085,11 @@ int main() {
   RUN_TEST(test_out_of_range_channel_loads_factory_defaults);
   RUN_TEST(test_unknown_version_loads_factory_defaults);
   RUN_TEST(test_old_format_loads_factory_defaults);
+  RUN_TEST(test_watchdog_reset_shows_message_for_three_seconds);
+  RUN_TEST(test_each_power_on_is_counted);
+  RUN_TEST(test_watchdog_reset_is_counted);
+  RUN_TEST(test_corrupt_counters_restart_from_zero_and_keep_settings);
+  RUN_TEST(test_reboot_mid_exposure_stays_idle_with_relay_off);
   RUN_TEST(test_strip_seconds_steps_keep_lamp_on_and_beep);
   RUN_TEST(test_strip_fstop_steps_from_base);
   RUN_TEST(test_strip_fstop_steps_grow_at_least_a_tenth);
