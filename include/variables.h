@@ -6,9 +6,7 @@
 #include <Arduino.h>
 #include <Keypad.h>
 #include <SoftwareSerial.h>
-#include <LiquidCrystal_I2C.h>
 #include <Encoder.h>
-#include <EncoderButton.h>
 #include <OneButton.h>
 #include "constants.h"
 #include "Waveshare_LCD1602_RGB.h"
@@ -54,8 +52,8 @@ Waveshare_LCD1602_RGB lcd(16,2);
 Encoder encoderMode(ENC_MODE_DT_PIN, ENC_MODE_CLK_PIN);
 Encoder encoderPrecision(ENC_PRECISION_DT_PIN, ENC_PRECISION_CLK_PIN);
 
-EncoderButton encoderModeButton = EncoderButton(ENC_MODE_SW_PIN);
-EncoderButton encoderPrecisionButton = EncoderButton(ENC_PRECISION_SW_PIN);
+OneButton encoderModeButton(ENC_MODE_SW_PIN, true);
+OneButton encoderPrecisionButton(ENC_PRECISION_SW_PIN, true);
 
 OneButton mainButton(MAIN_BTN_PIN, true);
 
