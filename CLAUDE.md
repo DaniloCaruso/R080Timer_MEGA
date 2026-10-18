@@ -8,7 +8,7 @@ Guida per agenti Claude Code. Per pinout, installazione e comportamento utente, 
 
 **R080 Timer** — firmware per timer da camera oscura (ingranditore fotografico). 3 modalità (Focus, Countdown, Test Strip), navigazione F-Stop, 3 canali con memoria, persistenza impostazioni, suoni non bloccanti.
 
-Scritto in **MicroPython** per **ESP32-WROOM-32**. NON è più Arduino, NON usa PlatformIO. Non generare mai codice C++/Arduino per questo progetto.
+Su questo branch (`feature/micropython-esp32-port`) è scritto in **MicroPython** per **ESP32-WROOM-32**. NON è Arduino, NON usa PlatformIO. Non generare mai codice C++/Arduino su questo branch: la versione Arduino vive su `main` e su `feature/rewrite_to_improve_stability_and_performance` (vedi §14).
 
 Lo sviluppatore è italiano: stringhe UI e commenti in parte in italiano (`"PRONTO"`, `"Ch:A"`, ecc.). Preservarli. **Rispondere all'utente in italiano.**
 
@@ -210,4 +210,33 @@ Eseguire prima di ogni commit: `make test`. Non dichiarare che i test passano se
 
 ## 13. Riferimenti comportamentali
 
-Per il comportamento utente (cosa fa ogni tasto, ogni modalità, ogni encoder) vedere `README.md` e le sezioni di questo file. Il firmware è un port 1:1 del timer Arduino originale: la semantica di modalità, F-stop, canali e persistenza è invariata rispetto alla versione Arduino (storia consultabile su `main` e sul branch `backup/micropython-pre-rebase`).
+Per il comportamento utente (cosa fa ogni tasto, ogni modalità, ogni encoder) vedere `README.md` e le sezioni di questo file. Il firmware è un port 1:1 del timer Arduino originale: la semantica di modalità, F-stop, canali e persistenza è invariata rispetto alla versione Arduino (storia consultabile su `main`).
+
+---
+
+## 14. Branch
+
+`main` contiene il timer Arduino originale. Da `main` partono due linee di sviluppo indipendenti:
+
+| Branch | Piattaforma | Etichetta issue |
+|---|---|---|
+| `feature/micropython-esp32-port` (questo) | MicroPython su ESP32-WROOM-32 | `esp32` |
+| `feature/rewrite_to_improve_stability_and_performance` | C++/PlatformIO su Arduino Mega 2560 | `arduino` |
+
+Le modifiche comuni (documentazione, configurazione agenti) vanno su `main`; i due branch vengono poi ribasati su `main`.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+Le issue vivono in GitHub Issues (`DaniloCaruso/R080Timer_MEGA`), gestite con la CLI `gh`. Ogni issue porta l'etichetta della piattaforma: su questo branch usare `esp32`. Vedere `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Etichette predefinite: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. Vedere `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `GLOSSARY.md` alla radice. Niente ADR: le decisioni di ogni feature vanno in `docs/<nome-feature>/decisions.md`. Spec e piani precedenti a questa convenzione sono in `docs/superpowers/`. Vedere `docs/agents/domain.md`.
