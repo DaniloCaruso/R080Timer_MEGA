@@ -36,7 +36,7 @@ class Settings {
   bool load();                   // all'avvio: valori di fabbrica se il blocco non è valido (ritorna false)
   void factoryReset();           // REQ-9.8: tutte le impostazioni ai valori di fabbrica (poi changed())
   void changed() { pending_ = restart_ = true; }  // salva 2 s dopo l'ultima modifica
-  void service(uint32_t nowMs);  // a ogni giro di loop
+  void service(uint32_t nowMs);  // a ogni giro di loop: un passo del salvataggio in corso
   void save();                   // subito, se c'è qualcosa da salvare (avvio di un'Esposizione)
   ChannelRecord& active() { return d.ch[d.g.activeChannel]; }
   const ChannelRecord& active() const { return d.ch[d.g.activeChannel]; }
@@ -45,6 +45,6 @@ class Settings {
 
  private:
   Storage& storage_;
-  bool pending_ = false, restart_ = false;
+  bool pending_ = false, restart_ = false, writing_ = false;
   uint32_t sinceMs_ = 0;
 };

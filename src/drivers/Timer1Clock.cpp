@@ -60,6 +60,7 @@ void Timer1Clock::measure(Health& h) {
 void Timer1Clock::startCountdown(uint32_t durationMs, bool lamp) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     core.startCountdown(durationMs);
+    events = 0;
     if (lamp) RELAY_ON();
   }
 }
@@ -67,6 +68,7 @@ void Timer1Clock::startCountdown(uint32_t durationMs, bool lamp) {
 void Timer1Clock::startFocus(uint32_t limitMs, bool lamp) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     core.startFocus(limitMs);
+    events = 0;
     if (lamp) RELAY_ON();
   }
 }
@@ -74,6 +76,7 @@ void Timer1Clock::startFocus(uint32_t limitMs, bool lamp) {
 void Timer1Clock::startStrip(bool stepped, uint32_t elapsedMs, uint32_t nextStepMs, bool lamp) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     core.startStrip(stepped, elapsedMs, nextStepMs);
+    events = 0;
     if (lamp) RELAY_ON();
   }
 }
@@ -85,6 +88,7 @@ void Timer1Clock::setNextStep(uint32_t nextStepMs) {
 void Timer1Clock::cancel() {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     core.cancel();
+    events = 0;
     RELAY_OFF();
   }
 }

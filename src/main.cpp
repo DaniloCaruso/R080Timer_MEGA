@@ -54,6 +54,7 @@ void loop() {
   sound.tick(now);
   screen.render(now);
   settings.service(now);
+  counters.service();
   timing.measure(health);
   uint32_t us = micros() - startUs;  // REQ-9.4
   if (us > health.loopMaxUs) health.loopMaxUs = us;
