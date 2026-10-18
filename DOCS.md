@@ -1,449 +1,290 @@
-# R080 TIMER MEGA - User Manual & Technical Documentation
+# R080 Timer — User manual (firmware v2.0.0)
 
-## Table of Contents
+[Versione italiana](DOCS-IT.md)
 
-1. [Overview](#overview)
-2. [Hardware](#hardware)
-3. [Controls](#controls)
-4. [Display](#display)
-5. [Operating Modes](#operating-modes)
-6. [F-Stop Navigation](#f-stop-navigation)
-7. [Channels](#channels)
-8. [EEPROM Persistence](#eeprom-persistence)
-9. [Sound](#sound)
-10. [Software Architecture](#software-architecture)
-11. [Quick Command Reference](#quick-command-reference)
+R080 Timer drives the enlarger lamp: it decides how long the light exposes the paper. It has three Modes (Focus, Countdown, Test strip), precision in seconds or in fractions of a stop (F-Stop), three Channels with memory and a Service menu for diagnostics and calibration.
 
----
+Times are shown and entered in tenths of a second, from 0.1 to 999.9 s.
 
-## Overview
+The LCD texts are in Italian; this manual quotes them as they appear, with a translation where useful.
 
-R080 Timer MEGA is a precision digital timer for darkroom photographic enlargers. Based on Arduino Mega 2560, it offers three operating modes (Focus, Countdown, Test Strip), F-Stop navigation, 3 independent channels with memory, and settings persistence.
+## Contents
 
-**Internal time unit:** deciseconds (1/10 second). The value `100` on the display equals `10.0` seconds.
-
----
-
-## Hardware
-
-| Component                 | Connection                          |
-|--------------------------|--------------------------------------|
-| Arduino Mega 2560        | Main board                           |
-| LCD RGB 16x2 (Waveshare) | I2C (addr 0x3E/0x60)               |
-| 7-Segment Display         | SoftwareSerial on pin A2 (9600 baud)|
-| 4x4 Keypad               | Cols: 41, 39, 37, 35 / Rows: 33, 31, 29, 27 |
-| Mode Encoder              | DT=3, CLK=4, button SW=17          |
-| Precision Encoder         | DT=18, CLK=19, button SW=16        |
-| Main Button               | Pin 2 (INPUT_PULLUP)               |
-| Buzzer                    | Pin 49                              |
-| Enlarger Relay            | Pin 47                              |
+1. [Controls](#1-controls)
+2. [Displays](#2-displays)
+3. [Entering the time](#3-entering-the-time)
+4. [Precision: Seconds and F-Stop](#4-precision-seconds-and-f-stop)
+5. [Modes](#5-modes)
+6. [Channels and memory](#6-channels-and-memory)
+7. [Sounds and mute](#7-sounds-and-mute)
+8. [Darkroom lights](#8-darkroom-lights)
+9. [Power-on and safety](#9-power-on-and-safety)
+10. [Service menu](#10-service-menu)
+11. [Clock calibration](#11-clock-calibration)
+12. [USB log](#12-usb-log)
+13. [Quick reference](#13-quick-reference)
 
 ---
 
-## Controls
+## 1. Controls
 
-### Main Button (pin 2)
+| Control | Action |
+|---|---|
+| Main button | Starts the Exposure; during the Exposure it cancels it. Acts on press, not on release. |
+| Digits `0`–`9` | Enter the time (see §3). `0` is entered when the key is released. |
+| `*` / `#` | Decrease / increase the time by the precision (§4). In Focus they set the LCD brightness (§8). |
+| `0` held + `*` / `#` | In Focus: 7-segment brightness (§8). |
+| `*` held 1 s | Mute on/off, with a confirmation beep (§7). |
+| `#` held 1 s | Relay enable of the active Channel, with a confirmation beep (§6). |
+| `A` / `B` / `C` | Activate the matching Channel (§6). |
+| `D` | Clears set time, Base time and Offset of the active Channel. |
+| Mode encoder, turn | Next or previous Mode: Focus, Countdown, Test strip. |
+| Mode encoder, press | In Test strip: continuous (`CO`) or step-by-step (`PP`) Advance. |
+| Precision encoder, turn | Next or previous precision value (11 values, wrapping). |
+| Precision encoder, press | Precision type: Seconds or F-Stop. |
 
-- **Single press:** Start/Stop the current operation (toggle).
-- When started: relay activates (if enabled for current channel) and timer runs.
-- When stopped: relay deactivates and timer stops.
+During an Exposure (including Focus with the lamp on) keypad and encoders are ignored: only the main button works.
 
-### Mode Encoder (left)
+## 2. Displays
 
-- **Rotation:** Cycles through 3 modes: FOCUS -> COUNTDOWN -> TEST STRIP -> FOCUS...
-- **Button press:** In TEST STRIP, toggles advancement mode:
-  - `CO` = Continuous (consecutive exposures without pause)
-  - `PP` = Step-by-Step (stops at each step, press again to continue)
+### 7-segment
 
-### Precision Encoder (right)
+Shows a time in seconds with one decimal, on four digits: `010.0` = 10.0 s, `999.9` = maximum.
 
-- **Rotation:** Changes precision value among 11 levels.
-  - In F-Stop: 1/1, 1/2, 1/3, 1/4, 1/6, 1/8, 1/12, 1/16, 1/24, 1/32, 1/64
-  - In Seconds: 1s, 2s, 3s, 4s, 5s, 6s, 7s, 8s, 10s, 15s, 20s
-- **Button press:** Toggles precision type between F-Stop (`F`) and Seconds (`S`).
+| State | What it shows |
+|---|---|
+| Idle | The set time of the active Channel |
+| Countdown running | The remaining time, rounded up |
+| Focus on | The elapsed time (stops at `999.9` after 16 min 39.9 s) |
+| Test strip running | The cumulative time since the start of the test |
+| Step-by-step test strip paused | The cumulative time of the next Step |
 
-### 4x4 Keypad
+### LCD
 
-Physical layout:
+Two rows of 16 characters, backlight always red.
+
+Row 1: Mode, precision type (`[S]` Seconds, `[F]` F-Stop) and, in Test strip, the Advance (`CO` continuous, `PP` step-by-step).
 
 ```
- 1  2  3  A
- 4  5  6  B
- 7  8  9  C
- *  0  #  D
+FOCUS
+COUNTDOWN  [S]
+TEST STRIP [F]PP
 ```
 
----
-
-## Display
-
-### 7-Segment Display
-
-Shows current time in deciseconds with 4 digits and a decimal point on the first digit.
-
-Examples:
-- `10.00` = 100.0 seconds (1000 deciseconds)
-- ` 5.00` = 50.0 seconds
-- ` 0.30` = 3.0 seconds
-
-### LCD 16x2
-
-Layout depends on the active mode:
-
-**FOCUS:**
-```
-Row 0: FOCUS
-Row 1:          Ch:A ♪⚡
-```
-No precision shown. `♪` = sound on, `⚡` = relay enabled.
-
-**COUNTDOWN:**
-```
-Row 0: COUNTDOWN  [S]
-Row 1: Pr: 5s    Ch:A ♪⚡
-```
-`[S]` = Seconds type, `[F]` = F-Stop type.
-
-**COUNTDOWN in F-Stop:**
-```
-Row 0: COUNTDOWN  [F]
-Row 1: Pr:1/3+02 Ch:A ♪⚡
-```
-`+02` = 2 stops above base time. `-01` = 1 stop below. ` 00` = at base time.
-
-**TEST STRIP:**
-```
-Row 0: TEST STRIP [S] CO
-Row 1: Pr: 5s    Ch:B ♪⚡
-```
-`CO` = Continuous, `PP` = Step-by-Step.
-
----
-
-## Operating Modes
-
-### 1. FOCUS
-
-**Purpose:** Continuous projection for focusing and composition.
-
-**Behavior:**
-- Pressing the button: relay activates and timer counts upward from 0 (increments every 0.1s).
-- The displayed time grows continuously.
-- Pressing again: relay deactivates and timer stops.
-
-**Special controls in FOCUS:**
-- `*` key = decrease 7-segment display brightness (from 10 to 1)
-- `#` key = increase 7-segment display brightness (from 1 to 10)
-- Number keys are disabled.
-
-### 2. COUNTDOWN
-
-**Purpose:** Timed exposure with countdown.
-
-**Preparation:**
-1. Type desired time with the numeric keypad (up to 4 digits, in deciseconds).
-   - Example: `1` `0` `0` = 10.0 seconds
-   - Example: `5` = 0.5 seconds
-   - Example: `5` `0` = 5.0 seconds
-2. Or use `*`/`#` to navigate time (see F-Stop or Seconds section).
-
-**Behavior:**
-- Pressing the button: relay activates, timer counts down.
-- **Metronome:** every second (every 10 deciseconds) a beep is emitted.
-- At zero: relay deactivates, stop sound (3 beeps), timer stops automatically.
-- **Repeat last exposure:** at completion, the time is restored to the starting value. You can immediately restart by pressing the button.
-- Pressing the button during countdown: interrupts the exposure.
-
-**Time navigation:**
-
-With **Seconds** type (`S`):
-- `#` = adds `precision * 10` deciseconds to time (e.g. precision 5s -> +50 deciseconds)
-- `*` = subtracts `precision * 10` deciseconds (minimum 1)
-
-With **F-Stop** type (`F`):
-- `#` = move up one stop (see F-Stop section)
-- `*` = move down one stop
-- Display shows offset from base time (e.g. `+02`, `-01`, ` 00`)
-
-### 3. TEST STRIP
-
-**Purpose:** Incremental exposures for exposure test strips.
-
-**Preparation:**
-1. Set base time with the keypad (first exposure step).
-2. Choose precision (distance between steps).
-3. Choose mode: Continuous (`CO`) or Step-by-Step (`PP`).
-
-**Behavior - Continuous (`CO`):**
-- Pressing the button: relay activates, timer counts upward.
-- At each step a beep is emitted. 3 deciseconds before the step: warning beep.
-- Timer automatically continues to the next step.
-- Pressing the button: stops everything.
-
-**Behavior - Step-by-Step (`PP`):**
-- Pressing the button: relay activates, timer counts to first step.
-- At step: relay deactivates, timer stops, display shows next target.
-- User can move the paper strip under the enlarger.
-- Pressing again: resumes for next step (timer continues from where it stopped).
-
-**Step calculation:**
-
-With **Seconds** type: linear steps. E.g. with precision 5s and base 50 deciseconds (5s):
-- Step 1: 0 -> 50 (5.0s)
-- Step 2: 50 -> 100 (10.0s)
-- Step 3: 100 -> 150 (15.0s)
-
-With **F-Stop** type: logarithmic steps. E.g. with precision 1/3 and base 50 deciseconds:
-- Step 1: 0 -> 50
-- Step 2: 50 -> 63 (50 * 2^(1/3) = 63)
-- Step 3: 63 -> 79 (63 * 2^(1/3) = 79)
-
----
-
-## F-Stop Navigation
-
-### Concept
-
-F-Stop is a logarithmic system used in photography. Doubling the time equals +1 stop. The timer supports fractional stops for fine adjustments.
-
-### How it works
-
-1. **Set a base time** by typing it with the keypad (e.g. `100` = 10 seconds).
-2. **Press the precision encoder button** to switch to F-Stop mode (`F`).
-3. **Rotate the precision encoder** to choose the fraction: 1/1 (full stops), 1/2 (half stops), 1/3 (third stops), etc.
-4. **Press `#`** to go up one stop. **Press `*`** to go down.
-
-### Practical example
-
-Base time: 100 deciseconds (10.0s), precision 1/3 stop:
-
-| Key | Offset | Calculation | Resulting time |
-|-----|--------|-------------|---------------|
-| (base)| ` 00` | 100         | 10.0s         |
-| `#`   | `+01` | 100 * 2^(1/3) = 126 | 12.6s  |
-| `#`   | `+02` | 100 * 2^(2/3) = 159 | 15.9s  |
-| `#`   | `+03` | 100 * 2^(3/3) = 200 | 20.0s  |
-| `*`   | `+02` | 100 * 2^(2/3) = 159 | 15.9s  |
-
-Formula: `time = baseTime * 2^(offset / precision)`
-
-### Important notes
-
-- Base time is set automatically when you type digits on the keypad.
-- Switching channels updates the base time to the new channel's time.
-- Offset is shown on LCD as `+02`, `-01`, ` 00`.
-- Calculated time is always between 1 and 9999 deciseconds.
-- Changing precision (e.g. from 1/3 to 1/6) recalculates time with the same offset but new precision value.
-
----
-
-## Channels
-
-The timer has **3 independent channels** (A, B, C), each with:
-- Its own stored time
-- Its own relay state (enabled/disabled)
-
-### Commands
-
-| Key | Action |
-|-----|--------|
-| `A` | Select channel A |
-| `B` | Select channel B |
-| `C` | Select channel C |
-| `D` | Reset current channel (time to 0, F-stop reset) |
-
-### Behavior
-
-- When switching channels, the previous channel's time is saved automatically.
-- The new channel's time is loaded onto the display.
-- F-stop state (base time and offset) is reset to the new channel's time.
-- Settings are saved to EEPROM on every change.
-
-### Per-channel relay
-
-Each channel has an independent relay. Useful if you have multiple enlargers or want to disable the relay for a specific channel.
-
-- **Hold `#`** = toggle current channel's relay (ON/OFF)
-- The `⚡` icon on LCD indicates relay enabled; blank space = disabled.
-- If relay is disabled, the timer runs normally but the relay doesn't activate.
-
----
-
-## EEPROM Persistence
-
-Settings are automatically saved to Arduino's EEPROM and restored at power-on.
-
-### Stored data (13 bytes)
-
-| Address | Data | Type |
-|---------|------|------|
-| 0 | Magic byte (0xA5) | byte |
-| 1 | Display brightness (1-10) | byte |
-| 2 | Mute (0/1) | byte |
-| 3 | Active channel (1-3) | byte |
-| 4-5 | Channel A time | int16 |
-| 6-7 | Channel B time | int16 |
-| 8-9 | Channel C time | int16 |
-| 10 | Channel A relay | byte |
-| 11 | Channel B relay | byte |
-| 12 | Channel C relay | byte |
-
-### When it saves
-
-- Channel switch (A, B, C)
-- Time modification (digits, `*`/`#`, F-stop)
-- Channel reset (D)
-- Mute toggle (hold `*`)
-- Relay toggle (hold `#`)
-- Brightness change (in FOCUS: `*`/`#`)
-
-### Technical notes
-
-- Uses `eeprom_update_*` which writes ONLY if the value differs from what's in memory (preserves EEPROM life, ~100,000 write cycles per cell).
-- On first boot (virgin EEPROM), the magic byte won't be present and default values will be used.
-
----
-
-## Sound
-
-### Tones
-
-| Event | Frequency | Duration |
-|-------|-----------|----------|
-| Metronome (countdown) | 300 Hz | 80ms, every second |
-| Warning beep (test strip) | 600 Hz | 50ms, 3 deciseconds before step |
-| Step beep (test strip) | 600 Hz | 150ms, at step target |
-| Stop sound (countdown end) | 300 Hz | sequence: 75ms, pause, 75ms, pause, 150ms |
-| Unmute confirmation | 600 Hz | 200ms |
-
-### Mute control
-
-- **Hold `*`** = toggle mute/unmute
-- `♪` on LCD = sound active
-- Blank space = muted
-
-### Non-blocking system
-
-The stop sound uses a state machine (`SoundPlayer`) that plays the beep sequence without blocking the main loop. The `tickSound()` function is called on every loop iteration.
-
----
-
-## Software Architecture
-
-### File structure
+Row 2: precision (columns 1–7), Channel, ♪ icon (sounds on, hidden when muted) and ⚡ icon (relay enabled).
 
 ```
-src/main.cpp                 -> setup() + loop()
-include/
-  types.h                    -> Enums, Operation/OperationStatus structs
-  constants.h                -> Pins, tones, texts, keypad layout
-  variables.h                -> Globals, hardware objects, Timer<3>
-  functions/
-    base.h                   -> relayStart(), noop(), isInError()
-    config.h                 -> Hardware initialization, resetTime()
-    fstop.h                  -> FStopState: F-stop calculation
-    storage.h                -> EEPROM: loadSettings(), saveSettings()
-    presentation.h           -> LCD & 7-segment: showTime(), showChannel(), etc.
-    sound.h                  -> Non-blocking SoundPlayer, emitSound(), tickSound()
-    timer_manager.h          -> Timer callbacks: focus, countdown, test strip
-    actions.h                -> focus(), countdown(), testStrip()
-    operations.h             -> initializeOperations(), setOperationStatus()
-    keypad_mgmt.h            -> evaluateKey(), switchToChannel(), F-stop nav
-    encoder_mgmt.h           -> evaluateEncoderMod(), evaluateEncoderPrec()
-    running_mgmt.h           -> manageMainButtonAction(), configureMainButton()
+ 5s      Ch:A ♪⚡     Seconds precision: 5 s
+20s      Ch:A ♪⚡     Seconds precision: 20 s
+1/3 +02  Ch:A ♪⚡     F-Stop 1/3, Offset +2
+1/12-01  Ch:B  ⚡     F-Stop 1/12, Offset -1, muted
+St:3     Ch:C ♪⚡     Test strip: Step number 3
+         Ch:A ♪⚡     Focus: no precision
 ```
 
-### Main loop
+At power-on the LCD shows ` - R080 Timer - ` and the version for 1.5 s, then the last saved state.
+
+## 3. Entering the time
+
+Digits enter from the right as on a calculator, in tenths of a second, up to four digits; the fifth pushes the oldest one out.
+
+| Keys | Time |
+|---|---|
+| `5` | 0.5 s |
+| `5` `0` | 5.0 s |
+| `1` `2` `5` | 12.5 s |
+| `1` `2` `3` `4` `5` | 234.5 s |
+
+- The first digit after any other action (Exposure, Channel change, `*`/`#`, encoders…) starts a new time.
+- The entered time also becomes the Base time, with Offset zero.
+- `D` clears the time. Starting a Countdown or a Test strip with time zero gives the error beep.
+
+## 4. Precision: Seconds and F-Stop
+
+Precision is the step by which `*`/`#` and the Test strip move the time. It has a type and a value:
+
+| Type | Values |
+|---|---|
+| Seconds | 1, 2, 3, 4, 5, 6, 7, 8, 10, 15, 20 s |
+| F-Stop | 1/1, 1/2, 1/3, 1/4, 1/6, 1/8, 1/12, 1/16, 1/24, 1/32, 1/64 of a stop |
+
+**Seconds.** `#` adds the precision value to the time, `*` subtracts it, within 0.1–999.9 s.
+
+**F-Stop.** The time is computed from the Base time: time = Base time × 2^(Offset / p), where 1/p is the precision, rounded to the tenth. `#` and `*` move the Offset by one (up to ±99); the Offset stays visible on row 2 (`+02`, `-01`, ` 00`). The step is refused if the time would leave 0.1–999.9 s or if the Base time is zero.
+
+- Pressing the precision encoder switches type: the current time becomes the Base time, with Offset zero.
+- Turning the precision encoder in F-Stop recomputes the time from the Base time with the same Offset and the new value (e.g. Offset +2 at 1/3 becomes +2 at 1/2).
+
+Example: time 10.0 s, F-Stop 1/3. `#` three times: 12.6 → 15.9 → 20.0 s (one stop). `*` once from the base time: 7.9 s.
+
+## 5. Modes
+
+### Focus
+
+Lamp on for as long as needed, to compose and focus.
+
+- Main button: the lamp turns on (if the Channel's relay enable is on) and the 7-segment counts the elapsed time. A second press turns it off, with the End sound.
+- **Automatic shut-off:** after the maximum time chosen in the Service menu (3, 5, 10, 15 or 20 minutes; factory 5) the lamp turns off by itself, with the End sound. A warning (two tones) sounds 10 s before.
+- No Metronome. The set time is not used, but stays in the Channel.
+- Focus does not count as an Exposure in the counters; its lamp-on time counts in the lamp hours.
+
+### Countdown
+
+A single Exposure as long as the set time.
+
+- Main button: lamp on and countdown on the 7-segment, with the Metronome on every whole second.
+- At zero the lamp turns off (by the hardware timer, to the millisecond) and the End sound plays. The 7-segment returns to the set time: another press repeats the same Exposure.
+- Press during the Exposure: Cancellation (lamp off, End sound). The next press starts again from the full time. A cancelled Countdown still counts as an Exposure.
+
+### Test strip
+
+A series of cumulative Steps to compare several times on a single strip of paper. The first Step is the set time.
+
+| Precision | Steps (cumulative times) |
+|---|---|
+| Seconds, value P | T, T+P, T+2P, … with T = set time |
+| F-Stop 1/p | Base time × 2^((Offset + k) / p) for k = 0, 1, 2, … |
+
+Every Step is computed from the Base time, so rounding does not accumulate. If two rounded Steps coincide (1/64 with short times), the next one falls 0.1 s later.
+
+Seconds example: T = 5.0 s, P = 5 s → Steps at 5, 10, 15, 20 s… F-Stop 1/2 example with Base time 8.0 s: 8.0 → 11.3 → 16.0 → 22.6 s…
+
+During the test row 2 of the LCD shows the current Step (`St:n`) and the 7-segment the cumulative time. Before each Step the Pre-warning sounds (three ticks at −0.3, −0.2 and −0.1 s), at the Step the step beep. No Metronome.
+
+**Continuous Advance (`CO`).** The lamp stays on from one Step to the next. Cover the strips at each step beep. The main button cancels the test.
+
+**Step-by-step Advance (`PP`).** At each Step the lamp turns off (to the millisecond) and the timer waits: the 7-segment shows the cumulative time of the next Step. Move the paper and press the main button: the lamp turns on again only for the increment up to the next Step.
+
+- While paused, `D` ends the test with the End sound. `A`, `B`, `C` and a turn of the Mode encoder end it too, and also switch to the pressed Channel or to the next or previous Mode.
+- With the lamp on, the main button cancels the test.
+
+**End of the test.** The test goes on until it is cancelled or ended; at 999.9 s cumulative it ends by itself. Every new test starts again from the first Step. A whole test counts as one Exposure, even when cancelled.
+
+## 6. Channels and memory
+
+Keys `A`, `B` and `C` recall three Channels. Each Channel is a complete print setting: Mode, precision type and value, Advance, set time, Base time, Offset and relay enable. Changing Channel restores everything; changing Mode does not change the time.
+
+**Relay enable.** Holding `#` for 1 s toggles, for the active Channel, whether the Exposure really turns on the lamp (⚡ icon) or only runs the time, useful to try a cycle with the lamp off.
+
+**Memory.** Settings are saved automatically 2 s after the last change and at the start of every Exposure: active Channel, the three Channels, mute, brightness and Service menu settings. At power-on everything is as it was.
+
+**Factory values.** For each Channel: Countdown, Seconds 1 s, continuous Advance, 10.0 s, relay enabled. Global: Channel A, mute off, LCD level 3, 7-segment level 3, LCD during exposure level 1, Focus maximum 5 minutes, clock correction 0 ppm.
+
+At the first power-on with v2.0.0 the settings of the previous version are not read: the timer starts from factory values.
+
+## 7. Sounds and mute
+
+| Sound | When | How it sounds |
+|---|---|---|
+| Start | Exposure start or step-by-step resume | short high beep (1000 Hz, 60 ms) |
+| Metronome | Every second of a Countdown | low tick (300 Hz, 80 ms) |
+| Pre-warning | 0.3 s before each Step | three short ticks (800 Hz, 30 ms) |
+| Step | At each Test strip Step | medium beep (600 Hz, 150 ms) |
+| End sound | End or Cancellation | three falling tones (600, 450, 300 Hz) |
+| Focus warning | 10 s before automatic shut-off | two tones (450 Hz, 200 ms) |
+| Error | Start with time zero; value refused in the Service menu | long low tone (150 Hz, 300 ms) |
+| Confirm | Mute, relay enable, value saved in the Service menu | very high beep (1200 Hz, 40 ms) |
+
+**Mute.** Hold `*` for 1 s to turn it on or off; the confirmation sounds both ways. While muted only the End sound plays, so the end of an Exposure is never missed; the mute confirmation itself and the Service menu sounds stay audible too.
+
+## 8. Darkroom lights
+
+- The LCD is always and only red. 8 brightness levels for the LCD and 8 for the 7-segment, denser at the low end.
+- In Focus, lamp off: `*`/`#` dim/brighten the LCD; holding `0`, `*`/`#` dim/brighten the 7-segment.
+- During every Exposure (including Focus on) the LCD drops to the "LCD esposizione" level of the Service menu (factory 1, the minimum) and returns to the normal level at the end. The 7-segment stays at the chosen level.
+
+## 9. Power-on and safety
+
+- At power-on and after every reset the relay stays off until an Exposure is started. An Exposure interrupted by a power cut is never resumed.
+- The main button acts only after 20 ms of stable press: a bounce never starts or cancels an Exposure.
+- **Watchdog:** if the firmware hangs, the lamp turns off within 250 ms and the board restarts after 500 ms. On restart the LCD shows `RESET: WDT` for 3 s and the watchdog reset counter increases.
+- Below 2.7 V supply the board resets (brown-out) with the relay off.
+- If the LCD fails or is disconnected the timer keeps working with the 7-segment only; the LCD is brought back automatically as soon as it answers.
+
+## 10. Service menu
+
+Opens by holding `D` while powering on the timer (until the start screen). No Exposures can be started in the menu.
+
+| Control | Action |
+|---|---|
+| Mode encoder, turn | Scrolls the items; inside an item, changes screen |
+| Mode encoder, press | Enters the item; inside an item, confirms and saves the value |
+| `D` | Back to the item list without saving |
+| Digits | Enter the value, calculator style |
+| `*` | Changes the sign of the value (after the digits) |
+
+An out-of-range value gives the error beep and must be entered again; an accepted one gives the confirm beep and returns to the list.
+
+| Item (LCD) | Content |
+|---|---|
+| Info | Firmware version and build date |
+| Contatori (counters) | Four screens: Accensioni (every start-up, watchdog resets included), Reset watchdog, Esposizioni (Countdowns and test strips, cancelled ones included), Ore lampada (lamp hours: relay-on time, Focus included) |
+| Salute (health) | Three screens: Loop max (µs), ISR max (µs), Tick persi (Timer1 ticks lost since power-on) |
+| Test rele | A press turns the relay on and off; leaving turns it off |
+| Test buzzer | Turning picks one of the 8 sounds, pressing plays it (1 end, 2 error, 3 Focus warning, 4 start, 5 step, 6 pre-warning, 7 metronome, 8 confirm) |
+| Test 7 segmenti | Lights all segments (`888.8`) |
+| Test LCD | Fills every cell |
+| Test tastierino | Shows the last key pressed; `D` is tested by leaving |
+| Test encoder | `M` and `P`: position and press count of the two encoders |
+| Test pulsante | Premi (press), Premuto (pressed), Rilasciato (released) |
+| Calibrazione | Three screens: Log calibrazione, Correzione ppm, Durata 600 s (see §11) |
+| LCD esposizione | LCD level during the Exposure, 1 to 8 |
+| Tempo max Focus | Minutes before automatic shut-off: 3, 5, 10, 15 or 20 |
+| Ripristino fabb | Inside the item, a press asks for confirmation and a second press restores all settings to factory values, clock correction included (counters are kept); `D` cancels |
+| Esci | Back to normal use |
+
+In the tests every control goes to the component under test; `D` leaves.
+
+## 11. Clock calibration
+
+The board's crystal can be off by a few tens of parts per million (ppm): 50 ppm is 3 ms over 60 s. The clock correction compensates for this offset and is saved with the settings. It needs measuring once; after a factory reset it returns to 0.
+
+### Main method: script `tools/calibrate.py`
+
+You need a PC with Python 3.10 or later and `pyserial` (`pip install pyserial`), and the board's USB cable.
+
+1. Close any program using the serial port (including `pio device monitor`).
+2. On the timer: Service menu → Calibrazione → "Log calibrazione" screen, press the encoder. The LCD shows `Attivo, D: esci` (active, D: exit).
+3. On the PC: `python3 tools/calibrate.py /dev/ttyACM0` (on Windows e.g. `COM3`).
+4. After 30 minutes the script prints, for example, `Correzione del clock: +23 ppm`. The value is absolute: it does not depend on the correction already saved.
+5. On the timer: `D` closes the log and returns to the list. Press the encoder to enter Calibrazione again, turn to the "Correzione ppm" screen, type the value (`2` `3`), press `*` if it is negative, press the encoder to save.
+
+Options: `--minutes N` changes the measurement length; `--self-test` checks the script without a board. If the timer restarts when the port opens (the start screen appears again), stop the script with Ctrl+C, open the Service menu again and restart from step 2.
+
+### Without a PC: audio recording of a 600.0 s Countdown
+
+You need an audio recorder (a smartphone is fine) and a program that shows the waveform (for example Audacity).
+
+1. Turn mute off (♪ icon visible): the start beep does not sound when muted. You can turn the relay enable off to keep the lamp dark.
+2. Countdown, time `6` `0` `0` `0` (600.0 s).
+3. Start recording near the timer, press the main button and wait for the End sound.
+4. On the waveform measure the time from the start of the start beep to the start of the first tone of the End sound. The Metronome ticks, one per second, help to find your way.
+5. Restart the timer holding `D`: Service menu → Calibrazione, turn to the "Durata 600 s" screen. Type the measured duration in hundredths of a second (`6` `0` `0` `1` `2` for 600.12 s) and press the encoder.
+
+The timer computes the new correction starting from the saved one, so the measurement can be repeated to refine it. A 10 ms reading error on the waveform is about 17 ppm: the script is more accurate.
+
+## 12. USB log
+
+With the board connected to a PC (115200 baud, for example `pio device monitor -b 115200`) the timer writes one line per event, prefixed by the milliseconds since power-on:
 
 ```
-loop() {
-  mainButton.tick()        -> Button handling (OneButton, debounce)
-  appTimer.tick()          -> Timer callback execution (arduino-timer)
-  tickSound()              -> Non-blocking sound state machine
-  manageMainButtonAction() -> If pressed: execute action. If stopped: read inputs.
-}
+t=12 BOOT reset=POWER
+t=8301 START mode=CD ch=A ms=100000
+t=108305 END ms=100000 measured=100000
 ```
 
-### Flow when timer is STOPPED
+Events: `BOOT` (with cause `POWER` or `WDT`), `ERROR settings=factory`, `START` (Mode `FO`, `CD`, `TS`, Channel, requested length), `END` and `CANCEL` (with the length measured by the timer), `LCD offline` / `LCD online`, `CAL` (calibration log), `LOST lines=n` (lines dropped because the PC was not reading).
 
-```
-manageMainButtonAction()
-  -> onStop()
-     -> stopAllTimers()
-     -> evaluateEncoderMod()    (reads mode encoder)
-     -> evaluateEncoderPrec()   (reads precision encoder)
-     -> evaluateButtons()       (reads encoder buttons)
-     -> evaluateKey()           (reads keypad)
-```
+## 13. Quick reference
 
-### Flow when timer is RUNNING
-
-```
-manageMainButtonAction()
-  -> manageStarted()
-     -> operationStatus.current.startedAction()
-        -> focus() / countdown() / testStrip()
-           -> startFocusTimer() / startCountdownTimer() / startTestStripTimer()
-              -> appTimer.every(100, callback)
-```
-
-Timer callbacks are executed every 100ms by `appTimer.tick()`.
-
-### Libraries used
-
-| Library | Version | Purpose |
-|---------|---------|---------|
-| Encoder | 1.4.4 | Rotary encoder reading |
-| Keypad | 3.1.1 | 4x4 matrix keypad |
-| LiquidCrystal_I2C | 1.1.4 | I2C LCD (indirect dependency) |
-| EncoderButton | 1.0.6 | Encoder button handling with debounce |
-| ArduinoSTL | 1.3.3 | Minimal STL support for String |
-| OneButton | 2.6.1 | Main button with click/hold detection |
-| arduino-timer | 3.0.1 | Non-blocking timer with callbacks |
-| WaveShare-Lib | local | Waveshare RGB LCD driver |
-
----
-
-## Quick Command Reference
-
-### Number keys (0-9)
-Available only in COUNTDOWN and TEST STRIP. Sequential input up to 4 digits.
-
-### Letter keys
-
-| Key | Short press | Long press |
-|-----|-------------|------------|
-| `A` | Select channel A | - |
-| `B` | Select channel B | - |
-| `C` | Select channel C | - |
-| `D` | Reset current channel | - |
-
-### Special keys
-
-| Key | In FOCUS | In COUNTDOWN / TEST STRIP | Long press |
-|-----|----------|---------------------------|------------|
-| `*` | Brightness -1 | Time -1 step (Seconds) / F-stop -1 (F-Stop) | Toggle Mute |
-| `#` | Brightness +1 | Time +1 step (Seconds) / F-stop +1 (F-Stop) | Toggle Channel Relay |
-
-### Encoders
-
-| Encoder | Rotation | Button press |
-|---------|----------|--------------|
-| Mode (Left) | Change: FOCUS / COUNTDOWN / TEST STRIP | Toggle CO/PP (Test Strip only) |
-| Precision (Right) | Change precision level (11 values) | Toggle type: Seconds (S) / F-Stop (F) |
-
-### Main button
-
-| State | Action |
-|-------|--------|
-| Timer stopped | Start current operation |
-| Timer running | Stop current operation |
-
----
-
-## Memory resources
-
-| Resource | Usage | Available | Percentage |
-|----------|-------|-----------|------------|
-| RAM | 2050 bytes | 8192 bytes | 25.0% |
-| Flash | 28082 bytes | 253952 bytes | 11.1% |
+| I want to… | I do… |
+|---|---|
+| Expose for 12.5 s | Countdown, `1` `2` `5`, main button |
+| Repeat the last Exposure | Main button |
+| Cancel an Exposure | Main button |
+| One third of a stop more | F-Stop 1/3, `#` |
+| A step-by-step strip | Test strip, press the Mode encoder until `PP` |
+| Silence the timer | `*` held 1 s |
+| Expose without turning the lamp on | `#` held 1 s (⚡ disappears) |
+| Dim the lights | Focus with lamp off: `*` (LCD), `0` + `*` (7-segment) |
+| Open the Service menu | `D` held at power-on |
