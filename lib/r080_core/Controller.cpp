@@ -20,12 +20,14 @@ void Controller::boot(bool watchdogReset, bool settingsOk, bool keyD) {
 
 void Controller::onInput(Input in, int8_t arg) {
   if (menu_.active()) {  // REQ-9.14: nel Menu di servizio nessuna Esposizione
-    if (in == Input::ModeTurn) menu_.turn(arg);
+    if (menu_.testing() && in != Input::KeyD) menu_.test(in, arg);
+    else if (in == Input::ModeTurn) menu_.turn(arg);
     else if (in == Input::ModeClick) menu_.click();
     else if (in == Input::KeyD) menu_.back();
     else if (in == Input::Digit) menu_.digit(arg);
     return;
   }
+  if (in == Input::MainRelease) return;  // serve solo al test del pulsante (REQ-9.5)
   update();  // prima gli eventi della ISR: uno Step appena scattato mette già in pausa
   bool running = timing_.running();
   ChannelRecord& c = set_.active();
@@ -159,6 +161,7 @@ void Controller::nextStripStep() {
 }
 
 void Controller::update() {
+  if (menu_.active()) timing_.setRelay(menu_.relayOn());  // REQ-9.5: spento appena si lascia il test
   uint8_t events = timing_.takeEvents();
   if (events & (EV_END | EV_FOCUS_OFF)) exposureEnd("END");
   if ((events & EV_STEP) && !(events & EV_END)) {
@@ -186,6 +189,7 @@ void Controller::update() {
     // Countdown: residuo arrotondato per eccesso, non mostra 0000 prima della fine.
     ds = msToDs(timing_.remainingMs() + MS_PER_DS - 1);
   }
+  if (menu_.sevenSegTest()) ds = 8888;  // REQ-9.5: tutti i segmenti delle cifre e il punto decimale
   if (ds != shownDs_) seg_.showDeciseconds(shownDs_ = ds);
   if (set_.d.g.segLevel != segLevel_) seg_.setBrightness(segLevel_ = set_.d.g.segLevel);  // REQ-7.4
 }

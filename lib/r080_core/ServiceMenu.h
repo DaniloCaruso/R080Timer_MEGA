@@ -8,6 +8,8 @@
 #include "Settings.h"
 #include "SoundScheduler.h"
 
+enum class Input : uint8_t;  // in Controller.h
+
 // Salute del sistema (REQ-9.4): la scrivono i driver e il loop di main.cpp, il menu la mostra.
 struct Health {
   uint32_t loopMaxUs = 0, isrMaxUs = 0, lostTicks = 0;
@@ -25,6 +27,11 @@ class ServiceMenu {
   void back();
   void digit(uint8_t d);
   void compose(char rows[2][16]) const;  // le due righe dell'LCD
+  // Test hardware (REQ-9.5): dentro un test ogni input va a test(), tranne `D` che esce.
+  bool testing() const;
+  void test(Input in, int8_t arg);
+  bool relayOn() const;  // il Controller lo applica al relè finché il menu è aperto
+  bool sevenSegTest() const;  // il Controller mostra 888.8 sul 7 segmenti
 
  private:
   void refuse();
@@ -39,4 +46,5 @@ class ServiceMenu {
   bool inside_ = false;  // dentro una voce
   bool typed_ = false;   // falso: la prossima cifra inizia un valore nuovo
   uint8_t item_ = 0, page_ = 0, value_ = 0;
+  int8_t hw_[4] = {};  // stato del test hardware in corso, azzerato entrando
 };

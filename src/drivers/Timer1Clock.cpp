@@ -104,6 +104,13 @@ uint32_t Timer1Clock::elapsedMs() {
   return 0;  // irraggiungibile, evita il warning
 }
 
+void Timer1Clock::setRelay(bool on) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {  // PORTL: vedi Pins.h
+    if (on) RELAY_ON();
+    else RELAY_OFF();
+  }
+}
+
 uint8_t Timer1Clock::takeEvents() {
   uint8_t e = 0;
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {  // leggere e azzerare senza perdere un evento della ISR

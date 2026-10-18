@@ -23,6 +23,7 @@ static Encoder modeEncoder(ENC_MODE_DT_PIN, ENC_MODE_CLK_PIN);
 static int32_t precLast = 0, modeLast = 0;  // ultime posizioni già tradotte in tacche
 static bool held[2];  // HOLD già scattato per `#` [0] e `*` [1]: Keypad manda sempre un RELEASED dopo l'HOLD
 static bool zeroDown = false, zeroUsed = false;  // `0` premuto; già usato come cifra o in combinazione
+static bool mainDown = false;  // pulsante principale premuto, dopo l'antirimbalzo
 
 // Un cambio di stato di un tasto (C-20). `*` e `#` agiscono al rilascio e solo se non è scattato
 // l'HOLD; rilasciati con `0` premuto fanno la combinazione. `0` agisce al rilascio, per non
@@ -98,6 +99,9 @@ static void turns(Controller& ctl, Encoder& enc, int32_t& last, Input in) {
 
 void InputDevices::poll() {
   mainButton.tick();
+  bool down = mainButton.debouncedValue();
+  if (mainDown && !down) ctl_.onInput(Input::MainRelease, 0);  // per il test del pulsante (REQ-9.5)
+  mainDown = down;
   precButton.tick();
   modeButton.tick();
   turns(ctl_, precEncoder, precLast, Input::PrecTurn);
