@@ -41,9 +41,9 @@ void Timer1Clock::startFocus(uint32_t limitMs, bool lamp) {
   }
 }
 
-void Timer1Clock::startStrip(uint32_t firstStepMs, bool lamp) {
+void Timer1Clock::startStrip(bool stepped, uint32_t elapsedMs, uint32_t nextStepMs, bool lamp) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    core.startStrip(firstStepMs);
+    core.startStrip(stepped, elapsedMs, nextStepMs);
     if (lamp) RELAY_ON();
   }
 }
