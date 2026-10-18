@@ -17,6 +17,8 @@ class Timer1Clock : public TimingPort {
   uint32_t remainingMs() override;
   uint32_t elapsedMs() override;
   uint8_t takeEvents() override;
+  void setCorrection(int16_t ppm) override;
+  uint32_t tickCount() override;
   void setRelay(bool on) override;
   // A ogni giro di loop: durata massima della ISR e tick persi rispetto a Timer4 (REQ-9.4).
   void measure(Health& h);
