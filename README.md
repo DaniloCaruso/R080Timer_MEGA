@@ -1,85 +1,64 @@
-<p align="center">
-  <img src="docs/assets/r080-banner.svg" alt="R080 Timer: darkroom enlarger timer on Arduino Mega 2560" width="100%">
-</p>
+# R080 Timer
 
-<p align="center">
-  <a href="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/firmware.yml?query=branch%3Afeature%2Farduino-mega-firmware"><img src="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/firmware.yml/badge.svg?branch=feature/arduino-mega-firmware" alt="Firmware CI"></a>
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/"><img src="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/pages.yml/badge.svg" alt="Site"></a>
-  <img src="https://img.shields.io/badge/firmware-v2.0.0-a985ff?style=flat-square" alt="Firmware v2.0.0">
-  <img src="https://img.shields.io/badge/board-Arduino%20Mega%202560-45e0ff?style=flat-square" alt="Arduino Mega 2560">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-ff5cc8?style=flat-square" alt="License CC BY-NC-SA 4.0"></a>
-</p>
+[Versione italiana](README-IT.md)
 
-<p align="center">
-  <b><a href="https://danilocaruso.github.io/R080Timer_MEGA/">Site</a></b> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/pinout">Pinout</a> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/funzioni">Features and controls</a> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/flussi">Flows</a> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/installazione">Setup</a> ·
-  <a href="README-IT.md">Italiano</a>
-</p>
+Darkroom enlarger timer on Arduino Mega 2560. Firmware v2.0.0, written in C++ with PlatformIO.
 
-R080 Timer drives the lamp of a darkroom enlarger: it decides how long the light exposes the paper. It runs on an Arduino Mega 2560 with a red LCD, a 7-segment display, a 4x4 keypad, two encoders and one big main button. The time is counted by a hardware timer, so the lamp turns off to the millisecond.
+## Features
 
-## What it does
+- Three Modes: Focus with automatic shut-off, Countdown, continuous or step-by-step Test strip.
+- Precision in Seconds or F-Stop (1/1 to 1/64 of a stop), with the Offset shown on the LCD.
+- Three Channels (`A`, `B`, `C`), each holding a complete print setting, saved in EEPROM.
+- Time measured by Timer1 at 1 kHz: the lamp turns off to the millisecond, with clock correction in ppm.
+- Darkroom lights: LCD always red, 8 brightness levels for LCD and 7-segment, LCD dimmed during the Exposure.
+- Distinct sounds for start, Metronome, Pre-warning, Step, end; mute.
+- Safety: relay off at power-on and on every reset, watchdog, debounce, timer working even without the LCD.
+- Service menu: counters, system health, a test for every component, calibration, factory reset. Event log over USB.
 
-| Modes | Precision | Safety |
-|---|---|---|
-| **Focus** with automatic shut-off | **Seconds** or **F-Stop**, from 1/1 to 1/64 of a stop | Lamp off at power-on and on every reset |
-| **Countdown** with Metronome | Offset in stops always on the LCD | Watchdog: lamp off within 250 ms |
-| **Test strip**, continuous or step-by-step | Clock correction in ppm | The timer keeps working even without the LCD |
+## Hardware
 
-| Channels | Darkroom lights | Service menu |
-|---|---|---|
-| `A`, `B`, `C`: each holds a complete print setting | LCD always red, 8 brightness levels | Counters, system health, component tests |
-| Saved in EEPROM, restored at power-on | LCD dimmed during the Exposure | Clock calibration, factory reset |
+Arduino Mega 2560, Waveshare 1602 RGB LCD (I²C), serial 7-segment display, 4x4 keypad, two rotary encoders with push button, main button, buzzer, relay module for the lamp.
 
-## Where the code lives
+| Component | Pin |
+|---|---|
+| LCD (I²C) | SDA D20, SCL D21 |
+| 7-segment (display RX) | D14 (TX3) |
+| Keypad rows / columns | D33, D31, D29, D27 / D41, D39, D37, D35 |
+| Mode encoder DT / CLK / SW | D3 / D4 / D17 |
+| Precision encoder DT / CLK / SW | D18 / D19 / D16 |
+| Main button | D2 (to GND) |
+| Buzzer | D49 |
+| Lamp relay | D47, with a 10 kΩ resistor to GND |
 
-| Branch | Firmware | Status |
-|---|---|---|
-| [`feature/arduino-mega-firmware`](https://github.com/DaniloCaruso/R080Timer_MEGA/tree/feature/arduino-mega-firmware) | **v2**, C++ and PlatformIO on Arduino Mega 2560, rewritten from scratch with tests on the PC | in acceptance testing on the board |
-| [`feature/esp32-micropython-firmware`](https://github.com/DaniloCaruso/R080Timer_MEGA/tree/feature/esp32-micropython-firmware) | MicroPython port for ESP32-WROOM-32 | on hold |
-| `main` (this branch) | **v1**, the original firmware; it also hosts the site (`site/`) and the shared docs | reference |
+Details in [PINOUT.md](PINOUT.md) (Italian).
 
-The v2 manual, pinout and build instructions are in the [`feature/arduino-mega-firmware` README](https://github.com/DaniloCaruso/R080Timer_MEGA/tree/feature/arduino-mega-firmware#readme) and on the [site](https://danilocaruso.github.io/R080Timer_MEGA/).
+**Upgrading from v1.** Move the 7-segment wire from A2 to D14 and add the 10 kΩ resistor between D47 and GND. At the first power-on the settings start from factory values.
 
-## Quick start (v2)
+## Build and upload
+
+You need [PlatformIO](https://platformio.org/) (VS Code extension or PlatformIO Core).
 
 ```
-git clone -b feature/arduino-mega-firmware https://github.com/DaniloCaruso/R080Timer_MEGA.git
-cd R080Timer_MEGA
-pio run -t upload            # build and upload to the Mega
+pio run                      # build for the Mega
+pio run -t upload            # build and upload to the board
 pio test -e native           # logic tests on the PC
 pio device monitor -b 115200 # event log
 ```
 
-You need [PlatformIO](https://platformio.org/). After the first upload, calibrate the clock: see [Setup](https://danilocaruso.github.io/R080Timer_MEGA/installazione).
+Libraries (fetched by PlatformIO): [Encoder](https://github.com/PaulStoffregen/Encoder), [Keypad](https://github.com/Chris--A/Keypad), [OneButton](https://github.com/mathertel/OneButton). The LCD has its own driver.
 
-<details>
-<summary><b>v1 firmware on this branch</b></summary>
+After the first upload, calibrate the clock: see the manual, §11.
 
-The code on `main` is the original firmware, kept as a reference. Its wiring differs from v2 in one point: the 7-segment display is on **A2** (v2 moves it to D14 and adds a 10 kΩ resistor between D47 and GND).
+## Documentation
 
-| Component | Pin |
-|---|---|
-| LCD (I²C) | SDA 20, SCL 21 |
-| 7-segment display | A2 |
-| Keypad rows / columns | 33, 31, 29, 27 / 41, 39, 37, 35 |
-| Mode encoder DT / CLK / SW | 3 / 4 / 17 |
-| Precision encoder DT / CLK / SW | 18 / 19 / 16 |
-| Main button | 2 |
-| Buzzer | 49 |
-| Enlarger relay | 47 |
-
-Build with `pio run`, upload with `pio run -t upload`. Libraries: [EncoderButton](https://github.com/Stutchbury/EncoderButton), [Encoder](https://github.com/PaulStoffregen/Encoder), [Keypad](https://playground.arduino.cc/Code/Keypad/), [Waveshare LCD1602 RGB](https://www.waveshare.com/wiki/LCD1602_RGB_Module), [ArduinoSTL](https://github.com/mike-matera/ArduinoSTL).
-
-</details>
-
-## Contributing
-
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+- [DOCS.md](DOCS.md): user manual ([Italian](DOCS-IT.md))
+- [PINOUT.md](PINOUT.md): wiring and microcontroller resources (Italian)
+- [TECNICO.md](TECNICO.md): firmware architecture (Italian)
+- [CHANGELOG.md](CHANGELOG.md): versions (Italian)
+- [GLOSSARY.md](GLOSSARY.md): project vocabulary (Italian)
+- `docs/firmware-rewrite/`: v2 requirements and decisions
+- `tools/calibrate.py`: clock calibration from a PC
 
 ## License
 
-[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-nc-sa/4.0/) (CC BY-NC-SA 4.0): you may share and adapt the project with attribution, not for commercial purposes, and under the same licence. Full text in [LICENSE](LICENSE).
+[CC0 1.0 Universal](LICENSE)
