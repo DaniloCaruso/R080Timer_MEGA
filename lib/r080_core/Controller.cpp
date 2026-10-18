@@ -11,12 +11,18 @@ static void stepLevel(uint8_t& level, int8_t dir) {
 static uint16_t clampDs(int32_t ds) { return ds < DS_MIN ? DS_MIN : ds > DS_MAX ? DS_MAX : ds; }
 
 void Controller::onInput(Input in, int8_t arg) {
+  update();  // prima gli eventi della ISR: uno Step appena scattato mette già in pausa
   bool running = timing_.running();
   ChannelRecord& c = set_.active();
   if (in == Input::MainPress) {
     if (running) {
       timing_.cancel();
       beep(Sound::End);
+    } else if (paused_) {
+      // REQ-3.12: solo l'incremento fino allo Step successivo, già calcolato allo Step.
+      paused_ = false;
+      timing_.startStrip(true, timing_.elapsedMs(), stripDs_ * MS_PER_DS, c.relayEnabled);
+      beep(Sound::Start);
     } else if (c.mode == FOCUS || c.timeDs > 0) {
       // REQ-5.6: lampada spenta se disabilitata
       if (c.mode == FOCUS) {  // REQ-3.2, REQ-3.3
@@ -24,7 +30,7 @@ void Controller::onInput(Input in, int8_t arg) {
       } else if (c.mode == TEST_STRIP) {
         stripK_ = 0;  // REQ-3.13: ogni prova riparte dal primo Step
         stripDs_ = c.timeDs;
-        timing_.startStrip(dsToMs(c.timeDs), c.relayEnabled);
+        timing_.startStrip(c.advance, 0, dsToMs(c.timeDs), c.relayEnabled);
       } else {
         timing_.startCountdown(dsToMs(c.timeDs), c.relayEnabled);
       }
@@ -37,6 +43,15 @@ void Controller::onInput(Input in, int8_t arg) {
     return;
   }
   if (running) return;  // REQ-5.9: durante l'Esposizione conta solo il pulsante principale
+  if (paused_) {
+    // REQ-3.16: D, A/B/C e il cambio di Modalità concludono la prova; il resto è ignorato.
+    if (in == Input::KeyD || in == Input::Channel || in == Input::ModeTurn) {
+      paused_ = false;
+      timing_.cancel();
+      beep(Sound::End);
+    }
+    return;
+  }
   bool typing = false;
   switch (in) {
     case Input::Digit:
@@ -87,7 +102,6 @@ void Controller::onInput(Input in, int8_t arg) {
       c.mode = (c.mode + MODE_COUNT + arg) % MODE_COUNT;  // REQ-5.10, REQ-6.3: il tempo resta
       break;
     case Input::ModeClick:
-      // shortcut: il passo-passo si sceglie ma il test strip gira ancora continuo; lo esegue la issue #10.
       if (c.mode == TEST_STRIP) c.advance = !c.advance;  // REQ-4.7
       break;
     default:
@@ -126,7 +140,10 @@ void Controller::nextStripStep() {
 
 void Controller::update() {
   uint8_t events = timing_.takeEvents();
-  if ((events & EV_STEP) && !(events & EV_END)) nextStripStep();
+  if ((events & EV_STEP) && !(events & EV_END)) {
+    nextStripStep();
+    paused_ = set_.active().advance;  // REQ-3.12: il TimingCore ha già spento il relè
+  }
   if (events & (EV_END | EV_FOCUS_OFF)) beep(Sound::End);
   else if (events & EV_FOCUS_WARN) beep(Sound::FocusWarn);
   else if (events & EV_STEP) beep(Sound::Step);
@@ -134,9 +151,12 @@ void Controller::update() {
   else if (events & EV_METRONOME) beep(Sound::Metronome);
   bool running = timing_.running();
   uint8_t mode = set_.active().mode;
-  stripShown_ = running && mode == TEST_STRIP ? stripK_ + 1 : 0;
+  stripShown_ = paused_ || (running && mode == TEST_STRIP) ? stripK_ + 1 : 0;
   uint16_t ds = set_.active().timeDs;
-  if (running && mode != COUNTDOWN) {
+  if (paused_) {
+    // REQ-7.8: tempo cumulativo dello Step successivo, al massimo 999,9 s perché lì la prova si conclude.
+    ds = stripDs_ > DS_MAX ? DS_MAX : stripDs_;
+  } else if (running && mode != COUNTDOWN) {
     // Test strip: tempo cumulativo (REQ-7.7). Focus: tempo trascorso (REQ-3.2).
     ds = msToDs(timing_.elapsedMs());
     // shortcut: il 7 segmenti ha 4 cifre, con il Focus di 20 min resta fermo a 999,9 s; da rivedere se serve.

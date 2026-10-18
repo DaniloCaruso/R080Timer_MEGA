@@ -43,10 +43,11 @@ struct EventLog {
 
 // Comandi al TimingCore della ISR. Il driver li esegue in modo atomico e
 // comanda il relè: acceso allo start se lamp è vero, spento all'Annullamento.
+// startStrip riprende anche il passo-passo in pausa, da elapsedMs.
 struct TimingPort {
   virtual void startCountdown(uint32_t durationMs, bool lamp) = 0;
   virtual void startFocus(uint32_t limitMs, bool lamp) = 0;
-  virtual void startStrip(uint32_t firstStepMs, bool lamp) = 0;
+  virtual void startStrip(bool stepped, uint32_t elapsedMs, uint32_t nextStepMs, bool lamp) = 0;
   virtual void setNextStep(uint32_t nextStepMs) = 0;
   virtual void cancel() = 0;
   virtual bool running() = 0;
