@@ -2,9 +2,13 @@
 // 7 segmenti che passa da A2 a D14 (TX3, vedi SevenSegSerial3).
 #pragma once
 
+#include <avr/io.h>
 #include <stdint.h>
 
-// Relè ingranditore: D47 = PORTL bit PL2 (vedi Timer1Clock).
+// Relè ingranditore: D47 = PORTL bit PL2. PORTL è fuori dallo spazio SBI/CBI e tone() scrive
+// PL0 dalla sua ISR: dal main il relè si scrive solo in ATOMIC_BLOCK.
+#define RELAY_ON() (PORTL |= _BV(PL2))
+#define RELAY_OFF() (PORTL &= ~_BV(PL2))
 constexpr uint8_t MAIN_BTN_PIN = 2;
 constexpr uint8_t BUZZER_PIN = 49;  // PL0, tone() su Timer2
 // Encoder della Modalità: DT su INT5, CLK su D4 (senza interrupt), pulsante su D17.
