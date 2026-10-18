@@ -15,9 +15,13 @@ class Counters {
  public:
   explicit Counters(Storage& storage) : storage_(storage) {}
   void boot(bool watchdogReset);  // all'avvio
+  // REQ-9.11: a fine Esposizione, nel loop (mai nella ISR); salva i soli byte cambiati.
+  void exposureEnd(bool exposure, uint32_t lampMs);
 
   CounterRecord d;
 
  private:
+  void save();
   Storage& storage_;
+  uint16_t lampMsRest_ = 0;  // frazione di secondo non ancora sommata a lampSeconds
 };

@@ -3,6 +3,7 @@
 #pragma once
 
 #include <Hal.h>
+#include <ServiceMenu.h>
 
 class Timer1Clock : public TimingPort {
  public:
@@ -16,4 +17,10 @@ class Timer1Clock : public TimingPort {
   uint32_t remainingMs() override;
   uint32_t elapsedMs() override;
   uint8_t takeEvents() override;
+  // A ogni giro di loop: durata massima della ISR e tick persi rispetto a Timer4 (REQ-9.4).
+  void measure(Health& h);
+
+ private:
+  uint16_t lastT4_ = 0;
+  uint32_t refCounts_ = 0, expected_ = 0;  // conteggi di Timer4 non ancora tradotti in tick; tick attesi
 };
