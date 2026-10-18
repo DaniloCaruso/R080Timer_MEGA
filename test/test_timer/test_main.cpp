@@ -4,6 +4,7 @@
 #include <Controller.h>
 #include <Counters.h>
 #include <Screen.h>
+#include <ServiceMenu.h>
 #include <Settings.h>
 #include <SoundScheduler.h>
 #include "../fakes/FakeBuzzer.h"
@@ -24,15 +25,19 @@ struct Timer {
   FakeBuzzer buzzer{clock.nowMs};
   SoundScheduler sound{buzzer};
   Settings settings{eeprom};
-  Controller ctl{clock, seg, sound, settings};
-  Screen screen{lcd, log, ctl, "2.0.0"};
   Counters counters{eeprom};
+  Health health;  // misure dei driver (Timer1Clock e loop di main.cpp)
+  ServiceMenu menu{settings, counters, health, sound, "2.0.0", "Oct 18 2026"};
+  Controller ctl{clock, seg, sound, settings, counters, log, menu};
+  Screen screen{lcd, log, ctl, "2.0.0"};
 
-  // Avvio come setup(): la causa del reset arriva dal marcatore del watchdog (SystemGuard).
-  explicit Timer(bool watchdogReset = false) {
-    settings.load();
+  // Avvio come setup(): la causa del reset arriva dal marcatore del watchdog (SystemGuard),
+  // keyD dice se `D` è tenuto premuto all'accensione.
+  explicit Timer(bool watchdogReset = false, bool keyD = false) {
+    bool settingsOk = settings.load();
     counters.boot(watchdogReset);
     if (watchdogReset) screen.showWatchdogReset();
+    ctl.boot(watchdogReset, settingsOk, keyD);
     loop();
   }
   void loop() {  // un giro di loop()
@@ -243,8 +248,7 @@ static void test_countdown_ends_normally_with_lcd_offline() {
   TEST_ASSERT_FALSE(t.clock.relay);
   TEST_ASSERT_EQUAL_UINT32(12500, t.clock.relayOffAtMs - t.clock.relayOnAtMs);
   TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
-  TEST_ASSERT_EQUAL_UINT32(1, t.log.lines);  // una sola riga, non una per giro
-  TEST_ASSERT_EQUAL_STRING("LCD offline", t.log.last);
+  TEST_ASSERT_EQUAL_UINT8(1, t.log.count("LCD offline"));  // una sola riga, non una per giro
 }
 
 // Dopo un guasto il driver reinizializza l'LCD: il contenuto va ridisegnato tutto.
@@ -1184,6 +1188,210 @@ static void test_strip_concludes_at_limit_and_restarts() {
   TEST_ASSERT_EQUAL_UINT32(1000900 + 900000, at[6]);
 }
 
+// REQ-9.1, REQ-9.14: `D` tenuto all'accensione apre il Menu di servizio, che non avvia Esposizioni;
+// l'ultima voce, Esci, torna all'uso normale.
+static void test_key_d_at_power_on_opens_service_menu_and_exit_returns_to_normal_use() {
+  Timer t(false, true);
+  t.settle();
+  TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO   ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING(">Info           ", t.row(1));
+  t.type("5");
+  t.press();
+  TEST_ASSERT_FALSE(t.clock.running());
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
+  t.turnMode(-1);  // dalla prima voce all'ultima
+  TEST_ASSERT_EQUAL_STRING(">Esci           ", t.row(1));
+  t.clickMode();
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
+  t.press();
+  TEST_ASSERT_TRUE(t.clock.running());
+}
+
+// Nel Menu di servizio, dalla prima voce: n tacche dell'encoder della Modalità e clic.
+static void openServiceItem(Timer& t, uint8_t n) {
+  while (n--) t.turnMode(1);
+  t.clickMode();
+}
+
+// REQ-9.2, REQ-9.14: il clic entra in Info, `D` torna alle voci.
+static void test_service_info_shows_version_and_build_date() {
+  Timer t(false, true);
+  t.settle();
+  openServiceItem(t, 0);
+  TEST_ASSERT_EQUAL_STRING("R080 v2.0.0     ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Oct 18 2026     ", t.row(1));
+  t.keyD();
+  TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO   ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING(">Info           ", t.row(1));
+}
+
+// REQ-9.3, REQ-9.11: Esposizioni = Countdown e test strip (uno per prova, anche annullata);
+// ore di lampada = tutto il tempo a relè acceso, Focus compreso.
+static void test_service_counters_count_power_ons_resets_exposures_and_lamp_time() {
+  {
+    Timer t;
+    t.type("125");
+    t.press();
+    t.advance(12500);  // Countdown: 12,5 s
+    enterTestStrip(t);
+    t.press();
+    t.advance(40000);  // test strip di più Step, annullato: 40,0 s
+    t.press();
+    t.turnMode(1);  // Focus: non è un'Esposizione
+    t.press();
+    t.advance(120000);
+    t.press();
+    t.turnMode(1);  // Countdown con la lampada disabilitata: niente ore di lampada
+    t.holdHash();
+    t.press();
+    t.advance(12500);
+    t.holdHash();
+    t.type("9999");
+    for (int i = 0; i < 4; i++) {
+      t.press();
+      t.advance(999900);
+    }
+    TEST_ASSERT_EQUAL_UINT32(4172, t.counters.d.lampSeconds);  // 4172,1 s: i decimi si sommano
+  }
+  { Timer t(true); }
+  Timer t(false, true);
+  t.settle();
+  openServiceItem(t, 1);
+  TEST_ASSERT_EQUAL_STRING("Accensioni      ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("2               ", t.row(1));
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("Reset watchdog  ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("1               ", t.row(1));
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("Esposizioni     ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("7               ", t.row(1));
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("Ore lampada     ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("1h 09m          ", t.row(1));
+}
+
+// REQ-9.4: la salute del sistema mostra le misure dei driver.
+static void test_service_health_shows_loop_isr_and_lost_ticks() {
+  Timer t(false, true);
+  t.health.loopMaxUs = 1234;
+  t.health.isrMaxUs = 28;
+  t.health.lostTicks = 3;
+  t.settle();
+  openServiceItem(t, 2);
+  TEST_ASSERT_EQUAL_STRING("Loop max        ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("1234 us         ", t.row(1));
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("ISR max         ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("28 us           ", t.row(1));
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("Tick persi      ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("3               ", t.row(1));
+}
+
+// REQ-9.7, REQ-9.14: livello LCD in Esposizione con le cifre, il clic conferma e salva subito,
+// un livello fuori da 1-8 suona l'errore, `D` esce senza salvare.
+static void test_service_sets_lcd_exposure_level() {
+  {
+    Timer t(false, true);
+    t.settle();
+    openServiceItem(t, 3);
+    TEST_ASSERT_EQUAL_STRING("LCD esposizione ", t.row(0));
+    TEST_ASSERT_EQUAL_STRING("Livello 1-8: 1  ", t.row(1));
+    t.type("9");
+    t.clickMode();
+    assertNote(t, 0, t.clock.nowMs, 150, 300);
+    TEST_ASSERT_EQUAL_STRING("LCD esposizione ", t.row(0));
+    t.advance(400);  // fine del suono di errore
+    t.type("4");
+    t.clickMode();
+    TEST_ASSERT_EQUAL_UINT16(1200, t.buzzer.notes[1].hz);
+    TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO   ", t.row(0));
+    t.clickMode();
+    t.type("6");
+    t.keyD();
+  }
+  Timer t;
+  t.press();
+  TEST_ASSERT_EQUAL_UINT8(4, t.lcd.level);
+}
+
+// REQ-9.7, REQ-3.3: tempo massimo del Focus solo fra 3, 5, 10, 15 e 20 minuti, salvato subito.
+static void test_service_sets_focus_limit() {
+  {
+    Timer t(false, true);
+    t.settle();
+    openServiceItem(t, 4);
+    TEST_ASSERT_EQUAL_STRING("Tempo max Focus ", t.row(0));
+    TEST_ASSERT_EQUAL_STRING("Minuti: 5       ", t.row(1));
+    t.type("7");
+    t.clickMode();
+    TEST_ASSERT_EQUAL_UINT16(150, t.buzzer.notes[0].hz);
+    t.type("10");
+    t.clickMode();
+    TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO   ", t.row(0));
+  }
+  Timer t;
+  t.turnMode(-1);
+  t.press();
+  t.advance(599999);
+  TEST_ASSERT_TRUE(t.clock.relay);
+  t.advance(1);
+  TEST_ASSERT_FALSE(t.clock.relay);
+}
+
+// REQ-9.8: il ripristino di fabbrica sostituisce tutte le impostazioni.
+static void test_service_factory_reset_replaces_all_settings() {
+  saveNonFactorySettings();
+  {
+    Timer t(false, true);
+    t.settle();
+    openServiceItem(t, 4);
+    t.type("20");
+    t.clickMode();
+    t.turnMode(1);
+    t.clickMode();
+    TEST_ASSERT_EQUAL_STRING("Ripristino fabb ", t.row(0));
+    TEST_ASSERT_EQUAL_STRING("Clic: conferma  ", t.row(1));
+    t.clickMode();
+  }
+  assertFactoryDefaults();
+  Timer t;
+  t.turnMode(-1);
+  t.press();
+  t.advance(300000);  // Focus di nuovo a 5 minuti
+  TEST_ASSERT_FALSE(t.clock.relay);
+}
+
+// REQ-9.10: avvio, inizio e fine di ogni Esposizione con la durata misurata.
+static void test_log_reports_boot_start_and_end_with_measured_duration() {
+  Timer t;
+  TEST_ASSERT_EQUAL_UINT8(1, t.log.count("BOOT reset=POWER"));
+  t.type("125");
+  t.press();
+  TEST_ASSERT_EQUAL_STRING("START mode=CD ch=A ms=12500", t.log.last);
+  t.advance(12500);
+  TEST_ASSERT_EQUAL_STRING("END ms=12500 measured=12500", t.log.last);
+  t.channel('B');
+  t.turnMode(-1);
+  t.press();
+  TEST_ASSERT_EQUAL_STRING("START mode=FO ch=B ms=300000", t.log.last);
+  t.advance(3000);
+  t.press();
+  TEST_ASSERT_EQUAL_STRING("CANCEL ms=300000 measured=3000", t.log.last);
+}
+
+// REQ-9.10: gli errori dell'avvio vanno nel log.
+static void test_log_reports_watchdog_reset_and_invalid_settings() {
+  {
+    Timer t(true);
+    TEST_ASSERT_EQUAL_UINT8(1, t.log.count("BOOT reset=WDT"));
+    TEST_ASSERT_EQUAL_UINT8(1, t.log.count("ERROR settings=factory"));
+  }
+  saveNonFactorySettings();
+  Timer t;
+  TEST_ASSERT_EQUAL_UINT8(0, t.log.count("ERROR settings=factory"));
+}
+
 // Test strip passo-passo dalla Modalità di fabbrica.
 static void enterSteppedStrip(Timer& t) {
   enterTestStrip(t);
@@ -1305,8 +1513,31 @@ static void test_mode_turn_in_pause_concludes_stepped_strip() {
   assertStripConcludedAndRestarts(t);
 }
 
+// REQ-9.11, REQ-9.10: un test strip passo-passo è una sola Esposizione e conta solo il tempo a
+// lampada accesa, non le pause.
+static void test_stepped_strip_counts_one_exposure_and_lamp_time_only() {
+  Timer t;
+  pauseAtSecondStep(t);
+  t.advance(10000);
+  t.keyD();
+  TEST_ASSERT_EQUAL_UINT32(1, t.counters.d.exposures);
+  TEST_ASSERT_EQUAL_UINT32(6, t.counters.d.lampSeconds);
+  TEST_ASSERT_EQUAL_UINT8(1, t.log.count("START mode=TS ch=A ms=5000"));
+  TEST_ASSERT_EQUAL_STRING("END ms=5000 measured=6000", t.log.last);
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_stepped_strip_counts_one_exposure_and_lamp_time_only);
+  RUN_TEST(test_key_d_at_power_on_opens_service_menu_and_exit_returns_to_normal_use);
+  RUN_TEST(test_service_info_shows_version_and_build_date);
+  RUN_TEST(test_service_counters_count_power_ons_resets_exposures_and_lamp_time);
+  RUN_TEST(test_service_health_shows_loop_isr_and_lost_ticks);
+  RUN_TEST(test_service_sets_lcd_exposure_level);
+  RUN_TEST(test_service_sets_focus_limit);
+  RUN_TEST(test_service_factory_reset_replaces_all_settings);
+  RUN_TEST(test_log_reports_boot_start_and_end_with_measured_duration);
+  RUN_TEST(test_log_reports_watchdog_reset_and_invalid_settings);
   RUN_TEST(test_factory_brightness_levels);
   RUN_TEST(test_star_hash_in_focus_set_lcd_brightness);
   RUN_TEST(test_zero_with_star_hash_in_focus_set_seven_seg_brightness);
