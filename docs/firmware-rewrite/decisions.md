@@ -195,3 +195,9 @@ Pausa e ripresa dell'esposizione; soglia di brown-out a 4,3 V via ISP con ricono
 ## Navigazione del menu di servizio (giro 7)
 
 **Decisione:** encoder della modalità per scorrere, il suo pulsante per entrare o confermare, `D` per tornare indietro, tasti numerici per i valori; l'ultima voce "Esci" riavvia il timer in uso normale.
+
+## Seam di test
+
+**Contesto:** la skill `to-spec` chiede il minor numero di seam, il più in alto possibile.
+**Decisione:** due seam. (1) Dominio intero dal confine con l'hardware, con il `TimingCore` vero dentro e driver finti, comandato solo da input dell'utente e tempo simulato. (2) `TimingCore` da solo, tick per tick, per i bordi al millisecondo. Nessun finto dei moduli interni. Driver Arduino e misure reali restano nella checklist di collaudo.
+**Conseguenze:** un errore di collegamento tra `Controller` e `TimingCore` viene preso dai test sul PC, non solo sulla scheda.
