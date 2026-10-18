@@ -198,7 +198,7 @@
   ```
   Main rules: in `Running` only `MainPress` is accepted (REQ-5.9); `MainPress` in `Idle` with time 0 in Countdown/Test strip → error beep; `MainPress` in `Running` → Cancellation; in `StripPaused` → next increment; `KeyD` clears time, base and offset; `StarHold`/`HashHold` → mute or Relay enable with a confirmation beep; `ZeroStar`/`ZeroHash` and `Star`/`Hash` in Focus → 7-segment and LCD brightness; `ModeTurn` changes mode without touching the time; `A/B/C` load the whole `ChannelRecord`. In `StripPaused`, `KeyD`, `A/B/C` and `ModeTurn` end the test strip: `TimingCore::cancel()`, 7-segment display back to the Base time, plan reset to `k = 0` (REQ-3.16).
 - **Expected behaviour:** all user interface rules of EARS REQ-3, REQ-4, REQ-5 and REQ-6 are observable with fake drivers.
-- **Verification:** native tests scenario by scenario with `FakeTimingPort`, `FakeBuzzer`, `FakeLcd`, `FakeSevenSeg`, `FakeStorage`.
+- **Verification:** native tests scenario by scenario through the whole-domain seam (C-25), with the real `TimingCore` and fake drivers.
 
 ### C-13 — `lib/r080_core/Screen.{h,cpp}` (NEW): display model and rendering
 - **Satisfies:** REQ-2.6, REQ-2.7, REQ-4.4, REQ-7.1, REQ-7.3, REQ-7.4, REQ-7.5, REQ-7.6, REQ-7.7, REQ-7.8, REQ-7.9, REQ-7.10, REQ-3.7
@@ -298,7 +298,7 @@
 ### C-25 — `test/` (NEW): native tests
 - **Satisfies:** REQ-11.3
 - **Current state:** PlatformIO's `test/README`, no tests.
-- **Change:** one folder per module (`test_timing_core`, `test_clock_correction`, `test_precision`, `test_test_strip`, `test_settings`, `test_key_entry`, `test_controller`, `test_screen`, `test_sound`, `test_service_menu`) with Unity and fake drivers in `test/fakes/` (`FakeLcd`, `FakeSevenSeg`, `FakeBuzzer`, `FakeStorage`, `FakeTimingPort`, `FakeLog`). Tests are written before the code (TDD), module by module.
+- **Change:** two test seams, written before the code (TDD). **Seam 1, whole domain** (`test_timer`): the `Controller` with the real `TimingCore`, settings, `Screen` and `SoundScheduler`, wired to fake drivers in `test/fakes/` (`FakeLcd`, `FakeSevenSeg`, `FakeBuzzer`, `FakeStorage`, `FakeLog`) and to `SimClock`, which holds the real `TimingCore`, keeps the simulated relay state and advances time tick by tick when the test asks. Tests act only through user input and elapsed time and check only observable effects (relay, LCD, 7-segment, buzzer, EEPROM bytes, log). **Seam 2, `TimingCore` alone** (`test_timing_core`): millisecond edges, Clock correction, Pre-warning, Auto-off, the 999.9 s limit. No fakes of internal modules (no `FakeTimingPort`). Pure calculations (F-Stop, CRC8, test strip steps) are verified through these two seams; a direct test is allowed only for an edge case unreachable from outside.
 - **Expected behaviour:** `pio test -e native` covers all the domain logic.
 - **Verification:** local run and in CI (C-3).
 
