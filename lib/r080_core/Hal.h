@@ -54,4 +54,5 @@ struct TimingPort {
   virtual uint32_t remainingMs() = 0;
   virtual uint32_t elapsedMs() = 0;
   virtual uint8_t takeEvents() = 0;  // eventi EV_* accumulati dalla ISR dall'ultima chiamata
+  virtual void setRelay(bool on) = 0;  // test del relè nel Menu di servizio, a TimingCore fermo
 };
