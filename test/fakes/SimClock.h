@@ -20,8 +20,8 @@ struct SimClock : TimingPort {
     relay = lamp;
     if (lamp) relayOnAtMs = nowMs;
   }
-  void startStrip(uint32_t firstStepMs, bool lamp) override {
-    core.startStrip(firstStepMs);
+  void startStrip(bool stepped, uint32_t elapsedMs, uint32_t nextStepMs, bool lamp) override {
+    core.startStrip(stepped, elapsedMs, nextStepMs);
     relay = lamp;
     if (lamp) relayOnAtMs = nowMs;
   }
