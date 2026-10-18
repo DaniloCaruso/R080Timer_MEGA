@@ -25,6 +25,7 @@ void Controller::onInput(Input in, int8_t arg) {
     else if (in == Input::ModeClick) menu_.click();
     else if (in == Input::KeyD) menu_.back();
     else if (in == Input::Digit) menu_.digit(arg);
+    else if (in == Input::Star) menu_.negate();
     return;
   }
   if (in == Input::MainRelease) return;  // serve solo al test del pulsante (REQ-9.5)
@@ -192,6 +193,24 @@ void Controller::update() {
   if (menu_.sevenSegTest()) ds = 8888;  // REQ-9.5: tutti i segmenti delle cifre e il punto decimale
   if (ds != shownDs_) seg_.showDeciseconds(shownDs_ = ds);
   if (set_.d.g.segLevel != segLevel_) seg_.setBrightness(segLevel_ = set_.d.g.segLevel);  // REQ-7.4
+  if (set_.d.g.clockPpm != ppm_) timing_.setCorrection(ppm_ = set_.d.g.clockPpm);  // REQ-1.7
+  calibrationLog();
+}
+
+// REQ-9.6: una riga al secondo con i tick di Timer1 contati al momento della riga, senza
+// correzione: tools/calibrate.py li confronta con l'orologio del PC.
+void Controller::calibrationLog() {
+  if (!menu_.calibrating()) {
+    calNextMs_ = 0;
+    return;
+  }
+  uint32_t ms = timing_.tickCount();
+  if (!calNextMs_) calNextMs_ = ms + 1000;
+  if (ms < calNextMs_) return;
+  calNextMs_ += 1000;
+  char b[20];
+  snprintf(b, sizeof b, "CAL ms=%lu", (unsigned long)ms);
+  log_.line(b);
 }
 
 // REQ-9.10: inizio di ogni Esposizione nel log, come `START mode=CD ch=A ms=10000`.

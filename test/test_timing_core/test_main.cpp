@@ -140,6 +140,41 @@ static void test_stepped_strip_turns_relay_off_at_exact_step_tick() {
   TEST_ASSERT_EQUAL_UINT32(1500, core.elapsedMs());
 }
 
+// REQ-1.7: con la Correzione del clock un milione di tick contano 10^6 ms più i ppm.
+static void test_clock_correction_shifts_counted_time_over_a_million_ticks() {
+  const int16_t ppm[] = {0, 200, -200, 1000, -1000};
+  const uint32_t expected[] = {1000000, 1000200, 999800, 1001000, 999000};
+  for (uint8_t i = 0; i < 5; i++) {
+    TimingCore core;
+    core.setCorrection(ppm[i]);
+    core.startFocus(2000000);  // nessuno Spegnimento automatico prima della fine
+    for (uint32_t t = 0; t < 1000000; t++) core.tick();
+    TEST_ASSERT_EQUAL_UINT32(expected[i], core.elapsedMs());
+  }
+}
+
+// REQ-1.7, REQ-1.6: con +1000 ppm un tick ogni 1000 conta 2 ms, con -1000 ppm 0 ms; il Countdown
+// di 10,0 s finisce al tick corretto e nessun secondo del Metronomo va perso o raddoppia.
+static void test_corrected_countdown_ends_at_corrected_tick_with_every_metronome_beat() {
+  const int16_t ppm[] = {1000, -1000};
+  const uint32_t endTick[] = {9991, 10010};
+  for (uint8_t i = 0; i < 2; i++) {
+    TimingCore core;
+    core.setCorrection(ppm[i]);
+    core.startCountdown(10000);
+    uint8_t beats = 0;
+    uint32_t t = 0;
+    TickOut out;
+    do {
+      out = core.tick();
+      t++;
+      if (out.events & EV_METRONOME) beats++;
+    } while (!out.relayOff && t < 20000);
+    TEST_ASSERT_EQUAL_UINT32(endTick[i], t);
+    TEST_ASSERT_EQUAL_UINT8(9, beats);
+  }
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_focus_warns_ten_seconds_before_limit_and_turns_relay_off_at_limit);
@@ -152,5 +187,7 @@ int main() {
   RUN_TEST(test_strip_steps_at_exact_tick_with_prewarn);
   RUN_TEST(test_strip_ends_at_999_9_seconds);
   RUN_TEST(test_stepped_strip_turns_relay_off_at_exact_step_tick);
+  RUN_TEST(test_clock_correction_shifts_counted_time_over_a_million_ticks);
+  RUN_TEST(test_corrected_countdown_ends_at_corrected_tick_with_every_metronome_beat);
   return UNITY_END();
 }

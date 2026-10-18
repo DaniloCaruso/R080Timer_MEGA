@@ -3,6 +3,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "ClockCorrection.h"
 
 enum class Run : uint8_t { Idle, Focus, Countdown, StripContinuous, StripStepped };
 
@@ -41,8 +42,27 @@ class TimingCore {
   }
   void setNextStep(uint32_t nextStepMs) { next_ = nextStepMs; }
   void cancel() { run_ = Run::Idle; }
+  void setCorrection(int16_t ppm) { corr_.set(ppm); }
 
+  // REQ-1.7: la Correzione del clock fa contare a questo tick 0, 1 o 2 ms, e ogni ms passa
+  // dalle stesse regole: nessun bordo saltato o ripetuto.
   TickOut tick() {
+    TickOut out = {0, false};
+    for (uint8_t n = corr_.step(); n; n--) {
+      TickOut ms = tickMs();
+      out.events |= ms.events;
+      out.relayOff |= ms.relayOff;
+    }
+    return out;
+  }
+
+  uint32_t remainingMs() const { return run_ == Run::Countdown ? target_ - elapsed_ : 0; }
+  uint32_t elapsedMs() const { return elapsed_; }
+  Run run() const { return run_; }
+
+ private:
+  // Un ms di tempo contato.
+  TickOut tickMs() {
     if (run_ == Run::StripContinuous || run_ == Run::StripStepped) return stripTick();
     if (run_ == Run::Focus) return focusTick();
     if (run_ != Run::Countdown) return {0, false};
@@ -56,11 +76,6 @@ class TimingCore {
     return {EV_METRONOME, false};
   }
 
-  uint32_t remainingMs() const { return run_ == Run::Countdown ? target_ - elapsed_ : 0; }
-  uint32_t elapsedMs() const { return elapsed_; }
-  Run run() const { return run_; }
-
- private:
   TickOut stripTick() {
     if (++elapsed_ >= STRIP_LIMIT_MS) {
       run_ = Run::Idle;
@@ -85,6 +100,7 @@ class TimingCore {
     return {elapsed_ == warn_ ? uint8_t(EV_FOCUS_WARN) : uint8_t(0), false};
   }
 
+  ClockCorrection corr_;
   Run run_ = Run::Idle;
   uint32_t elapsed_ = 0, target_ = 0, next_ = NO_STEP, warn_ = 0;
   uint16_t msInSecond_ = 0;

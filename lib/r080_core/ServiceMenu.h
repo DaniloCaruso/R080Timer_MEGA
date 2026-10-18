@@ -26,6 +26,8 @@ class ServiceMenu {
   void click();
   void back();
   void digit(uint8_t d);
+  void negate();  // `*`: cambia il segno del valore (Correzione del clock)
+  bool calibrating() const { return log_; }  // log di calibrazione attivo (REQ-9.6)
   void compose(char rows[2][16]) const;  // le due righe dell'LCD
   // Test hardware (REQ-9.5): dentro un test ogni input va a test(), tranne `D` che esce.
   bool testing() const;
@@ -35,6 +37,7 @@ class ServiceMenu {
 
  private:
   void refuse();
+  void load();  // valore iniziale della voce e della schermata
 
   Settings& set_;
   Counters& cnt_;
@@ -45,6 +48,8 @@ class ServiceMenu {
   bool open_ = false;
   bool inside_ = false;  // dentro una voce
   bool typed_ = false;   // falso: la prossima cifra inizia un valore nuovo
-  uint8_t item_ = 0, page_ = 0, value_ = 0;
+  bool log_ = false;
+  uint8_t item_ = 0, page_ = 0;
+  int32_t value_ = 0;
   int8_t hw_[4] = {};  // stato del test hardware in corso, azzerato entrando
 };

@@ -104,6 +104,15 @@ uint32_t Timer1Clock::elapsedMs() {
   return 0;  // irraggiungibile, evita il warning
 }
 
+void Timer1Clock::setCorrection(int16_t ppm) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { core.setCorrection(ppm); }
+}
+
+uint32_t Timer1Clock::tickCount() {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return ticks; }
+  return 0;  // irraggiungibile, evita il warning
+}
+
 void Timer1Clock::setRelay(bool on) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {  // PORTL: vedi Pins.h
     if (on) RELAY_ON();

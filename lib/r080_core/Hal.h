@@ -54,5 +54,7 @@ struct TimingPort {
   virtual uint32_t remainingMs() = 0;
   virtual uint32_t elapsedMs() = 0;
   virtual uint8_t takeEvents() = 0;  // eventi EV_* accumulati dalla ISR dall'ultima chiamata
+  virtual void setCorrection(int16_t ppm) = 0;  // Correzione del clock, ±1000 ppm (REQ-1.7)
+  virtual uint32_t tickCount() = 0;  // tick di Timer1 dall'avvio, senza correzione (log di calibrazione)
   virtual void setRelay(bool on) = 0;  // test del relè nel Menu di servizio, a TimingCore fermo
 };

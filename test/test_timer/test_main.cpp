@@ -1,5 +1,6 @@
 // Seam 1: dominio intero con il TimingCore vero e driver finti. I test agiscono
 // solo con input dell'utente e tempo che passa.
+#include <stdio.h>
 #include <unity.h>
 #include <Controller.h>
 #include <Counters.h>
@@ -1524,6 +1525,93 @@ static void test_service_factory_reset_replaces_all_settings() {
   TEST_ASSERT_FALSE(t.clock.relay);
 }
 
+// Durata a relè acceso di un Countdown di 10,0 s, in tick: misura la Correzione del clock applicata.
+static uint32_t countdownTicks() {
+  Timer t;
+  t.type("100");
+  t.press();
+  t.advance(11000);
+  return t.clock.relayOffAtMs - t.clock.relayOnAtMs;
+}
+
+// REQ-9.12, REQ-1.7: Correzione del clock inserita in ppm, `*` cambia il segno, oltre ±1000
+// suona l'errore; il Countdown successivo conta con la correzione salvata.
+static void test_service_sets_clock_correction_in_ppm() {
+  {
+    Timer t(false, true);
+    t.settle();
+    openServiceItem(t, -5);  // Calibrazione
+    TEST_ASSERT_EQUAL_STRING("Log calibrazione", t.row(0));
+    t.turnMode(1);
+    TEST_ASSERT_EQUAL_STRING("Correzione ppm  ", t.row(0));
+    TEST_ASSERT_EQUAL_STRING("ppm: +0         ", t.row(1));
+    t.type("1001");
+    t.clickMode();
+    assertNote(t, 0, t.clock.nowMs, 150, 300);
+    t.advance(400);
+    t.type("1000");
+    t.star();
+    TEST_ASSERT_EQUAL_STRING("ppm: -1000      ", t.row(1));
+    t.clickMode();
+    TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO   ", t.row(0));
+  }
+  TEST_ASSERT_EQUAL_UINT32(10010, countdownTicks());  // un ms in meno ogni 1000 tick
+}
+
+// REQ-9.12: dalla durata misurata di un Countdown di 600,0 s, in centesimi di secondo, la
+// correzione si somma a quella già salvata ed è limitata a ±1000 ppm.
+static void test_service_computes_clock_correction_from_measured_600_s_countdown() {
+  Timer t(false, true);
+  t.settle();
+  openServiceItem(t, -5);  // Calibrazione
+  t.turnMode(-1);
+  TEST_ASSERT_EQUAL_STRING("Durata 600 s    ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("600,00 s        ", t.row(1));
+  t.type("60012");
+  TEST_ASSERT_EQUAL_STRING("600,12 s        ", t.row(1));
+  t.clickMode();
+  t.clickMode();
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("ppm: +200       ", t.row(1));
+  t.turnMode(1);
+  t.type("60012");  // misurata di nuovo con +200 ppm già applicati
+  t.clickMode();
+  t.clickMode();
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("ppm: +400       ", t.row(1));
+  t.turnMode(1);
+  t.type("59900");  // -1267 ppm: fuori dai limiti
+  t.clickMode();
+  t.clickMode();
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("ppm: -1000      ", t.row(1));
+}
+
+// REQ-9.6: il log di calibrazione scrive una riga al secondo con il conteggio dei ms di Timer1,
+// senza correzione, fino all'uscita con `D`.
+static void test_service_calibration_log_writes_ms_count_every_second_until_d() {
+  Timer t(false, true);
+  t.settle();
+  openServiceItem(t, -5);  // Calibrazione
+  TEST_ASSERT_EQUAL_STRING("Clic: avvia     ", t.row(1));
+  t.clickMode();
+  uint32_t start = t.clock.nowMs, lines = t.log.lines;
+  char cal[24];
+  for (uint32_t s = 1; s <= 3; s++) {
+    t.advance(999);
+    TEST_ASSERT_EQUAL_UINT32(lines + s - 1, t.log.lines);
+    t.advance(1);
+    snprintf(cal, sizeof cal, "CAL ms=%lu", (unsigned long)(start + s * 1000));
+    TEST_ASSERT_EQUAL_STRING(cal, t.log.last);
+  }
+  t.turnMode(1);  // l'encoder non chiude il log
+  TEST_ASSERT_EQUAL_STRING("Attivo, D: esci ", t.row(1));
+  t.keyD();
+  TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO   ", t.row(0));
+  t.advance(5000);
+  TEST_ASSERT_EQUAL_UINT32(lines + 3, t.log.lines);
+}
+
 // REQ-9.10: avvio, inizio e fine di ogni Esposizione con la durata misurata.
 static void test_log_reports_boot_start_and_end_with_measured_duration() {
   Timer t;
@@ -1705,6 +1793,9 @@ int main() {
   RUN_TEST(test_service_sets_lcd_exposure_level);
   RUN_TEST(test_service_sets_focus_limit);
   RUN_TEST(test_service_factory_reset_replaces_all_settings);
+  RUN_TEST(test_service_sets_clock_correction_in_ppm);
+  RUN_TEST(test_service_computes_clock_correction_from_measured_600_s_countdown);
+  RUN_TEST(test_service_calibration_log_writes_ms_count_every_second_until_d);
   RUN_TEST(test_log_reports_boot_start_and_end_with_measured_duration);
   RUN_TEST(test_log_reports_watchdog_reset_and_invalid_settings);
   RUN_TEST(test_factory_brightness_levels);

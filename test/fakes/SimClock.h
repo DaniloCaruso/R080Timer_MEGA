@@ -31,6 +31,8 @@ struct SimClock : TimingPort {
   uint32_t remainingMs() override { return core.remainingMs(); }
   uint32_t elapsedMs() override { return core.elapsedMs(); }
   uint8_t takeEvents() override { uint8_t e = events; events = 0; return e; }
+  void setCorrection(int16_t ppm) override { core.setCorrection(ppm); }
+  uint32_t tickCount() override { return nowMs; }
   void setRelay(bool on) override { relay = on; }
 
   void tick() {
