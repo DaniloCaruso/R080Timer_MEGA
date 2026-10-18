@@ -11,10 +11,13 @@
 #define RELAY_OFF() (PORTL &= ~_BV(PL2))
 
 static TimingCore core;
+static volatile uint8_t events;  // EV_* accumulati fino a takeEvents()
 
 // TimingCore::tick() è inline: niente chiamate né divisioni nella ISR.
 ISR(TIMER1_COMPA_vect) {
-  if (core.tick()) RELAY_OFF();
+  TickOut out = core.tick();
+  events |= out.events;
+  if (out.relayOff) RELAY_OFF();
 }
 
 void Timer1Clock::begin() {
@@ -50,4 +53,13 @@ bool Timer1Clock::running() {
 uint32_t Timer1Clock::remainingMs() {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return core.remainingMs(); }
   return 0;  // irraggiungibile, evita il warning
+}
+
+uint8_t Timer1Clock::takeEvents() {
+  uint8_t e = 0;
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {  // leggere e azzerare senza perdere un evento della ISR
+    e = events;
+    events = 0;
+  }
+  return e;
 }

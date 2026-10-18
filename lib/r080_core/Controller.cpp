@@ -1,14 +1,22 @@
 #include "Controller.h"
 #include "Precision.h"
 #include "TimeUnits.h"
+#include "TimingCore.h"
 
 static uint16_t clampDs(int32_t ds) { return ds < DS_MIN ? DS_MIN : ds > DS_MAX ? DS_MAX : ds; }
 
 void Controller::onInput(Input in, int8_t arg) {
   bool running = timing_.running();
   if (in == Input::MainPress) {
-    if (running) timing_.cancel();
-    else if (timeDs_ > 0) timing_.startCountdown(dsToMs(timeDs_));
+    if (running) {
+      timing_.cancel();
+      beep(Sound::End);
+    } else if (timeDs_ > 0) {
+      timing_.startCountdown(dsToMs(timeDs_));
+      beep(Sound::Start);
+    } else {
+      beep(Sound::Error);  // REQ-3.8
+    }
     entering_ = false;
     return;
   }
@@ -31,6 +39,10 @@ void Controller::onInput(Input in, int8_t arg) {
     case Input::PrecTurn:
       precIdx_ = (precIdx_ + PRECISION_COUNT + arg) % PRECISION_COUNT;
       if (fstop_ && baseDs_ > 0) timeDs_ = clampDs(fstopTime(baseDs_, offset_, kFStopDenominators[precIdx_]));  // REQ-4.5
+      break;
+    case Input::StarHold:
+      muted_ = !muted_;
+      sound_.play(Sound::Confirm);  // REQ-5.5: la conferma suona anche entrando nel mute
       break;
     case Input::PrecClick:
       fstop_ = !fstop_;
@@ -56,7 +68,14 @@ void Controller::stepFStop(int8_t dir) {
 }
 
 void Controller::update() {
+  uint8_t events = timing_.takeEvents();
+  if (events & EV_END) beep(Sound::End);
+  else if (events & EV_METRONOME) beep(Sound::Metronome);
   // Durante il Countdown il residuo arrotondato per eccesso: non mostra 0000 prima della fine.
   uint16_t ds = timing_.running() ? msToDs(timing_.remainingMs() + MS_PER_DS - 1) : timeDs_;
   if (ds != shownDs_) seg_.showDeciseconds(shownDs_ = ds);
+}
+
+void Controller::beep(Sound s) {
+  if (!muted_ || s == Sound::End) sound_.play(s);  // REQ-8.5
 }

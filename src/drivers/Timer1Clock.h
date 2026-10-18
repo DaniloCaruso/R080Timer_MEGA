@@ -11,4 +11,5 @@ class Timer1Clock : public TimingPort {
   void cancel() override;
   bool running() override;
   uint32_t remainingMs() override;
+  uint8_t takeEvents() override;
 };
