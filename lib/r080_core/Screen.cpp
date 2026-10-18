@@ -4,6 +4,7 @@
 #include "Precision.h"
 
 constexpr uint32_t SPLASH_MS = 1500;  // REQ-7.9
+constexpr uint32_t WDT_MESSAGE_MS = 3000;  // REQ-9.9
 
 // Scrive n senza zeri iniziali; ritorna le cifre scritte.
 static uint8_t writeNumber(char* p, uint16_t n) {
@@ -14,6 +15,10 @@ static uint8_t writeNumber(char* p, uint16_t n) {
 
 void Screen::compose(uint32_t nowMs) {
   memset(want_, ' ', sizeof want_);
+  if (watchdogReset_ && nowMs < WDT_MESSAGE_MS) {
+    memcpy(want_[0], "RESET: WDT", 10);
+    return;
+  }
   if (nowMs < SPLASH_MS) {
     memcpy(want_[0], " - R080 Timer - ", 16);
     uint8_t n = strlen(version_);

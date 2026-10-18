@@ -4,11 +4,7 @@
 #include <avr/io.h>
 #include <util/atomic.h>
 #include <TimingCore.h>
-
-// Relè su D47 = PORTL bit PL2. PORTL è fuori dallo spazio SBI/CBI e tone() scrive
-// PL0 dalla sua ISR: dal main il relè si scrive solo in ATOMIC_BLOCK.
-#define RELAY_ON() (PORTL |= _BV(PL2))
-#define RELAY_OFF() (PORTL &= ~_BV(PL2))
+#include "Pins.h"
 
 static TimingCore core;
 static volatile uint8_t events;  // EV_* accumulati fino a takeEvents()

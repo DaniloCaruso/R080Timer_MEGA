@@ -11,6 +11,7 @@ class Screen {
   Screen(Lcd& lcd, EventLog& log, const Controller& ctl, const char* version)
       : lcd_(lcd), log_(log), ctl_(ctl), version_(version) {}
   void render(uint32_t nowMs);  // a ogni giro di loop
+  void showWatchdogReset() { watchdogReset_ = true; }  // all'avvio, al posto del nome (REQ-9.9)
 
  private:
   void compose(uint32_t nowMs);
@@ -22,4 +23,5 @@ class Screen {
   char want_[2][16];
   char shown_[2][16] = {};  // '\0' = cella sconosciuta, da riscrivere
   bool online_ = true;
+  bool watchdogReset_ = false;
 };
