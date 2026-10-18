@@ -32,7 +32,7 @@ I tempi si leggono e si inseriscono in decimi di secondo, da 0,1 a 999,9 s.
 | Cifre `0`–`9` | Inseriscono il tempo (vedi §3). Lo `0` entra al rilascio del tasto. |
 | `*` / `#` | Diminuiscono / aumentano il tempo secondo la precisione (§4). In Focus regolano la luminosità dell'LCD (§8). |
 | `0` tenuto + `*` / `#` | In Focus: luminosità del 7 segmenti (§8). |
-| `*` tenuto 1 s | Mute acceso/spento, con un beep di conferma (§7). |
+| `*` tenuto 1 s | Mute acceso/spento; spegnendolo suona un beep di conferma (§7). |
 | `#` tenuto 1 s | Abilitazione relè del Canale attivo, con un beep di conferma (§6). |
 | `A` / `B` / `C` | Attivano il Canale corrispondente (§6). |
 | `D` | Azzera tempo impostato, Tempo base e Offset del Canale attivo. |
@@ -53,7 +53,7 @@ Mostra un tempo in secondi con un decimale, a quattro cifre: `010.0` = 10,0 s, `
 |---|---|
 | Fermo | Il tempo impostato del Canale attivo |
 | Countdown in corso | Il tempo residuo, arrotondato per eccesso |
-| Focus acceso | Il tempo trascorso (si ferma a `999.9` oltre i 16 min 39,9 s) |
+| Focus acceso | Il tempo trascorso; oltre 999,9 s in minuti.secondi (`17.05` = 17 min 05 s) |
 | Test strip in corso | Il tempo cumulativo dall'inizio della prova |
 | Test strip passo-passo in pausa | Il tempo cumulativo dello Step successivo |
 
@@ -69,7 +69,7 @@ COUNTDOWN  [S]
 TEST STRIP [F]PP
 ```
 
-Riga 2: precisione (colonne 1–7), Canale, icona ♪ (suoni attivi, sparisce col mute) e icona ⚡ (Abilitazione relè attiva).
+Riga 2: precisione (colonne 0–6), Canale, icona ♪ (suoni attivi, sparisce col mute) e icona ⚡ (Abilitazione relè attiva).
 
 ```
  5s      Ch:A ♪⚡     precisione in Secondi: 5 s
@@ -123,7 +123,7 @@ Lampada accesa a tempo libero, per comporre e mettere a fuoco.
 
 - Pulsante principale: la lampada si accende (se l'Abilitazione relè del Canale è attiva) e il 7 segmenti conta il tempo trascorso. Una seconda pressione la spegne, con il Suono di fine.
 - **Spegnimento automatico:** dopo il tempo massimo scelto nel Menu di servizio (3, 5, 10, 15 o 20 minuti; di fabbrica 5) la lampada si spegne da sola, con il Suono di fine. 10 s prima suona un avviso (due toni).
-- Nessun Metronomo. Il tempo impostato non viene usato, ma resta nel Canale.
+- Nessun Metronomo. Il tempo impostato non viene usato, ma resta nel Canale: cifre ed encoder della precisione (rotazione e pressione) non hanno effetto.
 - Il Focus non conta come Esposizione nei contatori; il suo tempo a lampada accesa conta nelle ore di lampada.
 
 ### Countdown
@@ -183,7 +183,7 @@ Alla prima accensione con la v2.0.0 le impostazioni della versione precedente no
 | Errore | Avvio con tempo zero; valore rifiutato nel Menu di servizio | tono grave lungo (150 Hz, 300 ms) |
 | Conferma | Mute, Abilitazione relè, valore salvato nel Menu di servizio | beep molto acuto (1200 Hz, 40 ms) |
 
-**Mute.** Tenendo `*` per 1 s si attiva o disattiva; la conferma suona in entrambi i casi. Con il mute attivo suona solo il Suono di fine, perché la fine di un'Esposizione non passi inosservata; restano udibili anche la conferma del mute stesso e i suoni del Menu di servizio.
+**Mute.** Tenendo `*` per 1 s si attiva o disattiva; attivandolo il timer resta in silenzio, disattivandolo suona la conferma. Con il mute attivo suona solo il Suono di fine, perché la fine di un'Esposizione non passi inosservata; restano udibili anche i suoni del Menu di servizio.
 
 ## 8. Luci in camera oscura
 

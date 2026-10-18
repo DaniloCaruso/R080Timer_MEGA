@@ -41,11 +41,15 @@ struct Timer {
     ctl.boot(watchdogReset, settingsOk, keyD);
     loop();
   }
+  // Lo spegnimento arriva dopo i salvataggi già partiti (un byte per giro, al più 43 giri):
+  // per un salvataggio interrotto il test crea il Timer successivo prima di distruggere questo.
+  ~Timer() { advance(50); }
   void loop() {  // un giro di loop()
     ctl.update();
     sound.tick(clock.nowMs);
     screen.render(clock.nowMs);
     settings.service(clock.nowMs);
+    counters.service();
   }
   void type(const char* digits) {
     for (; *digits; digits++) { ctl.onInput(Input::Digit, *digits - '0'); loop(); }
@@ -224,7 +228,7 @@ static void test_lcd_shows_countdown_layout_after_splash() {
   t.advance(1500);
   t.advance(1);
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.lcd.cells[0]);
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.lcd.cells[1]);
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A \x01\x02", t.lcd.cells[1]);
 }
 
 // Da fermo il bus I²C resta inattivo se nulla cambia.
@@ -262,7 +266,7 @@ static void test_lcd_is_redrawn_when_it_comes_back_online() {
   t.lcd.isOnline = true;
   t.advance(2);
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.lcd.cells[0]);
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.lcd.cells[1]);
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A \x01\x02", t.lcd.cells[1]);
   TEST_ASSERT_EQUAL_STRING("LCD online", t.log.last);
 }
 
@@ -315,26 +319,25 @@ static void test_cancel_plays_end_sound() {
   assertEndSound(t, 1, 500);
 }
 
-// REQ-5.5, REQ-7.5: `*` tenuto 1 s alterna il mute con il beep di conferma, toglie e
-// rimette la nota sull'LCD e non tocca il tempo impostato.
+// REQ-5.5, REQ-7.5: `*` tenuto 1 s alterna il mute, toglie e rimette la nota sull'LCD e non
+// tocca il tempo impostato. Il beep di conferma suona solo togliendo il mute.
 static void test_holding_star_toggles_mute_with_confirm_beep() {
   Timer t;
   t.type("12");
   t.advance(2000);
   t.hold();
   t.advance(1);
-  TEST_ASSERT_EQUAL_UINT8(1, t.buzzer.count);
-  assertNote(t, 0, 2000, 1200, 40);
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A  \x02", t.lcd.cells[1]);
+  TEST_ASSERT_EQUAL_UINT8(0, t.buzzer.count);  // entrando nel mute, silenzio
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A  \x02", t.lcd.cells[1]);
   TEST_ASSERT_EQUAL_UINT16(12, t.seg.shown);
   TEST_ASSERT_FALSE(t.clock.relay);
 
   t.advance(1000);
   t.hold();
   t.advance(1);
-  TEST_ASSERT_EQUAL_UINT8(2, t.buzzer.count);
-  assertNote(t, 1, 3001, 1200, 40);
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.lcd.cells[1]);
+  TEST_ASSERT_EQUAL_UINT8(1, t.buzzer.count);
+  assertNote(t, 0, 3001, 1200, 40);
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A \x01\x02", t.lcd.cells[1]);
 }
 
 // REQ-8.5: con il mute restano muti avvio, Metronomo ed errore; il Suono di fine suona.
@@ -347,9 +350,9 @@ static void test_mute_silences_everything_but_end_sound() {
   t.type("15");
   t.press();
   t.advance(1400);
-  TEST_ASSERT_EQUAL_UINT8(1, t.buzzer.count);  // la sola conferma del mute
+  TEST_ASSERT_EQUAL_UINT8(0, t.buzzer.count);
   t.advance(1000);
-  assertEndSound(t, 1, 1600);
+  assertEndSound(t, 0, 1600);
 }
 
 // REQ-4.2: in Secondi */# spostano il tempo del valore di precisione (1 s di fabbrica).
@@ -385,17 +388,17 @@ static void test_first_digit_after_star_starts_a_new_time() {
 
 // REQ-4.1: lista in Secondi come nel firmware precedente, l'encoder gira in tondo.
 static void test_precision_encoder_walks_the_seconds_list() {
-  static const char* const rows[] = {"Pr: 1s  ", "Pr: 2s  ", "Pr: 3s  ", "Pr: 4s  ", "Pr: 5s  ", "Pr: 6s  ",
-                                     "Pr: 7s  ", "Pr: 8s  ", "Pr: 10s ", "Pr: 15s ", "Pr: 20s "};
+  static const char* const rows[] = {" 1s     ", " 2s     ", " 3s     ", " 4s     ", " 5s     ", " 6s     ",
+                                     " 7s     ", " 8s     ", "10s     ", "15s     ", "20s     "};
   Timer t;
   t.settle();
   for (uint8_t i = 0; i < 11; i++) {
     TEST_ASSERT_EQUAL_STRING_LEN(rows[i], t.row(1), 8);
     t.turnPrecision(1);
   }
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr: 1s  ", t.row(1), 8);
+  TEST_ASSERT_EQUAL_STRING_LEN(" 1s     ", t.row(1), 8);
   t.turnPrecision(-1);
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr: 20s ", t.row(1), 8);
+  TEST_ASSERT_EQUAL_STRING_LEN("20s     ", t.row(1), 8);
 }
 
 // REQ-4.2: il passo di */# segue la precisione scelta.
@@ -411,9 +414,9 @@ static void test_star_hash_use_selected_seconds_precision() {
 // REQ-4.1, REQ-4.4: lista F-Stop come nel firmware precedente; riga 2 precisione alle
 // colonne 0-5 e Offset alle colonne 6-8 (TECHNICAL C-13), riga 1 tipo [F].
 static void test_precision_encoder_walks_the_fstop_list() {
-  static const char* const rows[] = {"Pr1/1  00", "Pr1/2  00", "Pr1/3  00", "Pr1/4  00",
-                                     "Pr1/6  00", "Pr1/8  00", "Pr1/12 00", "Pr1/16 00",
-                                     "Pr1/24 00", "Pr1/32 00", "Pr1/64 00"};
+  static const char* const rows[] = {"1/1  00  ", "1/2  00  ", "1/3  00  ", "1/4  00  ",
+                                     "1/6  00  ", "1/8  00  ", "1/12 00  ", "1/16 00  ",
+                                     "1/24 00  ", "1/32 00  ", "1/64 00  "};
   Timer t;
   t.settle();
   t.clickPrecision();
@@ -423,7 +426,7 @@ static void test_precision_encoder_walks_the_fstop_list() {
     TEST_ASSERT_EQUAL_STRING("Ch:A \x01\x02", t.row(1) + 9);
     t.turnPrecision(1);
   }
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1  00", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1  00  ", t.row(1), 9);
 }
 
 // REQ-4.3, REQ-4.4: base 10,0 s e 1/3.
@@ -436,15 +439,15 @@ static void test_hash_moves_by_a_third_of_stop_from_base() {
   t.clickPrecision();
   t.hash();
   TEST_ASSERT_EQUAL_UINT16(126, t.seg.shown);
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/3 +01", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/3 +01  ", t.row(1), 9);
   t.hash();
   TEST_ASSERT_EQUAL_UINT16(159, t.seg.shown);
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/3 +02", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/3 +02  ", t.row(1), 9);
   t.star();
   t.star();
   t.star();
   TEST_ASSERT_EQUAL_UINT16(79, t.seg.shown);  // 10 * 2^(-1/3) = 7,94
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/3 -01", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/3 -01  ", t.row(1), 9);
 }
 
 // REQ-4.4: l'Offset resta visibile anche da fermo, senza riscritture.
@@ -454,11 +457,11 @@ static void test_offset_stays_on_screen() {
   t.clickPrecision();
   t.hash();
   t.hash();
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1 +02", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1 +02  ", t.row(1), 9);
   uint32_t writes = t.lcd.writes;
   t.advance(5000);
   TEST_ASSERT_EQUAL_UINT32(writes, t.lcd.writes);
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1 +02", t.lcd.cells[1], 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1 +02  ", t.lcd.cells[1], 9);
 }
 
 // REQ-4.3: l'Offset non va oltre il punto in cui il tempo uscirebbe da 0,1-999,9 s.
@@ -469,13 +472,13 @@ static void test_offset_stops_where_time_would_leave_limits() {
   t.clickPrecision();  // 1/1
   t.hash();            // 1000,0 s: fuori limite
   TEST_ASSERT_EQUAL_UINT16(5000, t.seg.shown);
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1  00", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1  00  ", t.row(1), 9);
   t.star();
   TEST_ASSERT_EQUAL_UINT16(2500, t.seg.shown);
   t.type("5");
   for (int i = 0; i < 5; i++) t.star();  // 0,25 -> 0,3 / 0,125 -> 0,1 / 0,0625 -> 0,1 / 0,03: fuori limite
   TEST_ASSERT_EQUAL_UINT16(1, t.seg.shown);
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1 -03", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1 -03  ", t.row(1), 9);
 }
 
 // REQ-4.3, REQ-4.4: l'Offset ha due cifre, si ferma a +99.
@@ -486,7 +489,7 @@ static void test_offset_stops_at_two_digits() {
   t.turnPrecision(-1);  // 1/64
   t.clickPrecision();
   for (int i = 0; i < 120; i++) t.hash();
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/64+99", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/64+99  ", t.row(1), 9);
   TEST_ASSERT_EQUAL_UINT16(292, t.seg.shown);  // 10 * 2^(99/64) = 29,22
 }
 
@@ -519,7 +522,7 @@ static void test_offset_beyond_limit_after_precision_change_can_come_back() {
   for (int i = 0; i < 3; i++) t.turnPrecision(-1);  // 1/1: 300 * 2^3 = 2400 s
   TEST_ASSERT_EQUAL_UINT16(9999, t.seg.shown);
   t.hash();
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1 +03", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1 +03  ", t.row(1), 9);
   t.star();  // +02: 1200 s, ancora oltre
   TEST_ASSERT_EQUAL_UINT16(9999, t.seg.shown);
   t.star();  // +01: 600 s
@@ -534,15 +537,15 @@ static void test_precision_click_toggles_type_and_rebases() {
   t.type("100");
   t.hash();  // Secondi, 1 s: 11,0 s
   t.clickPrecision();
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1  00", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1  00  ", t.row(1), 9);
   t.hash();  // 1/1 da 11,0 s
   TEST_ASSERT_EQUAL_UINT16(220, t.seg.shown);
   t.clickPrecision();
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr: 1s   Ch:A", t.row(1), 13);
+  TEST_ASSERT_EQUAL_STRING_LEN(" 1s      Ch:A", t.row(1), 13);
   TEST_ASSERT_EQUAL_UINT16(220, t.seg.shown);
   t.clickPrecision();
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1  00", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1  00  ", t.row(1), 9);
   t.hash();
   TEST_ASSERT_EQUAL_UINT16(440, t.seg.shown);
 }
@@ -553,9 +556,9 @@ static void test_typed_time_becomes_base_with_zero_offset() {
   t.settle();
   t.clickPrecision();
   t.hash();
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1 +01", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1 +01  ", t.row(1), 9);
   t.type("50");
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1  00", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1  00  ", t.row(1), 9);
   t.hash();
   TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
 }
@@ -568,7 +571,7 @@ static void test_precision_encoder_is_ignored_during_countdown() {
   t.turnPrecision(1);
   t.clickPrecision();
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr: 1s  ", t.row(1), 8);
+  TEST_ASSERT_EQUAL_STRING_LEN(" 1s     ", t.row(1), 8);
 }
 
 // REQ-6.1, REQ-6.2: A, B e C richiamano ciascuno la propria impostazione completa.
@@ -584,24 +587,24 @@ static void test_channels_store_and_restore_whole_setting() {
   t.channel('B');
   TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:B \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:B \x01\x02", t.row(1));
   t.turnMode(1);
   t.type("50");
   t.holdHash();
   t.channel('A');
   TEST_ASSERT_EQUAL_UINT16(126, t.seg.shown);
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [F]  ", t.row(0));
-  TEST_ASSERT_EQUAL_STRING("Pr1/3 +01Ch:A \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_STRING("1/3 +01  Ch:A \x01\x02", t.row(1));
   t.hash();  // Tempo base e Offset ripristinati
   TEST_ASSERT_EQUAL_UINT16(159, t.seg.shown);
   t.channel('B');
   TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);
   TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]CO", t.row(0));
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:B \x01 ", t.row(1));
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:B \x01 ", t.row(1));
   t.channel('C');
   TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:C \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:C \x01\x02", t.row(1));
 }
 
 // REQ-5.4: `D` azzera tempo, Tempo base e Offset del solo Canale attivo.
@@ -611,10 +614,10 @@ static void test_key_d_clears_time_base_and_offset_of_active_channel() {
   t.type("100");
   t.clickPrecision();
   t.hash();
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1 +01", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1 +01  ", t.row(1), 9);
   t.keyD();
   TEST_ASSERT_EQUAL_UINT16(0, t.seg.shown);
-  TEST_ASSERT_EQUAL_STRING_LEN("Pr1/1  00", t.row(1), 9);
+  TEST_ASSERT_EQUAL_STRING_LEN("1/1  00  ", t.row(1), 9);
   t.hash();  // Tempo base zero: l'F-Stop non ha da dove partire
   TEST_ASSERT_EQUAL_UINT16(0, t.seg.shown);
   t.channel('B');
@@ -631,7 +634,7 @@ static void test_holding_hash_toggles_relay_enable() {
   t.advance(1);
   TEST_ASSERT_EQUAL_UINT8(1, t.buzzer.count);
   assertNote(t, 0, 2000, 1200, 40);
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01 ", t.lcd.cells[1]);
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A \x01 ", t.lcd.cells[1]);
   TEST_ASSERT_EQUAL_UINT16(15, t.seg.shown);
   t.press();
   TEST_ASSERT_FALSE(t.clock.relay);
@@ -641,10 +644,10 @@ static void test_holding_hash_toggles_relay_enable() {
   t.advance(500);
   TEST_ASSERT_EQUAL_UINT16(15, t.seg.shown);
   t.channel('B');  // l'Abilitazione è per Canale
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:B \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:B \x01\x02", t.row(1));
   t.channel('A');
   t.holdHash();
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A \x01\x02", t.row(1));
   t.press();
   TEST_ASSERT_TRUE(t.clock.relay);
 }
@@ -680,7 +683,7 @@ static void test_channel_keys_and_mode_encoder_are_ignored_during_exposure() {
   t.press();
   TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A \x01\x02", t.row(1));
 }
 
 // REQ-6.7: il salvataggio parte 2 s dopo l'ultima modifica.
@@ -694,6 +697,7 @@ static void test_settings_are_saved_two_seconds_after_last_change() {
   TEST_ASSERT_EQUAL_UINT32(atBoot, eeprom.written);
   t.advance(1);
   TEST_ASSERT_TRUE(eeprom.written > atBoot);
+  t.advance(50);  // il salvataggio finisce in pochi giri di loop
   Timer rebooted;
   TEST_ASSERT_EQUAL_UINT16(125, rebooted.seg.shown);
 }
@@ -705,6 +709,7 @@ static void test_settings_are_saved_when_exposure_starts() {
   t.type("125");
   t.press();
   TEST_ASSERT_TRUE(eeprom.written > atBoot);
+  t.advance(50);
   Timer rebooted;
   TEST_ASSERT_EQUAL_UINT16(125, rebooted.seg.shown);
 }
@@ -713,15 +718,36 @@ static void test_settings_are_saved_when_exposure_starts() {
 static void test_save_writes_only_changed_bytes() {
   Timer t;
   t.type("100");
-  t.advance(2000);
+  t.advance(2050);
   uint32_t first = eeprom.written;
   t.type("125");  // cambiano tempo e Tempo base (byte basso) e il CRC
-  t.advance(2000);
+  t.advance(2050);
   TEST_ASSERT_EQUAL_UINT32(first + 3, eeprom.written);
   t.turnPrecision(1);
   t.turnPrecision(-1);
-  t.advance(2000);
+  t.advance(2050);
   TEST_ASSERT_EQUAL_UINT32(first + 3, eeprom.written);
+}
+
+// REQ-6.8, CLAUDE.md (niente blocchi nel loop): un salvataggio scrive al più un byte per giro di
+// loop, il CRC per ultimo; spegnendo a metà, al riavvio il blocco non è valido e valgono i valori
+// di fabbrica.
+static void test_save_writes_one_byte_per_loop_pass_crc_last() {
+  Timer t;
+  t.type("125");
+  t.advance(1999);
+  uint32_t before = eeprom.written;
+  t.advance(1);
+  TEST_ASSERT_EQUAL_UINT32(before + 1, eeprom.written);
+  t.advance(10);
+  TEST_ASSERT_EQUAL_UINT32(before + 11, eeprom.written);
+  {
+    Timer torn;  // il blocco della EEPROM vergine è scritto a metà, senza CRC
+    TEST_ASSERT_EQUAL_UINT16(100, torn.seg.shown);
+  }
+  t.advance(100);
+  Timer rebooted;
+  TEST_ASSERT_EQUAL_UINT16(125, rebooted.seg.shown);
 }
 
 // REQ-6.4: dopo un riavvio si ritrovano Canale attivo, impostazioni dei Canali e mute.
@@ -742,13 +768,13 @@ static void test_reboot_restores_active_channel_channels_and_mute() {
   t.settle();
   TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [F]  ", t.row(0));
-  TEST_ASSERT_EQUAL_STRING("Pr1/1  00Ch:C  \x02", t.row(1));
+  TEST_ASSERT_EQUAL_STRING("1/1  00  Ch:C  \x02", t.row(1));
   t.channel('A');
   TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
   t.channel('B');
   TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);
   TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]CO", t.row(0));
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:B   ", t.row(1));
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:B   ", t.row(1));
 }
 
 // Salva un'impostazione lontana da quella di fabbrica: Canale B, 5,0 s, mute.
@@ -766,7 +792,7 @@ static void assertFactoryDefaults() {
   t.settle();
   TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A \x01\x02", t.row(1));
   t.channel('B');
   TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
 }
@@ -794,6 +820,24 @@ static void test_out_of_range_channel_loads_factory_defaults() {
   eeprom.bytes[4] = 7;  // primo byte dopo l'intestazione: Canale attivo
   eeprom.bytes[42] = crc8(eeprom.bytes, 42);
   assertFactoryDefaults();
+}
+
+// Anche con CRC giusto, valori fuori dai limiti non vengono usati: Correzione del clock oltre
+// ±1000 ppm, Offset oltre ±99, tempo o Tempo base oltre 999,9 s (Canale A, dal byte 12).
+static void test_out_of_range_values_load_factory_defaults() {
+  static const struct { uint8_t addr; uint8_t lo, hi; } cases[] = {
+    {10, 0xE9, 0x03},  // clockPpm = 1001
+    {16, 0x10, 0x27},  // timeDs = 10000
+    {18, 0x10, 0x27},  // baseDs = 10000
+    {20, 100, 0},      // offset = +100 (e relè disabilitato nel byte dopo)
+  };
+  for (const auto& k : cases) {
+    saveNonFactorySettings();
+    eeprom.bytes[k.addr] = k.lo;
+    eeprom.bytes[k.addr + 1] = k.hi;
+    eeprom.bytes[42] = crc8(eeprom.bytes, 42);
+    assertFactoryDefaults();
+  }
 }
 
 // REQ-2.5: versione sconosciuta, anche con CRC giusto, porta ai valori di fabbrica.
@@ -953,6 +997,23 @@ static void test_lcd_dims_during_exposure_and_seven_seg_keeps_its_level() {
   TEST_ASSERT_EQUAL_UINT8(4, t.seg.level);
 }
 
+// REQ-4.5, REQ-4.6, REQ-5.1: in Focus l'encoder della precisione (rotazione e pulsante) e le
+// cifre non fanno nulla: tornando in Countdown precisione e tempo sono quelli di prima.
+static void test_focus_ignores_precision_encoder_and_digits() {
+  Timer t;
+  t.settle();
+  t.type("125");
+  t.turnMode(-1);
+  t.turnPrecision(1);
+  t.clickPrecision();
+  t.type("7");
+  TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
+}
+
 // REQ-7.10: in Focus la riga 2 non mostra la precisione, anche con la lampada accesa.
 static void test_focus_shows_no_precision_while_lit() {
   Timer t;
@@ -973,7 +1034,7 @@ static void test_watchdog_reset_shows_message_for_three_seconds() {
   TEST_ASSERT_EQUAL_STRING("RESET: WDT      ", t.lcd.cells[0]);
   t.advance(4);
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.lcd.cells[0]);
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.lcd.cells[1]);
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A \x01\x02", t.lcd.cells[1]);
 }
 
 // Ogni accensione incrementa il contatore delle accensioni, che sopravvive al riavvio.
@@ -985,12 +1046,13 @@ static void test_each_power_on_is_counted() {
   TEST_ASSERT_EQUAL_UINT16(0, t.counters.d.watchdogResets);
 }
 
-// REQ-9.9: un avvio dopo un reset da watchdog incrementa il suo contatore, non quello delle accensioni.
+// REQ-9.3, REQ-9.9: un avvio dopo un reset da watchdog incrementa il suo contatore e anche quello
+// delle accensioni, che conta ogni avvio.
 static void test_watchdog_reset_is_counted() {
   { Timer t; }
   { Timer t(true); }
   Timer t(true);
-  TEST_ASSERT_EQUAL_UINT16(1, t.counters.d.powerOns);
+  TEST_ASSERT_EQUAL_UINT16(3, t.counters.d.powerOns);
   TEST_ASSERT_EQUAL_UINT16(2, t.counters.d.watchdogResets);
 }
 
@@ -1071,6 +1133,24 @@ static void test_strip_fstop_steps_from_base() {
   TEST_ASSERT_EQUAL_STRING("TEST STRIP [F]CO", t.row(0));  // il tipo resta visibile durante la prova
 }
 
+// REQ-3.10: il primo Step è il tempo impostato, anche con un Offset: F-Stop 1/2 da 10,0 s con
+// Offset +1 (14,1 s) dà Step a 14,1, 20,0, 28,3 s.
+static void test_strip_fstop_starts_from_set_time_with_offset() {
+  Timer t;
+  enterTestStrip(t);
+  t.type("100");
+  t.turnPrecision(1);  // 1/2
+  t.clickPrecision();
+  t.hash();
+  t.press();
+  t.advance(30000);
+  uint32_t at[8];
+  TEST_ASSERT_EQUAL_UINT8(3, notesAt(t, 600, at, 8));
+  TEST_ASSERT_EQUAL_UINT32(14100, at[0]);
+  TEST_ASSERT_EQUAL_UINT32(20000, at[1]);
+  TEST_ASSERT_EQUAL_UINT32(28300, at[2]);
+}
+
 // REQ-3.10: con 1/64 e base 0,1 s l'arrotondamento darebbe Step uguali: crescono di 0,1 s.
 static void test_strip_fstop_steps_grow_at_least_a_tenth() {
   Timer t;
@@ -1104,7 +1184,7 @@ static void test_strip_shows_step_number_and_cumulative_time() {
   TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);
   TEST_ASSERT_EQUAL_STRING("St:2     Ch:A \x01\x02", t.row(1));
   t.press();
-  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.row(1));
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A \x01\x02", t.row(1));
   TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);  // REQ-3.7
 }
 
@@ -1261,7 +1341,7 @@ static void test_service_counters_count_power_ons_resets_exposures_and_lamp_time
   t.settle();
   openServiceItem(t, 1);
   TEST_ASSERT_EQUAL_STRING("Accensioni      ", t.row(0));
-  TEST_ASSERT_EQUAL_STRING("2               ", t.row(1));
+  TEST_ASSERT_EQUAL_STRING("3               ", t.row(1));  // ogni avvio, anche da watchdog
   t.turnMode(1);
   TEST_ASSERT_EQUAL_STRING("Reset watchdog  ", t.row(0));
   TEST_ASSERT_EQUAL_STRING("1               ", t.row(1));
@@ -1502,7 +1582,7 @@ static void test_service_sets_focus_limit() {
   TEST_ASSERT_FALSE(t.clock.relay);
 }
 
-// REQ-9.8: il ripristino di fabbrica sostituisce tutte le impostazioni.
+// REQ-9.8: il ripristino di fabbrica chiede conferma, poi sostituisce tutte le impostazioni.
 static void test_service_factory_reset_replaces_all_settings() {
   saveNonFactorySettings();
   {
@@ -1514,8 +1594,12 @@ static void test_service_factory_reset_replaces_all_settings() {
     t.turnMode(1);
     t.clickMode();
     TEST_ASSERT_EQUAL_STRING("Ripristino fabb ", t.row(0));
-    TEST_ASSERT_EQUAL_STRING("Clic: conferma  ", t.row(1));
+    TEST_ASSERT_EQUAL_STRING("Clic: ripristina", t.row(1));
     t.clickMode();
+    TEST_ASSERT_EQUAL_STRING("Confermi?       ", t.row(0));
+    TEST_ASSERT_EQUAL_STRING("clic=Si D=No    ", t.row(1));
+    t.clickMode();
+    TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO   ", t.row(0));
   }
   assertFactoryDefaults();
   Timer t;
@@ -1523,6 +1607,49 @@ static void test_service_factory_reset_replaces_all_settings() {
   t.press();
   t.advance(300000);  // Focus di nuovo a 5 minuti
   TEST_ASSERT_FALSE(t.clock.relay);
+}
+
+// REQ-9.8: `D` alla richiesta di conferma annulla il ripristino di fabbrica.
+static void test_service_factory_reset_cancelled_with_d_keeps_settings() {
+  saveNonFactorySettings();
+  {
+    Timer t(false, true);
+    t.settle();
+    openServiceItem(t, -2);
+    t.clickMode();
+    TEST_ASSERT_EQUAL_STRING("Confermi?       ", t.row(0));
+    t.keyD();
+    TEST_ASSERT_EQUAL_STRING(">Ripristino fabb", t.row(1));
+    t.advance(3000);
+  }
+  Timer t;
+  t.settle();
+  TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);  // Canale B, 5,0 s
+}
+
+// REQ-3.2: oltre 999,9 s il Focus (tempo massimo 20 minuti) passa a minuti.secondi sul 7 segmenti.
+static void test_focus_beyond_999_9_s_shows_minutes_and_seconds() {
+  Timer t(false, true);
+  t.settle();
+  openServiceItem(t, -3);  // Tempo max Focus
+  t.type("20");
+  t.clickMode();
+  t.turnMode(2);  // Esci
+  t.clickMode();
+  t.turnMode(-1);  // Focus
+  t.press();
+  t.advance(999900);
+  TEST_ASSERT_FALSE(t.seg.minSec);
+  TEST_ASSERT_EQUAL_UINT16(9999, t.seg.shown);
+  t.advance(100);
+  TEST_ASSERT_TRUE(t.seg.minSec);
+  TEST_ASSERT_EQUAL_UINT16(1640, t.seg.shown);  // 1000 s = 16 min 40 s
+  t.advance(25000);
+  TEST_ASSERT_EQUAL_UINT16(1705, t.seg.shown);
+  t.advance(175000);  // 20 min: Spegnimento automatico
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_FALSE(t.seg.minSec);
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
 }
 
 // Durata a relè acceso di un Countdown di 10,0 s, in tick: misura la Correzione del clock applicata.
@@ -1747,18 +1874,31 @@ static void test_key_d_in_pause_concludes_stepped_strip() {
   assertStripConcludedAndRestarts(t);
 }
 
-// REQ-3.16: anche A/B/C in pausa concludono il test strip.
-static void test_channel_in_pause_concludes_stepped_strip() {
+// REQ-3.16: `A`/`B`/`C` in pausa concludono il test strip e attivano il Canale scelto.
+static void test_channel_in_pause_concludes_stepped_strip_and_switches_channel() {
   Timer t;
+  t.settle();
   pauseAtSecondStep(t);
+  t.channel('B');
+  TEST_ASSERT_FALSE(t.clock.running());
+  TEST_ASSERT_EQUAL_STRING("END ms=5000 measured=6000", t.log.last);
+  TEST_ASSERT_EQUAL_UINT8(1, t.ctl.channelIndex());
+  TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);  // tempo del Canale B
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:B \x01\x02", t.row(1));
   t.channel('A');
   assertStripConcludedAndRestarts(t);
 }
 
-// REQ-3.16: anche il cambio di Modalità in pausa conclude il test strip.
-static void test_mode_turn_in_pause_concludes_stepped_strip() {
+// REQ-3.16: il cambio di Modalità in pausa conclude il test strip e cambia Modalità.
+static void test_mode_turn_in_pause_concludes_stepped_strip_and_changes_mode() {
   Timer t;
+  t.settle();
   pauseAtSecondStep(t);
+  t.turnMode(-1);
+  TEST_ASSERT_FALSE(t.clock.running());
+  TEST_ASSERT_EQUAL_STRING("END ms=5000 measured=6000", t.log.last);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
+  TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);
   t.turnMode(1);
   assertStripConcludedAndRestarts(t);
 }
@@ -1776,8 +1916,40 @@ static void test_stepped_strip_counts_one_exposure_and_lamp_time_only() {
   TEST_ASSERT_EQUAL_STRING("END ms=5000 measured=6000", t.log.last);
 }
 
+// Un Countdown che finisce nella ISR subito dopo la raccolta degli eventi: la pressione avvia
+// il successivo, e la fine del primo non chiude il secondo.
+static void test_exposure_ending_just_before_press_does_not_close_the_next() {
+  Timer t;
+  t.type("10");
+  t.press();
+  t.advance(999);
+  t.clock.isrAfterRunning = 1;  // la fine scatta fra la raccolta degli eventi e il comando
+  t.press();
+  TEST_ASSERT_TRUE(t.clock.running());
+  t.advance(1000);
+  TEST_ASSERT_EQUAL_UINT32(2, t.counters.d.exposures);
+  TEST_ASSERT_EQUAL_UINT8(2, t.log.count("END ms=1000 measured=1000"));
+}
+
+// Un Countdown che finisce nella ISR fra la lettura di running() e l'Annullamento: una sola
+// Esposizione nei contatori e una sola riga nel log.
+static void test_exposure_ending_during_cancel_is_counted_once() {
+  Timer t;
+  t.type("10");
+  t.press();
+  t.advance(999);
+  t.clock.isrAfterRunning = 2;
+  t.press();
+  t.advance(1000);
+  TEST_ASSERT_EQUAL_UINT32(1, t.counters.d.exposures);
+  TEST_ASSERT_EQUAL_UINT8(1, t.log.count("CANCEL ms=1000 measured=1000"));
+  TEST_ASSERT_EQUAL_UINT8(0, t.log.count("END ms=1000 measured=1000"));
+}
+
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_exposure_ending_just_before_press_does_not_close_the_next);
+  RUN_TEST(test_exposure_ending_during_cancel_is_counted_once);
   RUN_TEST(test_stepped_strip_counts_one_exposure_and_lamp_time_only);
   RUN_TEST(test_key_d_at_power_on_opens_service_menu_and_exit_returns_to_normal_use);
   RUN_TEST(test_service_info_shows_version_and_build_date);
@@ -1793,6 +1965,7 @@ int main() {
   RUN_TEST(test_service_sets_lcd_exposure_level);
   RUN_TEST(test_service_sets_focus_limit);
   RUN_TEST(test_service_factory_reset_replaces_all_settings);
+  RUN_TEST(test_service_factory_reset_cancelled_with_d_keeps_settings);
   RUN_TEST(test_service_sets_clock_correction_in_ppm);
   RUN_TEST(test_service_computes_clock_correction_from_measured_600_s_countdown);
   RUN_TEST(test_service_calibration_log_writes_ms_count_every_second_until_d);
@@ -1804,9 +1977,11 @@ int main() {
   RUN_TEST(test_brightness_keys_work_only_in_focus);
   RUN_TEST(test_lcd_dims_during_exposure_and_seven_seg_keeps_its_level);
   RUN_TEST(test_focus_shows_no_precision_while_lit);
+  RUN_TEST(test_focus_ignores_precision_encoder_and_digits);
   RUN_TEST(test_focus_lights_lamp_and_shows_elapsed_time_until_second_press);
   RUN_TEST(test_focus_starts_with_zero_time_and_respects_relay_enable);
   RUN_TEST(test_focus_turns_lamp_off_after_five_minutes_with_warning);
+  RUN_TEST(test_focus_beyond_999_9_s_shows_minutes_and_seconds);
   RUN_TEST(test_digits_enter_from_the_right);
   RUN_TEST(test_fifth_digit_pushes_out_the_oldest);
   RUN_TEST(test_start_runs_countdown_for_the_set_time);
@@ -1852,9 +2027,11 @@ int main() {
   RUN_TEST(test_settings_are_saved_two_seconds_after_last_change);
   RUN_TEST(test_settings_are_saved_when_exposure_starts);
   RUN_TEST(test_save_writes_only_changed_bytes);
+  RUN_TEST(test_save_writes_one_byte_per_loop_pass_crc_last);
   RUN_TEST(test_reboot_restores_active_channel_channels_and_mute);
   RUN_TEST(test_bad_crc_loads_factory_defaults);
   RUN_TEST(test_out_of_range_channel_loads_factory_defaults);
+  RUN_TEST(test_out_of_range_values_load_factory_defaults);
   RUN_TEST(test_unknown_version_loads_factory_defaults);
   RUN_TEST(test_old_format_loads_factory_defaults);
   RUN_TEST(test_watchdog_reset_shows_message_for_three_seconds);
@@ -1865,6 +2042,7 @@ int main() {
   RUN_TEST(test_strip_seconds_steps_keep_lamp_on_and_beep);
   RUN_TEST(test_strip_fstop_steps_from_base);
   RUN_TEST(test_strip_fstop_steps_grow_at_least_a_tenth);
+  RUN_TEST(test_strip_fstop_starts_from_set_time_with_offset);
   RUN_TEST(test_strip_shows_step_number_and_cumulative_time);
   RUN_TEST(test_mode_click_toggles_advance_in_test_strip);
   RUN_TEST(test_strip_cancel_and_restart_from_first_step);
@@ -1874,7 +2052,7 @@ int main() {
   RUN_TEST(test_stepped_strip_pause_shows_next_step);
   RUN_TEST(test_press_in_same_loop_as_step_resumes);
   RUN_TEST(test_key_d_in_pause_concludes_stepped_strip);
-  RUN_TEST(test_channel_in_pause_concludes_stepped_strip);
-  RUN_TEST(test_mode_turn_in_pause_concludes_stepped_strip);
+  RUN_TEST(test_channel_in_pause_concludes_stepped_strip_and_switches_channel);
+  RUN_TEST(test_mode_turn_in_pause_concludes_stepped_strip_and_changes_mode);
   return UNITY_END();
 }

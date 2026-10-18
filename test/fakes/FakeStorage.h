@@ -14,4 +14,5 @@ struct FakeStorage : Storage {
     memcpy(&bytes[addr], src, n);
     written += n;
   }
+  bool ready() override { return true; }
 };

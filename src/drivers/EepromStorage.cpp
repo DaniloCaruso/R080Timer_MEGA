@@ -9,3 +9,5 @@ void EepromStorage::read(uint16_t addr, uint8_t* dst, uint16_t n) {
 void EepromStorage::update(uint16_t addr, const uint8_t* src, uint16_t n) {
   eeprom_update_block(src, reinterpret_cast<void*>(addr), n);
 }
+
+bool EepromStorage::ready() { return eeprom_is_ready(); }

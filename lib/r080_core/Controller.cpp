@@ -1,6 +1,5 @@
 #include "Controller.h"
 
-#include <stdio.h>
 #include "Precision.h"
 #include "TimeUnits.h"
 #include "TimingCore.h"
@@ -10,11 +9,20 @@ static void stepLevel(uint8_t& level, int8_t dir) {
   if (dir > 0 ? level < LEVEL_COUNT : level > 1) level += dir;
 }
 
+constexpr uint16_t MIN_SEC = 0x8000;  // in shownDs_: il valore è mmss, non decimi
+
+// Tempo del Canale spostato di n passi di precisione, senza limiti (chi chiama confronta con
+// DS_MIN..DS_MAX): F-Stop sempre da Tempo base e Offset, Secondi dal tempo impostato.
+static int32_t shiftedDs(const ChannelRecord& c, int16_t n) {
+  if (c.precisionKind) return fstopTime(c.baseDs, c.offset + n, kFStopDenominators[c.precisionIndex]);
+  return c.timeDs + int32_t(n) * kSecondsSteps[c.precisionIndex] * 10;
+}
+
 static uint16_t clampDs(int32_t ds) { return ds < DS_MIN ? DS_MIN : ds > DS_MAX ? DS_MAX : ds; }
 
 void Controller::boot(bool watchdogReset, bool settingsOk, bool keyD) {
-  log_.line(watchdogReset ? "BOOT reset=WDT" : "BOOT reset=POWER");  // REQ-9.10
-  if (!settingsOk) log_.line("ERROR settings=factory");
+  log_.print(watchdogReset ? FSTR("BOOT reset=WDT") : FSTR("BOOT reset=POWER"));  // REQ-9.10
+  if (!settingsOk) log_.print(FSTR("ERROR settings=factory"));
   if (keyD) menu_.open();
 }
 
@@ -31,12 +39,15 @@ void Controller::onInput(Input in, int8_t arg) {
   if (in == Input::MainRelease) return;  // serve solo al test del pulsante (REQ-9.5)
   update();  // prima gli eventi della ISR: uno Step appena scattato mette già in pausa
   bool running = timing_.running();
+  // Un'Esposizione finita dopo la raccolta: da fermo la ISR non genera altri eventi, raccolti
+  // ora tutti prima del comando (che li scarterebbe).
+  if (!running) update();
   ChannelRecord& c = set_.active();
   if (in == Input::MainPress) {
     if (running) {
       timing_.cancel();
       beep(Sound::End);
-      exposureEnd("CANCEL");
+      exposureEnd(true);
     } else if (paused_) {
       // REQ-3.12: solo l'incremento fino allo Step successivo, già calcolato allo Step.
       paused_ = false;
@@ -46,7 +57,7 @@ void Controller::onInput(Input in, int8_t arg) {
       // REQ-5.6: lampada spenta se disabilitata
       uint32_t ms = dsToMs(c.timeDs);
       if (c.mode == FOCUS) {  // REQ-3.2, REQ-3.3
-        ms = kFocusLimitMinutes[set_.d.g.focusLimitIndex] * 60000UL;
+        ms = kFocusLimitMinutes[g().focusLimitIndex] * 60000UL;
         timing_.startFocus(ms, c.relayEnabled);
       } else if (c.mode == TEST_STRIP) {
         stripK_ = 0;  // REQ-3.13: ogni prova riparte dal primo Step
@@ -67,14 +78,15 @@ void Controller::onInput(Input in, int8_t arg) {
   if (running) return;  // REQ-5.9: durante l'Esposizione conta solo il pulsante principale
   if (paused_) {
     // REQ-3.16: D, A/B/C e il cambio di Modalità concludono la prova; il resto è ignorato.
-    if (in == Input::KeyD || in == Input::Channel || in == Input::ModeTurn) {
-      paused_ = false;
-      timing_.cancel();
-      beep(Sound::End);
-      exposureEnd("END");  // la prova passo-passo è conclusa: una sola Esposizione
-    }
-    return;
+    if (in != Input::KeyD && in != Input::Channel && in != Input::ModeTurn) return;
+    paused_ = false;
+    timing_.cancel();
+    beep(Sound::End);
+    exposureEnd(false);  // la prova passo-passo è conclusa: una sola Esposizione
+    if (in == Input::KeyD) return;  // D conclude soltanto; A/B/C e l'encoder fanno anche la loro azione
   }
+  // REQ-4.6, REQ-5.1: in Focus niente precisione né tempo da tastierino.
+  if (c.mode == FOCUS && (in == Input::Digit || in == Input::PrecTurn || in == Input::PrecClick)) return;
   bool typing = false;
   switch (in) {
     case Input::Digit:
@@ -87,23 +99,23 @@ void Controller::onInput(Input in, int8_t arg) {
     case Input::Star:
     case Input::Hash: {
       int8_t dir = in == Input::Hash ? 1 : -1;
-      if (c.mode == FOCUS) stepLevel(set_.d.g.lcdLevel, dir);  // REQ-5.7
+      if (c.mode == FOCUS) stepLevel(g().lcdLevel, dir);  // REQ-5.7
       else if (c.precisionKind) stepFStop(c, dir);
-      else c.timeDs = clampDs(c.timeDs + dir * int32_t(kSecondsSteps[c.precisionIndex]) * 10);
+      else c.timeDs = clampDs(shiftedDs(c, dir));
       break;
     }
     case Input::ZeroStar:
     case Input::ZeroHash:
-      if (c.mode == FOCUS) stepLevel(set_.d.g.segLevel, in == Input::ZeroHash ? 1 : -1);  // REQ-5.8
+      if (c.mode == FOCUS) stepLevel(g().segLevel, in == Input::ZeroHash ? 1 : -1);  // REQ-5.8
       break;
     case Input::PrecTurn:
       c.precisionIndex = (c.precisionIndex + PRECISION_COUNT + arg) % PRECISION_COUNT;
       if (c.precisionKind && c.baseDs > 0)  // REQ-4.5
-        c.timeDs = clampDs(fstopTime(c.baseDs, c.offset, kFStopDenominators[c.precisionIndex]));
+        c.timeDs = clampDs(shiftedDs(c, 0));
       break;
     case Input::StarHold:
-      set_.d.g.mute = !set_.d.g.mute;
-      sound_.play(Sound::Confirm);  // REQ-5.5: la conferma suona anche entrando nel mute
+      g().mute = !g().mute;
+      beep(Sound::Confirm);  // REQ-5.5: la conferma suona solo uscendo dal mute
       break;
     case Input::HashHold:
       c.relayEnabled = !c.relayEnabled;
@@ -115,7 +127,7 @@ void Controller::onInput(Input in, int8_t arg) {
       c.offset = 0;
       break;
     case Input::Channel:
-      set_.d.g.activeChannel = arg;  // REQ-6.2
+      g().activeChannel = arg;  // REQ-6.2
       break;
     case Input::KeyD:
       c.timeDs = c.baseDs = 0;  // REQ-5.4
@@ -140,7 +152,7 @@ void Controller::onInput(Input in, int8_t arg) {
 void Controller::stepFStop(ChannelRecord& c, int8_t dir) {
   int8_t off = c.offset + dir;
   if (c.baseDs == 0 || off > 99 || off < -99) return;
-  uint16_t t = fstopTime(c.baseDs, off, kFStopDenominators[c.precisionIndex]);
+  int32_t t = shiftedDs(c, dir);
   if (dir > 0 ? t > DS_MAX : t < DS_MIN) return;
   c.offset = off;
   c.timeDs = clampDs(t);
@@ -148,14 +160,8 @@ void Controller::stepFStop(ChannelRecord& c, int8_t dir) {
 
 // REQ-3.9, REQ-3.10: lo Step k (da 0) si calcola sempre dal Tempo base, mai dallo Step
 // precedente, così l'arrotondamento non si accumula. Float: solo nel loop.
-uint32_t Controller::stripStepDs(uint16_t k) const {
-  const ChannelRecord& c = set_.active();
-  if (c.precisionKind) return fstopTime(c.baseDs, c.offset + k, kFStopDenominators[c.precisionIndex]);
-  return c.timeDs + uint32_t(k) * kSecondsSteps[c.precisionIndex] * 10;
-}
-
 void Controller::nextStripStep() {
-  uint32_t ds = stripStepDs(++stripK_);
+  uint32_t ds = shiftedDs(set_.active(), ++stripK_);
   // REQ-3.10: con 1/64 e base piccola l'arrotondamento darebbe Step uguali.
   stripDs_ = ds > stripDs_ ? ds : stripDs_ + 1;
   timing_.setNextStep(stripDs_ * MS_PER_DS);  // oltre 999,9 s conclude prima il TimingCore
@@ -164,7 +170,7 @@ void Controller::nextStripStep() {
 void Controller::update() {
   if (menu_.active()) timing_.setRelay(menu_.relayOn());  // REQ-9.5: spento appena si lascia il test
   uint8_t events = timing_.takeEvents();
-  if (events & (EV_END | EV_FOCUS_OFF)) exposureEnd("END");
+  if (events & (EV_END | EV_FOCUS_OFF)) exposureEnd(false);
   if ((events & EV_STEP) && !(events & EV_END)) {
     nextStripStep();
     paused_ = set_.active().advance;  // REQ-3.12: il TimingCore ha già spento il relè
@@ -182,18 +188,22 @@ void Controller::update() {
     // REQ-7.8: tempo cumulativo dello Step successivo, al massimo 999,9 s perché lì la prova si conclude.
     ds = stripDs_ > DS_MAX ? DS_MAX : stripDs_;
   } else if (running && mode != COUNTDOWN) {
-    // Test strip: tempo cumulativo (REQ-7.7). Focus: tempo trascorso (REQ-3.2).
+    // Test strip: tempo cumulativo (REQ-7.7). Focus: tempo trascorso (REQ-3.2), oltre 999,9 s in
+    // minuti.secondi (il test strip si conclude prima).
     ds = msToDs(timing_.elapsedMs());
-    // shortcut: il 7 segmenti ha 4 cifre, con il Focus di 20 min resta fermo a 999,9 s; da rivedere se serve.
-    if (ds > DS_MAX) ds = DS_MAX;
+    if (ds > DS_MAX) ds = MIN_SEC | (ds / 600 * 100 + ds / 10 % 60);
   } else if (running) {
     // Countdown: residuo arrotondato per eccesso, non mostra 0000 prima della fine.
     ds = msToDs(timing_.remainingMs() + MS_PER_DS - 1);
   }
   if (menu_.sevenSegTest()) ds = 8888;  // REQ-9.5: tutti i segmenti delle cifre e il punto decimale
-  if (ds != shownDs_) seg_.showDeciseconds(shownDs_ = ds);
-  if (set_.d.g.segLevel != segLevel_) seg_.setBrightness(segLevel_ = set_.d.g.segLevel);  // REQ-7.4
-  if (set_.d.g.clockPpm != ppm_) timing_.setCorrection(ppm_ = set_.d.g.clockPpm);  // REQ-1.7
+  if (ds != shownDs_) {
+    shownDs_ = ds;
+    if (ds & MIN_SEC) seg_.showMinSec(ds & ~MIN_SEC);
+    else seg_.showDeciseconds(ds);
+  }
+  if (g().segLevel != segLevel_) seg_.setBrightness(segLevel_ = g().segLevel);  // REQ-7.4
+  if (g().clockPpm != ppm_) timing_.setCorrection(ppm_ = g().clockPpm);  // REQ-1.7
   calibrationLog();
 }
 
@@ -208,29 +218,25 @@ void Controller::calibrationLog() {
   if (!calNextMs_) calNextMs_ = ms + 1000;
   if (ms < calNextMs_) return;
   calNextMs_ += 1000;
-  char b[20];
-  snprintf(b, sizeof b, "CAL ms=%lu", (unsigned long)ms);
-  log_.line(b);
+  log_.print(FSTR("CAL ms=%lu"), (unsigned long)ms);
 }
 
 // REQ-9.10: inizio di ogni Esposizione nel log, come `START mode=CD ch=A ms=10000`.
 void Controller::logStart(const ChannelRecord& c, uint32_t ms) {
-  static const char kModes[MODE_COUNT][3] = {"FO", "CD", "TS"};
-  char b[40];
-  snprintf(b, sizeof b, "START mode=%s ch=%c ms=%lu", kModes[c.mode], 'A' + set_.d.g.activeChannel, (unsigned long)ms);
-  log_.line(b);
+  static const char kModes[] PROGMEM = "FOCDTS";  // due lettere per Modalità
+  log_.print(FSTR("START mode=%c%c ch=%c ms=%lu"), fbyte(&kModes[2 * c.mode]), fbyte(&kModes[2 * c.mode + 1]),
+             'A' + g().activeChannel, (unsigned long)ms);
   startMs_ = ms;
 }
 
 // REQ-9.10, REQ-9.11: fine o Annullamento nel log con la durata misurata dalla ISR, e contatori.
 // Il Focus non è un'Esposizione ma il suo tempo a relè acceso va nelle ore di lampada.
-void Controller::exposureEnd(const char* how) {
+void Controller::exposureEnd(bool cancel) {
   const ChannelRecord& c = set_.active();
   uint32_t measured = timing_.elapsedMs();
   cnt_.exposureEnd(c.mode != FOCUS, c.relayEnabled ? measured : 0);
-  char b[48];
-  snprintf(b, sizeof b, "%s ms=%lu measured=%lu", how, (unsigned long)startMs_, (unsigned long)measured);
-  log_.line(b);
+  log_.print(cancel ? FSTR("CANCEL ms=%lu measured=%lu") : FSTR("END ms=%lu measured=%lu"), (unsigned long)startMs_,
+             (unsigned long)measured);
 }
 
 void Controller::beep(Sound s) {

@@ -15,10 +15,10 @@ void Counters::boot(bool watchdogReset) {
   bool ok = b[0] == 'R' && b[1] == 'C' && b[2] == VERSION && b[3] == BLOCK_LEN &&
             crc8(b, BLOCK_LEN - 1) == b[BLOCK_LEN - 1];
   if (!ok) d = {};
-  // Un reset da watchdog non è un'accensione: la somma dei due contatori dà gli avvii.
+  // REQ-9.3: le accensioni contano ogni avvio; i reset da watchdog hanno anche il loro contatore.
+  d.powerOns++;
   if (watchdogReset) d.watchdogResets++;
-  else d.powerOns++;
-  save();
+  while (!saveStep()) {}  // in setup() l'attesa è ammessa: al più 17 byte, meno di 60 ms
 }
 
 void Counters::exposureEnd(bool exposure, uint32_t lampMs) {
@@ -26,12 +26,12 @@ void Counters::exposureEnd(bool exposure, uint32_t lampMs) {
   lampMs += lampMsRest_;
   d.lampSeconds += lampMs / 1000;
   lampMsRest_ = lampMs % 1000;
-  save();
+  writing_ = true;
 }
 
-void Counters::save() {
+bool Counters::saveStep() {
   uint8_t b[BLOCK_LEN] = {'R', 'C', VERSION, BLOCK_LEN};
   memcpy(b + HEADER, &d, sizeof d);
   b[BLOCK_LEN - 1] = crc8(b, BLOCK_LEN - 1);
-  storage_.update(ADDR, b, BLOCK_LEN);  // eeprom_update_block riscrive solo le celle cambiate
+  return writeBlockStep(storage_, ADDR, b, BLOCK_LEN);
 }

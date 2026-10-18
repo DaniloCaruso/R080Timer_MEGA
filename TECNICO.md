@@ -14,7 +14,8 @@ Documento per chi modifica il firmware. Comportamento utente in [DOCS-IT.md](DOC
 
 | File | Ruolo |
 |---|---|
-| `Hal.h` | Interfacce `SevenSeg`, `Lcd`, `Buzzer`, `Storage`, `EventLog`, `TimingPort`; `LEVEL_COUNT = 8` livelli di luminosità |
+| `Hal.h` | `enum class Input`, struttura `Health`; interfacce `SevenSeg`, `Lcd`, `Buzzer`, `Storage`, `EventLog` (con `print()` da un formato in flash), `TimingPort`; `LEVEL_COUNT = 8` livelli di luminosità |
+| `Flash.h` | Testi costanti in flash: `PROGMEM`, `FSTR`, `fmemcpy`, `fsnprintf` (funzioni `_P` su AVR, normali sul PC) |
 | `TimeUnits.h` | ms `uint32_t` all'interno, decimi di secondo all'interfaccia (`DS_MIN = 1`, `DS_MAX = 9999`) |
 | `TimingCore.h` | Logica di un tick della ISR, tutta inline |
 | `ClockCorrection.{h,cpp}` | Accumulatore in ppm per tick; calcolo della correzione da una misura |
@@ -22,9 +23,9 @@ Documento per chi modifica il firmware. Comportamento utente in [DOCS-IT.md](DOC
 | `Controller.{h,cpp}` | Macchina a stati dell'interfaccia: input, comandi al `TimingCore`, 7 segmenti, suoni, log, contatori |
 | `Screen.{h,cpp}` | Immagine dell'LCD e invio delle sole differenze |
 | `SoundScheduler.{h,cpp}` | Tabella dei suoni e sequenze senza attese |
-| `Settings.{h,cpp}`, `Crc8.h` | Canali e impostazioni globali in EEPROM |
+| `Settings.{h,cpp}`, `Crc8.h` | Canali e impostazioni globali in EEPROM; CRC8 e scrittura a passi dei blocchi |
 | `Counters.{h,cpp}` | Contatori persistenti per la diagnostica |
-| `ServiceMenu.{h,cpp}` | Menu di servizio, test hardware, calibrazione; struttura `Health` |
+| `ServiceMenu.{h,cpp}` | Menu di servizio, test hardware, calibrazione |
 
 ### Driver
 
@@ -34,7 +35,7 @@ Documento per chi modifica il firmware. Comportamento utente in [DOCS-IT.md](DOC
 | `LcdWaveshare` | `Lcd` | I²C a 100 kHz, timeout 3 ms, inizializzazione a passi, nuovo tentativo ogni 2 s |
 | `SevenSegSerial3` | `SevenSeg` | Serial3 a 9600 baud, buffer hardware di 64 byte |
 | `BuzzerTone` | `Buzzer` | `tone()` su D49 (Timer2) |
-| `EepromStorage` | `Storage` | `eeprom_read_block` / `eeprom_update_block` |
+| `EepromStorage` | `Storage` | `eeprom_read_block` / `eeprom_update_block` / `eeprom_is_ready` |
 | `UsbLog` | `EventLog` | Serial a 115200, scrive solo se la riga entra nel buffer |
 | `InputDevices` | — | Keypad, Encoder, OneButton → `Controller::onInput()` |
 | `SystemGuard` | — | Watchdog, marcatore del reset da watchdog |
@@ -135,7 +136,7 @@ Durante un'Esposizione `Controller::lcdLevel()` restituisce il livello "LCD espo
 | Metronomo | 300/80 |
 | Conferma | 1200/40 |
 
-Con il mute `Controller::beep()` lascia passare solo il Suono di fine. La conferma del mute e i suoni del Menu di servizio chiamano `SoundScheduler::play()` direttamente.
+Con il mute `Controller::beep()` lascia passare solo il Suono di fine: la conferma del mute passa da lì dopo il cambio, quindi suona solo spegnendolo. I suoni del Menu di servizio chiamano `SoundScheduler::play()` direttamente.
 
 ## 7. Persistenza
 
@@ -150,9 +151,9 @@ Due blocchi indipendenti, ognuno con intestazione, versione e CRC8 (polinomio 0x
 | 12 | 30 | 3 × `ChannelRecord` (10 byte): Modalità, tipo di precisione, indice di precisione, Avanzamento, tempo (`uint16_t`, ds), Tempo base (`uint16_t`, ds), Offset (`int8_t`), Abilitazione relè |
 | 42 | 1 | CRC8 dei 42 byte precedenti |
 
-Oltre al CRC, `load()` controlla che gli indici siano nei limiti. Il salvataggio parte 2 s dopo l'ultima modifica (`Settings::changed()`) o subito all'avvio di un'Esposizione, e scrive solo i byte diversi da quelli in EEPROM.
+Oltre al CRC, `load()` controlla che indici e valori siano nei limiti (Correzione del clock ±1000 ppm, Offset ±99, tempo e Tempo base fino a 999,9 s). Il salvataggio parte 2 s dopo l'ultima modifica (`Settings::changed()`) o subito all'avvio di un'Esposizione, e scrive solo i byte diversi da quelli in EEPROM, uno per giro di loop quando la EEPROM è pronta (`writeBlockStep()` in `Crc8.h`), il CRC per ultimo: un salvataggio interrotto lascia il blocco non valido e al riavvio valgono i valori di fabbrica.
 
-**Contatori**, indirizzo `0x040`, 17 byte: `'R'`, `'C'`, versione 1, lunghezza 17 | accensioni (`uint16_t`, ogni avvio, compresi i reset da watchdog), reset da watchdog (`uint16_t`), Esposizioni (`uint32_t`), secondi di lampada (`uint32_t`) | CRC8. Salvati all'avvio e a ogni fine o Annullamento di Esposizione con `eeprom_update_block`. Countdown e test strip contano come Esposizione anche se annullati; il Focus no. Il tempo a relè acceso, Focus compreso, conta nei secondi di lampada.
+**Contatori**, indirizzo `0x040`, 17 byte: `'R'`, `'C'`, versione 1, lunghezza 17 | accensioni (`uint16_t`, ogni avvio, compresi i reset da watchdog), reset da watchdog (`uint16_t`), Esposizioni (`uint32_t`), secondi di lampada (`uint32_t`) | CRC8. Salvati all'avvio, in `setup()`, e dopo ogni fine o Annullamento di Esposizione un byte per giro di loop (`Counters::service()`), come le impostazioni. Countdown e test strip contano come Esposizione anche se annullati; il Focus no. Il tempo a relè acceso, Focus compreso, conta nei secondi di lampada.
 
 ## 8. Sicurezza
 
@@ -191,5 +192,5 @@ La versione è `FW_VERSION` in `platformio.ini` (mostrata all'avvio e in Info). 
 
 Build v2.0.0: RAM 2545 byte su 8192 (31 %), Flash 28332 byte su 253952 (11 %).
 
-- I testi dell'LCD (`Screen`, `ServiceMenu`, circa 520 byte) stanno in RAM perché il dominio non usa `PROGMEM`: da spostare se la RAM stringe.
-- Il 7 segmenti ha quattro cifre: un Focus oltre 999,9 s (possibile con i limiti di 20 minuti) resta fermo a `999.9`.
+- Testi dell'LCD, formati e righe del log stanno in flash (`Flash.h`); in RAM restano solo la tabella dei suoni, le piccole tabelle numeriche, versione e data di compilazione.
+- Il 7 segmenti ha quattro cifre: un Focus oltre 999,9 s (possibile con il limite di 20 minuti) passa a minuti.secondi (`SevenSeg::showMinSec()`, punto dopo la seconda cifra).

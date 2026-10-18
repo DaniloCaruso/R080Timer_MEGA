@@ -15,10 +15,15 @@ void SevenSegSerial3::setBrightness(uint8_t level) {
   Serial3.write(kSegLevels[level - 1]);
 }
 
-void SevenSegSerial3::showDeciseconds(uint16_t ds) {
+// Quattro cifre con il punto dopo la cifra point (bit 0 = dopo la prima).
+static void show(uint16_t n, uint8_t point) {
   char digits[5];
-  snprintf(digits, sizeof digits, "%04u", ds);
+  snprintf_P(digits, sizeof digits, PSTR("%04u"), n);
   Serial3.write(0x77);
-  Serial3.write(0b00000100);  // punto decimale prima dell'ultima cifra
+  Serial3.write(point);
   Serial3.write(digits, 4);
 }
+
+void SevenSegSerial3::showDeciseconds(uint16_t ds) { show(ds, 0b00000100); }  // `999.9`
+
+void SevenSegSerial3::showMinSec(uint16_t mmss) { show(mmss, 0b00000010); }  // `17.05`

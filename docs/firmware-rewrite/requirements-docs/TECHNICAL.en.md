@@ -86,10 +86,10 @@
   ```cpp
   struct Lcd       { virtual bool writeAt(uint8_t col, uint8_t row, const char* s, uint8_t n) = 0;
                      virtual bool setBrightness(uint8_t level) = 0; virtual bool online() const = 0; };
-  struct SevenSeg  { virtual void showDeciseconds(uint16_t ds) = 0; virtual void setBrightness(uint8_t level) = 0; };
+  struct SevenSeg  { virtual void showDeciseconds(uint16_t ds) = 0; virtual void showMinSec(uint16_t mmss) = 0; virtual void setBrightness(uint8_t level) = 0; };
   struct Buzzer    { virtual void play(uint16_t hz, uint16_t ms) = 0; virtual void stop() = 0; };
   struct Storage   { virtual void read(uint16_t addr, uint8_t* dst, uint16_t n) = 0;
-                     virtual void update(uint16_t addr, const uint8_t* src, uint16_t n) = 0; };
+                     virtual void update(uint16_t addr, const uint8_t* src, uint16_t n) = 0; virtual bool ready() = 0; };
   struct EventLog  { virtual void line(const char* text) = 0; };
   struct Clock     { virtual uint32_t nowMs() const = 0; };
   ```
@@ -169,7 +169,7 @@
   // Counters block    @0x040: 'R','C', version=1, length | powerOns, watchdogResets (u16)
   //                             | exposures (u32) | lampSeconds (u32) | crc8                        = 17 B
   ```
-  `SettingsCodec::load()` returns the factory values if magic, version, length or CRC do not match (also with the old `0xA5` format); `save()` passes only the changed bytes to `Storage::update()`. Changes mark the settings as "to be saved" and `Settings::service(nowMs)` saves after 2 s without new changes, or immediately when an Exposure starts. The same delay applies to all changes, not only to digits. Factory values: Channel A, all Channels in Countdown, Seconds 1 s, continuous, 10.0 s, relay enabled; mute off; Focus 5 minutes; correction 0 ppm; 7-segment brightness level 3 (value 10), LCD level 3, LCD during exposure level 1 (REQ-7.12).
+  `SettingsCodec::load()` returns the factory values if magic, version, length or CRC do not match (also with the old `0xA5` format); `save()` starts a step-by-step save: on every loop pass, if `Storage::ready()`, `Settings::service()` writes a single byte that differs from the EEPROM, the CRC last, so the loop never stalls for the ~3.4 ms of each write and an interrupted save leaves a wrong CRC (factory values at the next boot). The same holds for the counters (`Counters::service()`), except at startup, in `setup()`, where waiting is allowed. Changes mark the settings as "to be saved" and `Settings::service(nowMs)` saves after 2 s without new changes, or immediately when an Exposure starts. The same delay applies to all changes, not only to digits. Factory values: Channel A, all Channels in Countdown, Seconds 1 s, continuous, 10.0 s, relay enabled; mute off; Focus 5 minutes; correction 0 ppm; 7-segment brightness level 3 (value 10), LCD level 3, LCD during exposure level 1 (REQ-7.12).
 - **Expected behaviour:** after a restart the saved state is restored; a corrupted or old EEPROM leads to the factory values.
 - **Verification:** native tests with `FakeStorage`: round trip, wrong CRC, wrong version, `0xA5` format, 2 s delayed save, no write if nothing changed.
 
@@ -196,16 +196,16 @@
     // injected dependencies: TimingPort (atomic commands to TimingCore), Sound, Screen, Settings, KeyEntry
   };
   ```
-  Main rules: in `Running` only `MainPress` is accepted (REQ-5.9); `MainPress` in `Idle` with time 0 in Countdown/Test strip → error beep; `MainPress` in `Running` → Cancellation; in `StripPaused` → next increment; `KeyD` clears time, base and offset; `StarHold`/`HashHold` → mute or Relay enable with a confirmation beep; `ZeroStar`/`ZeroHash` and `Star`/`Hash` in Focus → 7-segment and LCD brightness; `ModeTurn` changes mode without touching the time; `A/B/C` load the whole `ChannelRecord`. In `StripPaused`, `KeyD`, `A/B/C` and `ModeTurn` end the test strip: `TimingCore::cancel()`, 7-segment display back to the Base time, plan reset to `k = 0` (REQ-3.16).
+  Main rules: in `Running` only `MainPress` is accepted (REQ-5.9); `MainPress` in `Idle` with time 0 in Countdown/Test strip → error beep; `MainPress` in `Running` → Cancellation; in `StripPaused` → next increment; `KeyD` clears time, base and offset; `StarHold`/`HashHold` → mute or Relay enable with a confirmation beep (for mute only when it is turned off); `ZeroStar`/`ZeroHash` and `Star`/`Hash` in Focus → 7-segment and LCD brightness; `ModeTurn` changes mode without touching the time; in Focus `Digit`, `PrecTurn` and `PrecClick` are ignored (REQ-4.6, REQ-5.1); `A/B/C` load the whole `ChannelRecord`. In `StripPaused`, `KeyD`, `A/B/C` and `ModeTurn` end the test strip: `TimingCore::cancel()`, plan reset to `k = 0`, 7-segment display back to the set time; then `A/B/C` switch Channel and `ModeTurn` changes mode, `KeyD` clears nothing (REQ-3.16).
 - **Expected behaviour:** all user interface rules of EARS REQ-3, REQ-4, REQ-5 and REQ-6 are observable with fake drivers.
 - **Verification:** native tests scenario by scenario through the whole-domain seam (C-25), with the real `TimingCore` and fake drivers.
 
 ### C-13 — `lib/r080_core/Screen.{h,cpp}` (NEW): display model and rendering
 - **Satisfies:** REQ-2.6, REQ-2.7, REQ-4.4, REQ-7.1, REQ-7.3, REQ-7.4, REQ-7.5, REQ-7.6, REQ-7.7, REQ-7.8, REQ-7.9, REQ-7.10, REQ-3.7
 - **Current state:** `include/functions/presentation.h` writes directly to the LCD on every call (`showPrecision()`, `showModalityType()`…), `showFstopOffset()` writes at column 5 overwriting the denominator; `showTime()` writes to the 7-segment display on every pass while idle.
-- **Change:** `Screen` builds the desired image (2×16 characters, 7-segment value, brightness) from the Controller state, compares it with the last one sent and sends only the differences, at most one row per loop pass. Row 2 layout: columns 0–7 precision (`Pr:1/3  `, `Pr: 5s  `) or `St:n` during the test strip, columns 6–8 F-Stop offset (`+02`), columns 9–12 Channel (`Ch:A`), column 14 mute note, column 15 relay icon. In Focus columns 0–8 stay blank. During the Exposure it asks the LCD for the exposure brightness. If `Lcd::online()` is false it keeps updating only the 7-segment display. The 7-segment display is updated on `EV_FRAME` (10 Hz) during the Exposure and only when the value changes while idle. The splash screen (`R080 Timer` + `FW_VERSION`, 1.5 s) is a timed state, not a `delay()`.
+- **Change:** `Screen` builds the desired image (2×16 characters, 7-segment value, brightness) from the Controller state, compares it with the last one sent and sends only the differences, at most one row per loop pass. Row 2 layout: columns 0–3 precision without prefix (` 5s`, `20s`, `1/3`, `1/12`) or `St:n` during the test strip, columns 4–6 F-Stop offset (`+02`), columns 9–12 Channel (`Ch:A`), column 14 mute note, column 15 relay icon. In Focus columns 0–8 stay blank. During the Exposure it asks the LCD for the exposure brightness. If `Lcd::online()` is false it keeps updating only the 7-segment display. The 7-segment display is updated on `EV_FRAME` (10 Hz) during the Exposure and only when the value changes while idle. The splash screen (`R080 Timer` + `FW_VERSION`, 1.5 s) is a timed state, not a `delay()`.
 - **Expected behaviour:** the offset stays visible next to the precision; while idle the I²C bus and the serial line stay quiet if nothing changes.
-- **Verification:** native tests on `FakeLcd` (expected content cell by cell, no writes without changes, offset at columns 6–8).
+- **Verification:** native tests on `FakeLcd` (expected content cell by cell, no writes without changes, offset at columns 4–6).
 
 ### C-14 — `lib/r080_core/SoundScheduler.{h,cpp}` (NEW): sounds
 - **Satisfies:** REQ-1.5, REQ-1.6, REQ-3.4, REQ-8.1, REQ-8.2, REQ-8.3, REQ-8.4, REQ-8.5, REQ-8.6, REQ-8.7
@@ -228,14 +228,14 @@
 ### C-15 — `lib/r080_core/Diagnostics.{h,cpp}`, `ServiceMenu.{h,cpp}` (NEW): service menu
 - **Satisfies:** REQ-9.1, REQ-9.2, REQ-9.3, REQ-9.4, REQ-9.5, REQ-9.6, REQ-9.7, REQ-9.8, REQ-9.9, REQ-9.10, REQ-9.11, REQ-9.12, REQ-9.14, REQ-3.3
 - **Current state:** does not exist.
-- **Change:** `Diagnostics` keeps the maximum loop and ISR durations and the lost ticks (fed by drivers C-16 and C-24) and updates the counters in the counters block (C-10) at the end of an Exposure: `exposures` +1 for every Countdown and for every whole test strip, `lampSeconds` adding up the time with the relay on in any mode, Focus included (REQ-9.11); `powerOns` and `watchdogResets` at startup. `ServiceMenu` is a Controller state (`State::Service`) with the entries Info, Counters, Health, Hardware test (relay, buzzer, 7-segment, LCD, keypad, encoders, main button), Calibration (calibration log, direct entry in ppm, entry of the measured duration of a 600.0 s Countdown with hundredths of a second, converted by `ppmFromMeasurement()`), LCD brightness during exposure, Focus maximum time (3/5/10/15/20 min), Factory reset, Exit (restart in normal use). Navigation (REQ-9.14): mode encoder to scroll, its button to enter or confirm, `D` to go back, digits for values. `EventLog` formats lines such as `t=12345 START mode=CD ch=A ms=10000` and `t=22346 END ms=10000 measured=10000`.
+- **Change:** `Diagnostics` keeps the maximum loop and ISR durations and the lost ticks (fed by drivers C-16 and C-24) and updates the counters in the counters block (C-10) at the end of an Exposure: `exposures` +1 for every Countdown and for every whole test strip, `lampSeconds` adding up the time with the relay on in any mode, Focus included (REQ-9.11); `powerOns` at every startup and `watchdogResets` as well after a watchdog reset. `ServiceMenu` is a Controller state (`State::Service`) with the entries Info, Counters, Health, Hardware test (relay, buzzer, 7-segment, LCD, keypad, encoders, main button), Calibration (calibration log, direct entry in ppm, entry of the measured duration of a 600.0 s Countdown with hundredths of a second, converted by `ppmFromMeasurement()`), LCD brightness during exposure, Focus maximum time (3/5/10/15/20 min), Factory reset (with a confirmation screen, `D` cancels), Exit (back to normal use without rebooting). Navigation (REQ-9.14): mode encoder to scroll, its button to enter or confirm, `D` to go back, digits for values. `EventLog` formats lines such as `t=12345 START mode=CD ch=A ms=10000` and `t=22346 END ms=10000 measured=10000`.
 - **Expected behaviour:** the Service menu opens only by holding `D` at power-on; each test acts only on the chosen component.
 - **Verification:** native tests of navigation and calculations; Acceptance checklist for the hardware tests.
 
 ### C-16 — `src/drivers/Timer1Clock.{h,cpp}` (NEW): Timer1, ISR and relay
 - **Satisfies:** REQ-1.1, REQ-1.2, REQ-1.3, REQ-2.1, REQ-9.4
 - **Current state:** `setupTimer1()` and `ISR(TIMER1_COMPA_vect)` in `include/functions/timer_isr.h`; `RELAY_ON()`/`RELAY_OFF()` macros on `PORTL` bit `PL2`; `relayStart()` in `include/functions/base.h`.
-- **Change:** same register configuration (`TCCR1A = 0`, `TCCR1B = WGM12 | CS11 | CS10`, `OCR1A = 249`, `TIMSK1 |= OCIE1A`). The ISR calls `core.tick()` (C-6), applies `RELAY_OFF()` if `relayOff`, accumulates events in a `volatile uint8_t pendingEvents` and, on exit, reads `TCNT1` for the maximum ISR duration. Commands from the main code (`start*`, `setNextStep`, `cancel`) and `takeEvents()` are inside `ATOMIC_BLOCK`. Start turns the relay on with `RELAY_ON()` only if the Channel's Relay enable is active, after arming the core. Lost ticks: Timer4 free-running with prescaler 64 acts as an independent hardware reference and the main code compares the two counts every second. In `setup()` `PL2` is set as an output at low level as the very first instruction.
+- **Change:** same register configuration (`TCCR1A = 0`, `TCCR1B = WGM12 | CS11 | CS10`, `OCR1A = 249`, `TIMSK1 |= OCIE1A`). The ISR calls `core.tick()` (C-6), applies `RELAY_OFF()` if `relayOff`, accumulates events in a `volatile uint8_t pendingEvents` and, on exit, reads `TCNT1` for the maximum ISR duration. Commands from the main code (`start*`, `setNextStep`, `cancel`) and `takeEvents()` are inside `ATOMIC_BLOCK`; `start*` and `cancel` clear, in the same block, the events not yet collected, which belong to the previous Exposure. Start turns the relay on with `RELAY_ON()` only if the Channel's Relay enable is active, after arming the core. Lost ticks: Timer4 free-running with prescaler 64 acts as an independent hardware reference and the main code compares the two counts every second. In `setup()` `PL2` is set as an output at low level as the very first instruction.
 - **Expected behaviour:** relay turned off by the ISR at the exact ms in Countdown, step-by-step and Focus Auto-off.
 - **Verification:** `avr-objdump -d` of the ISR with no `call`; oscilloscope or logic analyser on D47 (end of Countdown within 1 ms); ISR duration measurement from the Service menu.
 
@@ -270,7 +270,7 @@
 ### C-21 — `src/drivers/EepromStorage.{h,cpp}` (NEW): EEPROM
 - **Satisfies:** REQ-6.5, REQ-6.8
 - **Current state:** `eeprom_read_byte`/`eeprom_update_byte`/`eeprom_update_word` at fixed addresses in `include/functions/storage.h`.
-- **Change:** implementation of `Storage` with `eeprom_read_block()` and `eeprom_update_block()`.
+- **Change:** implementation of `Storage` with `eeprom_read_block()`, `eeprom_update_block()` and `eeprom_is_ready()`.
 - **Expected behaviour:** writes only the changed bytes.
 - **Verification:** write counter in a debug build; Acceptance checklist (power off and on).
 

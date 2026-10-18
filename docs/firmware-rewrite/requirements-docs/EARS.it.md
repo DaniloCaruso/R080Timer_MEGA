@@ -71,7 +71,7 @@ Ogni comunicazione con l'LCD **shall** terminare entro un timeout anche quando i
 Il sistema **shall** offrire le modalità Focus, Countdown e Test strip, con il comportamento descritto nei requisiti seguenti.
 
 ### REQ-3.2 (Event-driven)
-**When** il pulsante principale viene premuto in Focus a timer fermo, il sistema **shall** accendere la lampada (se l'Abilitazione relè del Canale è attiva) e mostrare sul 7 segmenti il tempo trascorso.
+**When** il pulsante principale viene premuto in Focus a timer fermo, il sistema **shall** accendere la lampada (se l'Abilitazione relè del Canale è attiva) e mostrare sul 7 segmenti il tempo trascorso, oltre 999,9 s in minuti e secondi (`17.05` = 17 min 05 s).
 
 ### REQ-3.3 (Event-driven)
 **When** il Focus resta acceso per il tempo massimo configurato nel Menu di servizio (3, 5, 10, 15 o 20 minuti, default 5), il sistema **shall** eseguire lo Spegnimento automatico della lampada.
@@ -92,10 +92,10 @@ Il sistema **shall** offrire le modalità Focus, Countdown e Test strip, con il 
 **If** il pulsante principale viene premuto in Countdown o Test strip con tempo impostato pari a zero, **then** il sistema **shall** emettere un beep di errore e restare fermo.
 
 ### REQ-3.9 (Ubiquitous)
-In un test strip con precisione in Secondi, il sistema **shall** porre gli Step ai tempi cumulativi T, T+P, T+2P, … dove T è il Tempo base e P il valore di precisione.
+In un test strip con precisione in Secondi, il sistema **shall** porre gli Step ai tempi cumulativi T, T+P, T+2P, … dove T è il tempo impostato e P il valore di precisione.
 
 ### REQ-3.10 (Ubiquitous)
-In un test strip con precisione F-Stop 1/p, il sistema **shall** porre lo Step k-esimo al tempo cumulativo T·2^(k/p), calcolato ogni volta dal Tempo base e arrotondato al decimo di secondo.
+In un test strip con precisione F-Stop 1/p, il sistema **shall** porre lo Step k-esimo (da k = 0) al tempo cumulativo Tempo base·2^((Offset+k)/p), cioè il tempo impostato T moltiplicato per 2^(k/p), calcolato ogni volta dal Tempo base e arrotondato al decimo di secondo.
 
 ### REQ-3.11 (State-driven)
 **While** un test strip con Avanzamento continuo è in corso, il sistema **shall** tenere la lampada accesa ed emettere un beep di step a ogni Step.
@@ -113,7 +113,7 @@ In un test strip con precisione F-Stop 1/p, il sistema **shall** porre lo Step k
 **When** il pulsante principale viene premuto mentre la lampada è accesa in un test strip, il sistema **shall** eseguire l'Annullamento del test strip.
 
 ### REQ-3.16 (Event-driven)
-**When** durante la pausa di un test strip passo-passo si preme `D`, `A`, `B` o `C` oppure si cambia modalità, il sistema **shall** concludere il test strip mostrando sul 7 segmenti il Tempo base, così che la prova successiva riparta dal primo Step.
+**When** durante la pausa di un test strip passo-passo si preme `D`, `A`, `B` o `C` oppure si cambia modalità, il sistema **shall** concludere il test strip, così che la prova successiva riparta dal primo Step, e poi eseguire l'azione del comando: `A`, `B` o `C` attivano il Canale scelto, l'encoder cambia modalità, `D` conclude soltanto. Il 7 segmenti torna al tempo impostato del Canale attivo.
 
 ## REQ-4 — Precisione e F-Stop
 
@@ -153,7 +153,7 @@ Il sistema **shall** offrire i valori di precisione F-Stop 1/1, 1/2, 1/3, 1/4, 1
 **When** si preme `D` a timer fermo, il sistema **shall** azzerare tempo impostato, Tempo base e Offset del Canale attivo.
 
 ### REQ-5.5 (Event-driven)
-**When** `*` resta premuto per 1 s, il sistema **shall** alternare il mute, confermarlo con un breve beep e non eseguire l'azione di `*` al rilascio.
+**When** `*` resta premuto per 1 s, il sistema **shall** alternare il mute e non eseguire l'azione di `*` al rilascio; togliendo il mute lo conferma con un breve beep, attivandolo resta in silenzio.
 
 ### REQ-5.6 (Event-driven)
 **When** `#` resta premuto per 1 s, il sistema **shall** alternare l'Abilitazione relè del Canale attivo, confermarla con un breve beep e non eseguire l'azione di `#` al rilascio.
@@ -217,7 +217,7 @@ Il sistema **shall** gestire luminosità separate e persistenti per LCD e 7 segm
 **While** un'Esposizione è in corso, il sistema **shall** mantenere il 7 segmenti alla luminosità scelta dall'utente.
 
 ### REQ-7.5 (Ubiquitous)
-Il sistema **shall** mantenere la disposizione dell'LCD della versione precedente: nome della modalità, tipo di precisione e Avanzamento sulla riga 1; precisione, Canale, icona del mute e icona del relè sulla riga 2.
+Il sistema **shall** mantenere la disposizione dell'LCD della versione precedente: nome della modalità, tipo di precisione e Avanzamento sulla riga 1; precisione senza il prefisso `Pr` (` 5s`, `1/3 +02`), Canale, icona del mute e icona del relè sulla riga 2.
 
 ### REQ-7.6 (State-driven)
 **While** un test strip è in corso, il sistema **shall** mostrare sulla riga 2 dell'LCD il numero dello Step corrente (`St:n`) al posto della precisione.
@@ -255,7 +255,7 @@ I valori di fabbrica delle luminosità **shall** essere: 7 segmenti al livello e
 **When** un'Esposizione termina o viene annullata, il sistema **shall** emettere il Suono di fine di tre toni discendenti.
 
 ### REQ-8.5 (State-driven)
-**While** il mute è attivo, il sistema **shall** non emettere suoni, a eccezione del Suono di fine.
+**While** il mute è attivo, il sistema **shall** non emettere suoni, a eccezione del Suono di fine e dei suoni del Menu di servizio.
 
 ### REQ-8.6 (Ubiquitous)
 Avvio, Metronomo, beep di step, Preavviso, Suono di fine, beep di errore e beep di conferma **shall** essere distinguibili a orecchio l'uno dall'altro.
@@ -283,7 +283,7 @@ Il sistema **shall** emettere i suoni con i parametri di partenza della tabella 
 Il Menu di servizio **shall** mostrare versione del firmware e data di compilazione.
 
 ### REQ-9.3 (Ubiquitous)
-Il Menu di servizio **shall** mostrare i contatori persistenti delle accensioni, dei reset da watchdog, del numero di Esposizioni e delle ore totali di lampada accesa.
+Il Menu di servizio **shall** mostrare i contatori persistenti delle accensioni (ogni avvio, compresi i reset da watchdog), dei reset da watchdog, del numero di Esposizioni e delle ore totali di lampada accesa.
 
 ### REQ-9.4 (Ubiquitous)
 Il Menu di servizio **shall** mostrare la durata massima del loop principale, la durata massima della ISR di Timer1 e il numero di tick di Timer1 persi dall'accensione.
@@ -298,7 +298,7 @@ Il Menu di servizio **shall** offrire un test per ciascun componente: relè, buz
 Il Menu di servizio **shall** permettere di impostare la luminosità dell'LCD durante l'Esposizione e il tempo massimo del Focus.
 
 ### REQ-9.8 (Event-driven)
-**When** l'utente conferma il ripristino di fabbrica dal Menu di servizio, il sistema **shall** sostituire tutte le impostazioni con i valori di fabbrica.
+**When** l'utente sceglie il ripristino di fabbrica dal Menu di servizio, il sistema **shall** chiedere una conferma esplicita (`Confermi?`, clic = sì, `D` = no) e, solo dopo la conferma, sostituire tutte le impostazioni con i valori di fabbrica.
 
 ### REQ-9.9 (Event-driven)
 **When** la scheda si avvia dopo un reset da watchdog, il sistema **shall** mostrare `RESET: WDT` sull'LCD per 3 s e incrementare il contatore dei reset da watchdog.
@@ -316,7 +316,7 @@ Il Menu di servizio **shall** permettere di inserire la Correzione del clock dir
 Il repository **shall** contenere lo script `tools/calibrate.py`, che confronta per 30 minuti il log di calibrazione con l'orologio del PC e stampa la Correzione del clock in ppm.
 
 ### REQ-9.14 (Ubiquitous)
-Il Menu di servizio **shall** usare l'encoder della modalità per scorrere le voci, il suo pulsante per entrare o confermare, `D` per tornare indietro, i tasti numerici per i valori, e un'ultima voce "Esci" che riavvia il timer in uso normale.
+Il Menu di servizio **shall** usare l'encoder della modalità per scorrere le voci, il suo pulsante per entrare o confermare, `D` per tornare indietro, i tasti numerici per i valori, e un'ultima voce "Esci" che torna all'uso normale senza riavviare la scheda.
 
 ## REQ-10 — Piattaforma e hardware
 

@@ -205,3 +205,16 @@ Pausa e ripresa dell'esposizione; soglia di brown-out a 4,3 V via ISP con ricono
 **Contesto:** la skill `to-spec` chiede il minor numero di seam, il più in alto possibile.
 **Decisione:** due seam. (1) Dominio intero dal confine con l'hardware, con il `TimingCore` vero dentro e driver finti, comandato solo da input dell'utente e tempo simulato. (2) `TimingCore` da solo, tick per tick, per i bordi al millisecondo. Nessun finto dei moduli interni. Driver Arduino e misure reali restano nella checklist di collaudo.
 **Conseguenze:** un errore di collegamento tra `Controller` e `TimingCore` viene preso dai test sul PC, non solo sulla scheda.
+
+## Decisioni dalla code review (fix/code-review)
+
+**Contesto:** la code review della riscrittura ha trovato punti in cui codice, EARS e manuale non coincidevano; l'utente ha scelto caso per caso.
+**Decisioni:**
+- Riga 2 dell'LCD senza il prefisso `Pr`: Secondi ` 5s`/`20s`, F-Stop `1/3 +02`/`1/12-01` con l'Offset subito dopo la frazione (colonne 4–6); Canale alle colonne 9–12, nota alla 14, spina alla 15 (REQ-7.5).
+- Test strip passo-passo in pausa: `A`/`B`/`C` concludono la prova e attivano quel Canale, l'encoder della Modalità la conclude e cambia Modalità, `D` conclude soltanto (REQ-3.16).
+- Il test strip parte dal tempo impostato: gli Step in Secondi sono T, T+P, …; in F-Stop Tempo base·2^((Offset+k)/p). Dopo la conclusione il 7 segmenti mostra il tempo impostato (REQ-3.9, REQ-3.10, REQ-3.16).
+- Il contatore delle accensioni conta ogni avvio, compresi i reset da watchdog, che hanno anche il loro contatore (REQ-9.3, REQ-9.9).
+- Il Ripristino di fabbrica chiede una conferma esplicita (`Confermi?` / `clic=Si D=No`) prima di cancellare; `D` annulla (REQ-9.8).
+- Il beep di conferma del mute suona solo quando il mute si spegne; attivarlo è silenzioso. Con il mute restano udibili il Suono di fine e i suoni del Menu di servizio (REQ-5.5, REQ-8.5).
+- Focus oltre 999,9 s: il 7 segmenti passa a minuti.secondi (`17.05` = 17 min 05 s) invece di fermarsi a `999.9` (REQ-3.2).
+- "Esci" del Menu di servizio torna all'uso normale senza riavviare la scheda, con le impostazioni già salvate (REQ-9.14).

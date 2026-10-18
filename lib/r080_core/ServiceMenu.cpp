@@ -3,23 +3,22 @@
 #include <stdio.h>
 #include <string.h>
 #include "ClockCorrection.h"
-#include "Controller.h"
 
-// shortcut: testi in RAM (circa 520 byte) come in Screen; da spostare in PROGMEM se la RAM stringe.
+// Testi in flash (Flash.h): le righe si compongono con fsnprintf e putF.
 // Le voci T_* sono i test hardware (REQ-9.5), contigue fra T_RELAY e T_MAIN_BUTTON.
 enum : uint8_t { INFO, COUNTERS, HEALTH, T_RELAY, T_BUZZER, T_SEVEN_SEG, T_LCD, T_KEYPAD, T_ENCODERS,
                  T_MAIN_BUTTON, CALIBRATION, LCD_EXPOSURE, FOCUS_LIMIT, FACTORY, EXIT, ITEM_COUNT };
-static const char kItems[ITEM_COUNT][16] = {"Info",           "Contatori",       "Salute",
+static const char kItems[ITEM_COUNT][16] PROGMEM = {"Info",           "Contatori",       "Salute",
                                             "Test rele",      "Test buzzer",     "Test 7 segmenti",
                                             "Test LCD",       "Test tastierino", "Test encoder",
                                             "Test pulsante",  "Calibrazione",    "LCD esposizione",
                                             "Tempo max Focus", "Ripristino fabb", "Esci"};
 static const uint8_t kPages[ITEM_COUNT] = {1, 4, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1};  // schermate di ogni voce
-static const char kCounterTitles[4][16] = {"Accensioni", "Reset watchdog", "Esposizioni", "Ore lampada"};
-static const char kHealthTitles[3][16] = {"Loop max", "ISR max", "Tick persi"};
+static const char kCounterTitles[4][16] PROGMEM = {"Accensioni", "Reset watchdog", "Esposizioni", "Ore lampada"};
+static const char kHealthTitles[3][16] PROGMEM = {"Loop max", "ISR max", "Tick persi"};
 // REQ-9.6, REQ-9.12: le tre schermate della Calibrazione.
 enum : uint8_t { CAL_LOG, CAL_PPM, CAL_MEASURE };
-static const char kCalTitles[3][17] = {"Log calibrazione", "Correzione ppm", "Durata 600 s"};
+static const char kCalTitles[3][17] PROGMEM = {"Log calibrazione", "Correzione ppm", "Durata 600 s"};
 constexpr uint32_t CAL_NOMINAL_MS = 600000;  // Countdown di riferimento di 600,0 s
 
 void ServiceMenu::load() {
@@ -69,7 +68,11 @@ void ServiceMenu::click() {
     while (i < FOCUS_LIMIT_COUNT && kFocusLimitMinutes[i] != value_) i++;
     if (i == FOCUS_LIMIT_COUNT) return refuse();
     g.focusLimitIndex = i;
-  } else if (item_ == FACTORY) {  // REQ-9.8
+  } else if (item_ == FACTORY) {  // REQ-9.8: la prima pressione chiede conferma, `D` annulla
+    if (!page_) {
+      page_ = 1;
+      return;
+    }
     set_.factoryReset();
   } else {
     return;
@@ -138,16 +141,19 @@ void ServiceMenu::negate() {
   typed_ = true;
 }
 
-// Copia s senza il terminatore, al massimo n caratteri.
+// Copia s senza il terminatore, al massimo n caratteri: put da RAM, putF da flash.
 static void put(char* row, const char* s, uint8_t n = 16) {
   for (uint8_t i = 0; i < n && s[i]; i++) row[i] = s[i];
+}
+static void putF(char* row, const char* s, uint8_t n = 16) {
+  for (uint8_t i = 0; i < n && fbyte(s + i); i++) row[i] = fbyte(s + i);
 }
 
 void ServiceMenu::compose(char rows[2][16]) const {
   if (!inside_) {
-    put(rows[0], "MENU SERVIZIO");
+    putF(rows[0], FSTR("MENU SERVIZIO"));
     rows[1][0] = '>';
-    put(&rows[1][1], kItems[item_], 15);
+    putF(&rows[1][1], kItems[item_], 15);
     return;
   }
   if (item_ == T_LCD) {  // REQ-9.5: blocco pieno in ogni cella
@@ -159,58 +165,62 @@ void ServiceMenu::compose(char rows[2][16]) const {
   const char* title = kItems[item_];
   switch (item_) {
     case INFO:  // REQ-9.2
-      snprintf(b, sizeof b, "R080 v%s", version_);
+      fsnprintf(b, sizeof b, FSTR("R080 v%s"), version_);
       put(rows[0], b);
       put(rows[1], date_);
       return;
     case COUNTERS:  // REQ-9.3
       title = kCounterTitles[page_];
       if (page_ == 3)
-        snprintf(b, sizeof b, "%luh %02lum", (unsigned long)(c.lampSeconds / 3600),
+        fsnprintf(b, sizeof b, FSTR("%luh %02lum"), (unsigned long)(c.lampSeconds / 3600),
                  (unsigned long)(c.lampSeconds / 60 % 60));
       else
-        snprintf(b, sizeof b, "%lu", (unsigned long)(page_ == 0 ? c.powerOns : page_ == 1 ? c.watchdogResets : c.exposures));
+        fsnprintf(b, sizeof b, FSTR("%lu"), (unsigned long)(page_ == 0 ? c.powerOns : page_ == 1 ? c.watchdogResets : c.exposures));
       break;
     case HEALTH:  // REQ-9.4
       title = kHealthTitles[page_];
-      if (page_ == 0) snprintf(b, sizeof b, "%lu us", (unsigned long)health_.loopMaxUs);
-      else if (page_ == 1) snprintf(b, sizeof b, "%lu us", (unsigned long)health_.isrMaxUs);
-      else snprintf(b, sizeof b, "%lu", (unsigned long)health_.lostTicks);
+      if (page_ == 0) fsnprintf(b, sizeof b, FSTR("%lu us"), (unsigned long)health_.loopMaxUs);
+      else if (page_ == 1) fsnprintf(b, sizeof b, FSTR("%lu us"), (unsigned long)health_.isrMaxUs);
+      else fsnprintf(b, sizeof b, FSTR("%lu"), (unsigned long)health_.lostTicks);
       break;
     case CALIBRATION:
       title = kCalTitles[page_];
-      if (page_ == CAL_LOG) snprintf(b, sizeof b, log_ ? "Attivo, D: esci" : "Clic: avvia");
-      else if (page_ == CAL_PPM) snprintf(b, sizeof b, "ppm: %+ld", (long)value_);
-      else snprintf(b, sizeof b, "%ld,%02ld s", (long)(value_ / 100), (long)(value_ % 100));
+      if (page_ == CAL_LOG) fsnprintf(b, sizeof b, log_ ? FSTR("Attivo, D: esci") : FSTR("Clic: avvia"));
+      else if (page_ == CAL_PPM) fsnprintf(b, sizeof b, FSTR("ppm: %+ld"), (long)value_);
+      else fsnprintf(b, sizeof b, FSTR("%ld,%02ld s"), (long)(value_ / 100), (long)(value_ % 100));
       break;
     case LCD_EXPOSURE:
-      snprintf(b, sizeof b, "Livello 1-8: %d", int(value_));  // due cifre al massimo
+      fsnprintf(b, sizeof b, FSTR("Livello 1-8: %d"), int(value_));  // due cifre al massimo
       break;
     case FOCUS_LIMIT:
-      snprintf(b, sizeof b, "Minuti: %ld", (long)value_);
+      fsnprintf(b, sizeof b, FSTR("Minuti: %ld"), (long)value_);
       break;
     case T_RELAY:
-      snprintf(b, sizeof b, "Clic: %s", hw_[0] ? "acceso" : "spento");
+      fsnprintf(b, sizeof b, hw_[0] ? FSTR("Clic: acceso") : FSTR("Clic: spento"));
       break;
     case T_BUZZER:
-      snprintf(b, sizeof b, "Suono %u: clic", hw_[0] + 1);
+      fsnprintf(b, sizeof b, FSTR("Suono %u: clic"), hw_[0] + 1);
       break;
     case T_SEVEN_SEG:
-      snprintf(b, sizeof b, "Accesi: 888.8");
+      fsnprintf(b, sizeof b, FSTR("Accesi: 888.8"));
       break;
     case T_KEYPAD:
-      snprintf(b, sizeof b, "Tasto: %c", hw_[0] ? hw_[0] : '-');
+      fsnprintf(b, sizeof b, FSTR("Tasto: %c"), hw_[0] ? hw_[0] : '-');
       break;
     case T_ENCODERS:
-      snprintf(b, sizeof b, "M%+d c%u  P%+d c%u", hw_[0], uint8_t(hw_[1]), hw_[2], uint8_t(hw_[3]));
+      fsnprintf(b, sizeof b, FSTR("M%+d c%u  P%+d c%u"), hw_[0], uint8_t(hw_[1]), hw_[2], uint8_t(hw_[3]));
       break;
     case T_MAIN_BUTTON:
-      snprintf(b, sizeof b, "%s", hw_[0] == 1 ? "Premuto" : hw_[0] == 2 ? "Rilasciato" : "Premi");
+      fsnprintf(b, sizeof b, hw_[0] == 1 ? FSTR("Premuto") : hw_[0] == 2 ? FSTR("Rilasciato") : FSTR("Premi"));
+      break;
+    case FACTORY:
+      if (page_) title = FSTR("Confermi?");
+      fsnprintf(b, sizeof b, page_ ? FSTR("clic=Si D=No") : FSTR("Clic: ripristina"));
       break;
     default:
-      snprintf(b, sizeof b, "Clic: conferma");
+      fsnprintf(b, sizeof b, FSTR("Clic: conferma"));
       break;
   }
-  put(rows[0], title);
+  putF(rows[0], title);
   put(rows[1], b);
 }
