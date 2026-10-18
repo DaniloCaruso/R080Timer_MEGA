@@ -23,7 +23,7 @@ static bool inRange(const SettingsData& d) {
   return true;
 }
 
-void Settings::load() {
+bool Settings::load() {
   uint8_t b[BLOCK_LEN];
   storage_.read(0, b, BLOCK_LEN);
   memcpy(&d, b + HEADER, sizeof d);
@@ -31,7 +31,10 @@ void Settings::load() {
   bool ok = b[0] == 'R' && b[1] == '8' && b[2] == VERSION && b[3] == BLOCK_LEN &&
             crc8(b, BLOCK_LEN - 1) == b[BLOCK_LEN - 1] && inRange(d);
   if (!ok) d = kFactory;
+  return ok;
 }
+
+void Settings::factoryReset() { d = kFactory; }
 
 void Settings::service(uint32_t nowMs) {
   if (restart_) {

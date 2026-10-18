@@ -28,6 +28,7 @@ void Screen::compose(uint32_t nowMs) {
     memcpy(&want_[1][col + 1], version_, n);
     return;
   }
+  if (const ServiceMenu* menu = ctl_.service()) return menu->compose(want_);
   // Disposizione del firmware precedente. Riga 1: Modalità, tipo di precisione 12, Avanzamento 14.
   // Riga 2: precisione 0-8, Canale 9-12, nota 14, spina 15.
   // shortcut: testi in RAM perché il dominio non usa PROGMEM; da spostare se la RAM stringe.
