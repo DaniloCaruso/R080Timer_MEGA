@@ -15,9 +15,16 @@ struct SimClock : TimingPort {
     relay = lamp;
     if (lamp) relayOnAtMs = nowMs;
   }
+  void startStrip(uint32_t firstStepMs, bool lamp) override {
+    core.startStrip(firstStepMs);
+    relay = lamp;
+    if (lamp) relayOnAtMs = nowMs;
+  }
+  void setNextStep(uint32_t nextStepMs) override { core.setNextStep(nextStepMs); }
   void cancel() override { core.cancel(); relay = false; relayOffAtMs = nowMs; }
   bool running() override { return core.run() != Run::Idle; }
   uint32_t remainingMs() override { return core.remainingMs(); }
+  uint32_t elapsedMs() override { return core.elapsedMs(); }
   uint8_t takeEvents() override { uint8_t e = events; events = 0; return e; }
 
   void tick() {
