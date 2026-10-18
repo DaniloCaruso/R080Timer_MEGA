@@ -18,7 +18,19 @@ void Counters::boot(bool watchdogReset) {
   // Un reset da watchdog non è un'accensione: la somma dei due contatori dà gli avvii.
   if (watchdogReset) d.watchdogResets++;
   else d.powerOns++;
-  b[0] = 'R', b[1] = 'C', b[2] = VERSION, b[3] = BLOCK_LEN;
+  save();
+}
+
+void Counters::exposureEnd(bool exposure, uint32_t lampMs) {
+  if (exposure) d.exposures++;
+  lampMs += lampMsRest_;
+  d.lampSeconds += lampMs / 1000;
+  lampMsRest_ = lampMs % 1000;
+  save();
+}
+
+void Counters::save() {
+  uint8_t b[BLOCK_LEN] = {'R', 'C', VERSION, BLOCK_LEN};
   memcpy(b + HEADER, &d, sizeof d);
   b[BLOCK_LEN - 1] = crc8(b, BLOCK_LEN - 1);
   storage_.update(ADDR, b, BLOCK_LEN);  // eeprom_update_block riscrive solo le celle cambiate
