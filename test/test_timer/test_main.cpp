@@ -2,21 +2,28 @@
 // solo con input dell'utente e tempo che passa.
 #include <unity.h>
 #include <Controller.h>
+#include <Screen.h>
+#include "../fakes/FakeLcd.h"
+#include "../fakes/FakeLog.h"
 #include "../fakes/FakeSevenSeg.h"
 #include "../fakes/SimClock.h"
 
 struct Timer {
   SimClock clock;
   FakeSevenSeg seg;
+  FakeLcd lcd;
+  FakeLog log;
   Controller ctl{clock, seg};
+  Screen screen{lcd, log, "2.0.0"};
 
-  Timer() { ctl.update(); }
+  Timer() { loop(); }
+  void loop() { ctl.update(); screen.render(clock.nowMs); }  // un giro di loop()
   void type(const char* digits) {
-    for (; *digits; digits++) { ctl.onInput(Input::Digit, *digits - '0'); ctl.update(); }
+    for (; *digits; digits++) { ctl.onInput(Input::Digit, *digits - '0'); loop(); }
   }
-  void press() { ctl.onInput(Input::MainPress, 0); ctl.update(); }
+  void press() { ctl.onInput(Input::MainPress, 0); loop(); }
   void advance(uint32_t ms) {
-    while (ms--) { clock.tick(); ctl.update(); }
+    while (ms--) { clock.tick(); loop(); }
   }
 };
 
@@ -144,6 +151,68 @@ static void test_start_with_zero_time_does_nothing() {
   TEST_ASSERT_EQUAL_UINT16(0, t.seg.shown);
 }
 
+// REQ-7.9: nome e versione per 1,5 s dall'accensione.
+static void test_lcd_shows_name_and_version_at_power_on() {
+  Timer t;
+  t.advance(1);
+  TEST_ASSERT_EQUAL_STRING(" - R080 Timer - ", t.lcd.cells[0]);
+  TEST_ASSERT_EQUAL_STRING("     v2.0.0     ", t.lcd.cells[1]);
+  t.advance(1497);  // 1498 ms
+  TEST_ASSERT_EQUAL_STRING(" - R080 Timer - ", t.lcd.cells[0]);
+  TEST_ASSERT_EQUAL_STRING("     v2.0.0     ", t.lcd.cells[1]);
+}
+
+// REQ-7.5: stessa disposizione del firmware precedente (pre-rewrite, presentation.h):
+// riga 1 modalità e tipo di precisione, riga 2 precisione, Canale, nota e spina.
+// Valori di fabbrica: Countdown, Secondi 1 s, Canale A, mute spento, relè abilitato.
+static void test_lcd_shows_countdown_layout_after_splash() {
+  Timer t;
+  t.advance(1500);
+  t.advance(1);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.lcd.cells[0]);
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.lcd.cells[1]);
+}
+
+// Da fermo il bus I²C resta inattivo se nulla cambia.
+static void test_lcd_is_not_written_without_changes() {
+  Timer t;
+  t.advance(1600);
+  uint32_t writes = t.lcd.writes;
+  t.advance(10000);
+  TEST_ASSERT_EQUAL_UINT32(writes, t.lcd.writes);
+}
+
+// REQ-2.6: con l'LCD guasto l'Esposizione prosegue sul solo 7 segmenti e il guasto va nel log.
+static void test_countdown_ends_normally_with_lcd_offline() {
+  Timer t;
+  t.advance(1600);
+  t.lcd.isOnline = false;
+  t.type("125");
+  t.press();
+  t.advance(12499);
+  TEST_ASSERT_TRUE(t.clock.relay);
+  t.advance(1);
+  TEST_ASSERT_FALSE(t.clock.relay);
+  TEST_ASSERT_EQUAL_UINT32(12500, t.clock.relayOffAtMs - t.clock.relayOnAtMs);
+  TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
+  TEST_ASSERT_EQUAL_UINT32(1, t.log.lines);  // una sola riga, non una per giro
+  TEST_ASSERT_EQUAL_STRING("LCD offline", t.log.last);
+}
+
+// Dopo un guasto il driver reinizializza l'LCD: il contenuto va ridisegnato tutto.
+static void test_lcd_is_redrawn_when_it_comes_back_online() {
+  Timer t;
+  t.advance(1600);
+  t.lcd.isOnline = false;
+  t.advance(10);
+  t.lcd.fill('?');  // contenuto perso
+  t.lcd.isOnline = true;
+  t.advance(2);
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.lcd.cells[0]);
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.lcd.cells[1]);
+  TEST_ASSERT_EQUAL_STRING("LCD online", t.log.last);
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_digits_enter_from_the_right);
@@ -157,5 +226,10 @@ int main() {
   RUN_TEST(test_first_digit_after_cancel_starts_a_new_time);
   RUN_TEST(test_digits_are_ignored_during_countdown);
   RUN_TEST(test_start_with_zero_time_does_nothing);
+  RUN_TEST(test_lcd_shows_name_and_version_at_power_on);
+  RUN_TEST(test_lcd_shows_countdown_layout_after_splash);
+  RUN_TEST(test_lcd_is_not_written_without_changes);
+  RUN_TEST(test_countdown_ends_normally_with_lcd_offline);
+  RUN_TEST(test_lcd_is_redrawn_when_it_comes_back_online);
   return UNITY_END();
 }
