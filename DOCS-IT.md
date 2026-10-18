@@ -1,449 +1,288 @@
-# R080 TIMER MEGA - Manuale d'Uso e Documentazione Tecnica
+# R080 Timer — Manuale d'uso (firmware v2.0.0)
+
+[English version](DOCS.md)
+
+R080 Timer comanda la lampada dell'ingranditore: decide per quanto tempo la luce impressiona la carta. Ha tre Modalità (Focus, Countdown, Test strip), precisione in secondi o in frazioni di stop (F-Stop), tre Canali con memoria e un Menu di servizio per diagnostica e calibrazione.
+
+I tempi si leggono e si inseriscono in decimi di secondo, da 0,1 a 999,9 s.
 
 ## Indice
 
-1. [Panoramica](#panoramica)
-2. [Hardware](#hardware)
-3. [Controlli](#controlli)
-4. [Display](#display)
-5. [Modalita Operative](#modalita-operative)
-6. [Navigazione F-Stop](#navigazione-f-stop)
-7. [Canali](#canali)
-8. [Persistenza EEPROM](#persistenza-eeprom)
-9. [Suono](#suono)
-10. [Architettura Software](#architettura-software)
-11. [Riferimento Rapido Comandi](#riferimento-rapido-comandi)
+1. [Comandi](#1-comandi)
+2. [Display](#2-display)
+3. [Inserire il tempo](#3-inserire-il-tempo)
+4. [Precisione: Secondi e F-Stop](#4-precisione-secondi-e-f-stop)
+5. [Modalità](#5-modalità)
+6. [Canali e memoria](#6-canali-e-memoria)
+7. [Suoni e mute](#7-suoni-e-mute)
+8. [Luci in camera oscura](#8-luci-in-camera-oscura)
+9. [Accensione e sicurezza](#9-accensione-e-sicurezza)
+10. [Menu di servizio](#10-menu-di-servizio)
+11. [Calibrazione del clock](#11-calibrazione-del-clock)
+12. [Log USB](#12-log-usb)
+13. [Riferimento rapido](#13-riferimento-rapido)
 
 ---
 
-## Panoramica
+## 1. Comandi
 
-R080 Timer MEGA e' un timer digitale di precisione per ingranditore fotografico in camera oscura. Basato su Arduino Mega 2560, offre tre modalita operative (Focus, Countdown, Test Strip), navigazione F-Stop, 3 canali con memoria indipendente e persistenza delle impostazioni.
+| Comando | Azione |
+|---|---|
+| Pulsante principale | Avvia l'Esposizione; durante l'Esposizione la annulla. Reagisce alla pressione, non al rilascio. |
+| Cifre `0`–`9` | Inseriscono il tempo (vedi §3). Lo `0` entra al rilascio del tasto. |
+| `*` / `#` | Diminuiscono / aumentano il tempo secondo la precisione (§4). In Focus regolano la luminosità dell'LCD (§8). |
+| `0` tenuto + `*` / `#` | In Focus: luminosità del 7 segmenti (§8). |
+| `*` tenuto 1 s | Mute acceso/spento, con un beep di conferma (§7). |
+| `#` tenuto 1 s | Abilitazione relè del Canale attivo, con un beep di conferma (§6). |
+| `A` / `B` / `C` | Attivano il Canale corrispondente (§6). |
+| `D` | Azzera tempo impostato, Tempo base e Offset del Canale attivo. |
+| Encoder della Modalità, rotazione | Modalità successiva o precedente: Focus, Countdown, Test strip. |
+| Encoder della Modalità, pressione | In Test strip: Avanzamento continuo (`CO`) o passo-passo (`PP`). |
+| Encoder della precisione, rotazione | Valore di precisione successivo o precedente (11 valori, in ciclo). |
+| Encoder della precisione, pressione | Tipo di precisione: Secondi o F-Stop. |
 
-**Unita di tempo interna:** decisecondi (1/10 di secondo). Il valore `100` sul display equivale a `10.0` secondi.
+Durante un'Esposizione (Focus acceso compreso) tastierino ed encoder sono ignorati: conta solo il pulsante principale.
 
----
+## 2. Display
 
-## Hardware
+### 7 segmenti
 
-| Componente               | Connessione                        |
-|--------------------------|-------------------------------------|
-| Arduino Mega 2560        | Scheda principale                   |
-| LCD RGB 16x2 (Waveshare) | I2C (addr 0x3E/0x60)              |
-| Display 7 segmenti       | SoftwareSerial su pin A2 (9600 baud)|
-| Keypad 4x4               | Colonne: 41, 39, 37, 35 / Righe: 33, 31, 29, 27 |
-| Encoder modalita          | DT=3, CLK=4, pulsante SW=17       |
-| Encoder precisione        | DT=18, CLK=19, pulsante SW=16     |
-| Pulsante principale       | Pin 2 (INPUT_PULLUP)              |
-| Buzzer                    | Pin 49                             |
-| Relay ingranditore        | Pin 47                             |
+Mostra un tempo in secondi con un decimale, a quattro cifre: `010.0` = 10,0 s, `999.9` = massimo.
 
----
+| Stato | Cosa mostra |
+|---|---|
+| Fermo | Il tempo impostato del Canale attivo |
+| Countdown in corso | Il tempo residuo, arrotondato per eccesso |
+| Focus acceso | Il tempo trascorso (si ferma a `999.9` oltre i 16 min 39,9 s) |
+| Test strip in corso | Il tempo cumulativo dall'inizio della prova |
+| Test strip passo-passo in pausa | Il tempo cumulativo dello Step successivo |
 
-## Controlli
+### LCD
 
-### Pulsante Principale (pin 2)
+Due righe da 16 caratteri, retroilluminazione sempre rossa.
 
-- **Pressione singola:** Avvia/Ferma l'operazione corrente (toggle).
-- Quando avviato: il relay si attiva (se abilitato per il canale) e il timer parte.
-- Quando fermato: il relay si disattiva e il timer si ferma.
-
-### Encoder Modalita (sinistro)
-
-- **Rotazione:** Cicla tra le 3 modalita: FOCUS -> COUNTDOWN -> TEST STRIP -> FOCUS...
-- **Pressione pulsante:** In TEST STRIP, alterna la modalita di avanzamento:
-  - `CO` = Continuo (esposizioni consecutive senza pausa)
-  - `PP` = Passo-Passo (si ferma ad ogni step, ripremi per continuare)
-
-### Encoder Precisione (destro)
-
-- **Rotazione:** Cambia il valore di precisione tra 11 livelli.
-  - In F-Stop: 1/1, 1/2, 1/3, 1/4, 1/6, 1/8, 1/12, 1/16, 1/24, 1/32, 1/64
-  - In Secondi: 1s, 2s, 3s, 4s, 5s, 6s, 7s, 8s, 10s, 15s, 20s
-- **Pressione pulsante:** Alterna tra tipo di precisione F-Stop (`F`) e Secondi (`S`).
-
-### Keypad 4x4
-
-Layout fisico:
+Riga 1: Modalità, tipo di precisione (`[S]` Secondi, `[F]` F-Stop) e, in Test strip, l'Avanzamento (`CO` continuo, `PP` passo-passo).
 
 ```
- 1  2  3  A
- 4  5  6  B
- 7  8  9  C
- *  0  #  D
+FOCUS
+COUNTDOWN  [S]
+TEST STRIP [F]PP
 ```
 
----
-
-## Display
-
-### Display 7 Segmenti
-
-Mostra il tempo corrente in decisecondi con 4 cifre e punto decimale sulla prima cifra.
-
-Esempi:
-- `10.00` = 100.0 secondi (1000 decisecondi)
-- ` 5.00` = 50.0 secondi
-- ` 0.30` = 3.0 secondi
-
-### LCD 16x2
-
-Il layout dipende dalla modalita attiva:
-
-**FOCUS:**
-```
-Riga 0: FOCUS
-Riga 1:          Ch:A ♪⚡
-```
-Nessuna precisione mostrata. `♪` = suono attivo, `⚡` = relay abilitato.
-
-**COUNTDOWN:**
-```
-Riga 0: COUNTDOWN  [S]
-Riga 1: Pr: 5s    Ch:A ♪⚡
-```
-`[S]` = tipo Secondi, `[F]` = tipo F-Stop.
-
-**COUNTDOWN in F-Stop:**
-```
-Riga 0: COUNTDOWN  [F]
-Riga 1: Pr:1/3+02 Ch:A ♪⚡
-```
-`+02` = 2 stop sopra il tempo base. `-01` = 1 stop sotto. ` 00` = al tempo base.
-
-**TEST STRIP:**
-```
-Riga 0: TEST STRIP [S] CO
-Riga 1: Pr: 5s    Ch:B ♪⚡
-```
-`CO` = Continuo, `PP` = Passo-Passo.
-
----
-
-## Modalita Operative
-
-### 1. FOCUS
-
-**Scopo:** Proiezione continua per messa a fuoco e composizione.
-
-**Comportamento:**
-- Premendo il pulsante: il relay si attiva e il timer conta in avanti da 0 (incremento ogni 0.1s).
-- Il tempo mostrato sul display cresce continuamente.
-- Premendo di nuovo: relay si disattiva e timer si ferma.
-
-**Controlli speciali in FOCUS:**
-- Tasto `*` = diminuisce luminosita display 7 segmenti (da 10 a 1)
-- Tasto `#` = aumenta luminosita display 7 segmenti (da 1 a 10)
-- I tasti numerici sono disabilitati.
-
-### 2. COUNTDOWN
-
-**Scopo:** Esposizione cronometrata con conto alla rovescia.
-
-**Preparazione:**
-1. Digitare il tempo desiderato con il keypad numerico (fino a 4 cifre, in decisecondi).
-   - Esempio: `1` `0` `0` = 10.0 secondi
-   - Esempio: `5` = 0.5 secondi
-   - Esempio: `5` `0` = 5.0 secondi
-2. Oppure usare `*`/`#` per navigare il tempo (vedi sezione F-Stop o Secondi).
-
-**Comportamento:**
-- Premendo il pulsante: relay si attiva, timer conta alla rovescia.
-- **Metronomo:** ogni secondo (ogni 10 decisecondi) viene emesso un beep.
-- A tempo zero: relay si disattiva, suono di stop (3 beep), il timer si ferma automaticamente.
-- **Repeat last exposure:** al termine, il tempo viene ripristinato al valore di partenza. Puoi ripartire immediatamente premendo il pulsante.
-- Premendo il pulsante durante il conto: interrompe l'esposizione.
-
-**Navigazione tempo:**
-
-Con tipo **Secondi** (`S`):
-- `#` = aggiunge `precisione * 10` decisecondi al tempo (es. precisione 5s -> +50 decisecondi)
-- `*` = sottrae `precisione * 10` decisecondi (minimo 1)
-
-Con tipo **F-Stop** (`F`):
-- `#` = avanza di uno stop (vedi sezione F-Stop)
-- `*` = torna indietro di uno stop
-- Il display mostra l'offset dal tempo base (es. `+02`, `-01`, ` 00`)
-
-### 3. TEST STRIP
-
-**Scopo:** Esposizioni incrementali per provini di esposizione.
-
-**Preparazione:**
-1. Impostare il tempo base con il keypad (primo step di esposizione).
-2. Scegliere la precisione (distanza tra gli step).
-3. Scegliere la modalita: Continuo (`CO`) o Passo-Passo (`PP`).
-
-**Comportamento - Continuo (`CO`):**
-- Premendo il pulsante: relay si attiva, timer conta in avanti.
-- Ad ogni step viene emesso un beep. 3 decisecondi prima dello step: beep di avviso.
-- Il timer prosegue automaticamente allo step successivo.
-- Premendo il pulsante: interrompe tutto.
-
-**Comportamento - Passo-Passo (`PP`):**
-- Premendo il pulsante: relay si attiva, timer conta fino al primo step.
-- Allo step: relay si disattiva, timer si ferma, display mostra il prossimo target.
-- L'utente puo' spostare la striscia di carta sotto l'ingranditore.
-- Premendo di nuovo: riparte per il prossimo step (il timer continua da dove si era fermato).
-
-**Calcolo step:**
-
-Con tipo **Secondi:** step lineari. Es. con precisione 5s e base 50 decisecondi (5s):
-- Step 1: 0 -> 50 (5.0s)
-- Step 2: 50 -> 100 (10.0s)
-- Step 3: 100 -> 150 (15.0s)
-
-Con tipo **F-Stop:** step logaritmici. Es. con precisione 1/3 e base 50 decisecondi:
-- Step 1: 0 -> 50
-- Step 2: 50 -> 63 (50 * 2^(1/3) = 63)
-- Step 3: 63 -> 79 (63 * 2^(1/3) = 79)
-
----
-
-## Navigazione F-Stop
-
-### Concetto
-
-L'F-Stop e' un sistema logaritmico usato in fotografia. Raddoppiare il tempo equivale a +1 stop. Il timer permette frazioni di stop per regolazioni fini.
-
-### Come funziona
-
-1. **Imposta un tempo base** digitandolo con il keypad (es. `100` = 10 secondi).
-2. **Premi il pulsante dell'encoder precisione** per passare a modalita F-Stop (`F`).
-3. **Ruota l'encoder precisione** per scegliere la frazione: 1/1 (stop interi), 1/2 (mezzi stop), 1/3 (terzi di stop), ecc.
-4. **Premi `#`** per salire di uno stop. **Premi `*`** per scendere.
-
-### Esempio pratico
-
-Tempo base: 100 decisecondi (10.0s), precisione 1/3 stop:
-
-| Tasto | Offset | Calcolo | Tempo risultante |
-|-------|--------|---------|-----------------|
-| (base)| ` 00`  | 100     | 10.0s           |
-| `#`   | `+01`  | 100 * 2^(1/3) = 126  | 12.6s  |
-| `#`   | `+02`  | 100 * 2^(2/3) = 159  | 15.9s  |
-| `#`   | `+03`  | 100 * 2^(3/3) = 200  | 20.0s  |
-| `*`   | `+02`  | 100 * 2^(2/3) = 159  | 15.9s  |
-
-La formula: `tempo = tempoBase * 2^(offset / precisione)`
-
-### Note importanti
-
-- Il tempo base viene impostato automaticamente quando digiti cifre sul keypad.
-- Cambiando canale, il tempo base si aggiorna al tempo del nuovo canale.
-- L'offset viene mostrato sull'LCD come `+02`, `-01`, ` 00`.
-- Il tempo calcolato e' sempre compreso tra 1 e 9999 decisecondi.
-- Cambiando la precisione (es. da 1/3 a 1/6), il tempo viene ricalcolato con lo stesso offset ma la nuova precisione.
-
----
-
-## Canali
-
-Il timer dispone di **3 canali indipendenti** (A, B, C), ciascuno con:
-- Proprio tempo memorizzato
-- Proprio stato relay (abilitato/disabilitato)
-
-### Comandi
-
-| Tasto | Azione |
-|-------|--------|
-| `A`   | Seleziona canale A |
-| `B`   | Seleziona canale B |
-| `C`   | Seleziona canale C |
-| `D`   | Reset del canale corrente (tempo a 0, F-stop reset) |
-
-### Comportamento
-
-- Quando cambi canale, il tempo del canale precedente viene salvato automaticamente.
-- Il tempo del nuovo canale viene caricato sul display.
-- Lo stato F-stop (base time e offset) viene resettato al tempo del nuovo canale.
-- Le impostazioni sono salvate in EEPROM ad ogni cambio.
-
-### Relay per canale
-
-Ogni canale ha un relay indipendente. Utile se colleghi piu' ingranditori o vuoi disabilitare il relay per un canale specifico.
-
-- **Tenere premuto `#`** = toggle relay del canale corrente (ON/OFF)
-- L'icona `⚡` sull'LCD indica relay abilitato; spazio vuoto = disabilitato.
-- Se il relay e' disabilitato, il timer funziona normalmente ma il relay non si attiva.
-
----
-
-## Persistenza EEPROM
-
-Le impostazioni vengono salvate automaticamente nella EEPROM dell'Arduino e ripristinate all'accensione.
-
-### Dati salvati (13 bytes)
-
-| Indirizzo | Dato | Tipo |
-|-----------|------|------|
-| 0 | Magic byte (0xA5) | byte |
-| 1 | Luminosita display (1-10) | byte |
-| 2 | Mute (0/1) | byte |
-| 3 | Canale attivo (1-3) | byte |
-| 4-5 | Tempo canale A | int16 |
-| 6-7 | Tempo canale B | int16 |
-| 8-9 | Tempo canale C | int16 |
-| 10 | Relay canale A | byte |
-| 11 | Relay canale B | byte |
-| 12 | Relay canale C | byte |
-
-### Quando viene salvato
-
-- Cambio canale (A, B, C)
-- Modifica tempo (cifre, `*`/`#`, F-stop)
-- Reset canale (D)
-- Toggle mute (tenere premuto `*`)
-- Toggle relay (tenere premuto `#`)
-- Cambio luminosita (in FOCUS: `*`/`#`)
-
-### Note tecniche
-
-- Usa `eeprom_update_*` che scrive SOLO se il valore e' diverso da quello in memoria (preserva la vita della EEPROM, ~100.000 cicli di scrittura per cella).
-- Al primo avvio (EEPROM vergine), il magic byte non sara' presente e verranno usati i valori di default.
-
----
-
-## Suono
-
-### Toni
-
-| Evento | Frequenza | Durata |
-|--------|-----------|--------|
-| Metronomo (countdown) | 300 Hz | 80ms, ogni secondo |
-| Beep avviso (test strip) | 600 Hz | 50ms, 3 decisecondi prima dello step |
-| Beep step (test strip) | 600 Hz | 150ms, al raggiungimento dello step |
-| Suono di stop (fine countdown) | 300 Hz | sequenza: 75ms, pausa, 75ms, pausa, 150ms |
-| Conferma unmute | 600 Hz | 200ms |
-
-### Controllo mute
-
-- **Tenere premuto `*`** = toggle mute/unmute
-- `♪` sull'LCD = suono attivo
-- Spazio vuoto = mute
-
-### Sistema non-bloccante
-
-Il suono di stop usa una state machine (`SoundPlayer`) che esegue la sequenza di beep senza bloccare il loop principale. La funzione `tickSound()` viene chiamata ad ogni iterazione del loop.
-
----
-
-## Architettura Software
-
-### Struttura file
+Riga 2: precisione (colonne 1–7), Canale, icona ♪ (suoni attivi, sparisce col mute) e icona ⚡ (Abilitazione relè attiva).
 
 ```
-src/main.cpp                 -> setup() + loop()
-include/
-  types.h                    -> Enumerazioni, struct Operation/OperationStatus
-  constants.h                -> Pin, toni, testi, layout keypad
-  variables.h                -> Globali, oggetti hardware, Timer<3>
-  functions/
-    base.h                   -> relayStart(), noop(), isInError()
-    config.h                 -> Inizializzazione hardware, resetTime()
-    fstop.h                  -> FStopState: calcolo F-stop
-    storage.h                -> EEPROM: loadSettings(), saveSettings()
-    presentation.h           -> LCD e 7-segmenti: showTime(), showChannel(), ecc.
-    sound.h                  -> SoundPlayer non-bloccante, emitSound(), tickSound()
-    timer_manager.h          -> Timer callbacks: focus, countdown, test strip
-    actions.h                -> focus(), countdown(), testStrip()
-    operations.h             -> initializeOperations(), setOperationStatus()
-    keypad_mgmt.h            -> evaluateKey(), switchToChannel(), F-stop nav
-    encoder_mgmt.h           -> evaluateEncoderMod(), evaluateEncoderPrec()
-    running_mgmt.h           -> manageMainButtonAction(), configureMainButton()
+ 5s      Ch:A ♪⚡     precisione in Secondi: 5 s
+20s      Ch:A ♪⚡     precisione in Secondi: 20 s
+1/3 +02  Ch:A ♪⚡     F-Stop 1/3, Offset +2
+1/12-01  Ch:B  ⚡     F-Stop 1/12, Offset -1, mute attivo
+St:3     Ch:C ♪⚡     Test strip: Step numero 3
+         Ch:A ♪⚡     Focus: nessuna precisione
 ```
 
-### Loop principale
+All'accensione l'LCD mostra ` - R080 Timer - ` e la versione per 1,5 s, poi l'ultimo stato salvato.
+
+## 3. Inserire il tempo
+
+Le cifre entrano da destra come in una calcolatrice, in decimi di secondo, fino a quattro cifre; con la quinta esce la più vecchia.
+
+| Tasti | Tempo |
+|---|---|
+| `5` | 0,5 s |
+| `5` `0` | 5,0 s |
+| `1` `2` `5` | 12,5 s |
+| `1` `2` `3` `4` `5` | 234,5 s |
+
+- La prima cifra dopo qualsiasi altra azione (Esposizione, cambio Canale, `*`/`#`, encoder…) inizia un tempo nuovo.
+- Il tempo inserito diventa anche il Tempo base, con Offset zero.
+- `D` azzera il tempo. Avviare un Countdown o un Test strip con tempo zero dà il beep di errore.
+
+## 4. Precisione: Secondi e F-Stop
+
+La precisione è il passo con cui `*`/`#` e il Test strip spostano il tempo. Ha un tipo e un valore:
+
+| Tipo | Valori |
+|---|---|
+| Secondi | 1, 2, 3, 4, 5, 6, 7, 8, 10, 15, 20 s |
+| F-Stop | 1/1, 1/2, 1/3, 1/4, 1/6, 1/8, 1/12, 1/16, 1/24, 1/32, 1/64 di stop |
+
+**Secondi.** `#` aggiunge il valore di precisione al tempo, `*` lo toglie, entro 0,1–999,9 s.
+
+**F-Stop.** Il tempo è calcolato dal Tempo base: tempo = Tempo base × 2^(Offset / p), dove 1/p è la precisione, arrotondato al decimo. `#` e `*` spostano l'Offset di uno (fino a ±99); l'Offset resta visibile sulla riga 2 (`+02`, `-01`, ` 00`). Il passo non avviene se il tempo uscirebbe da 0,1–999,9 s o se il Tempo base è zero.
+
+- Premere l'encoder della precisione cambia tipo: il tempo attuale diventa il Tempo base, con Offset zero.
+- Ruotare l'encoder della precisione in F-Stop ricalcola il tempo dal Tempo base con lo stesso Offset e il nuovo valore (es. Offset +2 a 1/3 diventa +2 a 1/2).
+
+Esempio: tempo 10,0 s, F-Stop 1/3. `#` tre volte: 12,6 → 15,9 → 20,0 s (un stop). `*` una volta dal tempo base: 7,9 s.
+
+## 5. Modalità
+
+### Focus
+
+Lampada accesa a tempo libero, per comporre e mettere a fuoco.
+
+- Pulsante principale: la lampada si accende (se l'Abilitazione relè del Canale è attiva) e il 7 segmenti conta il tempo trascorso. Una seconda pressione la spegne, con il Suono di fine.
+- **Spegnimento automatico:** dopo il tempo massimo scelto nel Menu di servizio (3, 5, 10, 15 o 20 minuti; di fabbrica 5) la lampada si spegne da sola, con il Suono di fine. 10 s prima suona un avviso (due toni).
+- Nessun Metronomo. Il tempo impostato non viene usato, ma resta nel Canale.
+- Il Focus non conta come Esposizione nei contatori; il suo tempo a lampada accesa conta nelle ore di lampada.
+
+### Countdown
+
+Una singola Esposizione lunga quanto il tempo impostato.
+
+- Pulsante principale: lampada accesa e conto alla rovescia sul 7 segmenti, con il Metronomo a ogni secondo intero.
+- A zero la lampada si spegne (dal timer hardware, con precisione al millisecondo) e suona il Suono di fine. Il 7 segmenti torna al tempo impostato: un'altra pressione ripete la stessa Esposizione.
+- Pressione durante l'Esposizione: Annullamento (lampada spenta, Suono di fine). La pressione successiva riparte dal tempo pieno. Un Countdown annullato conta comunque come Esposizione.
+
+### Test strip
+
+Una serie di Step cumulativi per confrontare più tempi su una sola striscia di carta. Il primo Step è il tempo impostato.
+
+| Precisione | Step (tempi cumulativi) |
+|---|---|
+| Secondi, valore P | T, T+P, T+2P, … con T = tempo impostato |
+| F-Stop 1/p | Tempo base × 2^((Offset + k) / p) per k = 0, 1, 2, … |
+
+Ogni Step è calcolato dal Tempo base, quindi gli arrotondamenti non si accumulano. Se due Step arrotondati coincidono (1/64 con tempi brevi), il successivo cade 0,1 s dopo.
+
+Esempio in Secondi: T = 5,0 s, P = 5 s → Step a 5, 10, 15, 20 s… Esempio in F-Stop 1/2 con Tempo base 8,0 s: 8,0 → 11,3 → 16,0 → 22,6 s…
+
+Durante la prova la riga 2 dell'LCD mostra lo Step in corso (`St:n`) e il 7 segmenti il tempo cumulativo. Prima di ogni Step suona il Preavviso (tre tick a −0,3, −0,2 e −0,1 s), allo Step il beep di step. Nessun Metronomo.
+
+**Avanzamento continuo (`CO`).** La lampada resta accesa da uno Step all'altro. Si coprono le strisce a ogni beep di step. Il pulsante principale annulla la prova.
+
+**Avanzamento passo-passo (`PP`).** A ogni Step la lampada si spegne (al millisecondo) e il timer attende: il 7 segmenti mostra il tempo cumulativo dello Step successivo. Si sposta la carta e si preme il pulsante principale: la lampada si riaccende solo per l'incremento fino allo Step successivo.
+
+- In pausa, `D` conclude la prova con il Suono di fine. Anche `A`, `B`, `C` e una rotazione dell'encoder della Modalità la concludono, e in più passano al Canale premuto o alla Modalità successiva o precedente.
+- Con la lampada accesa il pulsante principale annulla la prova.
+
+**Fine della prova.** La prova prosegue finché non viene annullata o conclusa; a 999,9 s cumulativi si conclude da sola. Ogni nuova prova riparte dal primo Step. Una prova intera conta come una sola Esposizione, anche se annullata.
+
+## 6. Canali e memoria
+
+I tasti `A`, `B` e `C` richiamano tre Canali. Ogni Canale è un'impostazione di stampa completa: Modalità, tipo e valore di precisione, Avanzamento, tempo impostato, Tempo base, Offset e Abilitazione relè. Cambiare Canale ripristina tutto; cambiare Modalità non cambia il tempo.
+
+**Abilitazione relè.** Tenendo `#` per 1 s si alterna, per il Canale attivo, se l'Esposizione accende davvero la lampada (icona ⚡) o fa solo girare il tempo, utile per provare un ciclo a lampada spenta.
+
+**Memoria.** Le impostazioni si salvano da sole 2 s dopo l'ultima modifica e all'avvio di ogni Esposizione: Canale attivo, i tre Canali, mute, luminosità e impostazioni del Menu di servizio. All'accensione si ritrova tutto com'era.
+
+**Valori di fabbrica.** Per ogni Canale: Countdown, Secondi 1 s, Avanzamento continuo, 10,0 s, Abilitazione relè attiva. Globali: Canale A, mute spento, LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus massimo 5 minuti, Correzione del clock 0 ppm.
+
+Alla prima accensione con la v2.0.0 le impostazioni della versione precedente non vengono lette: il timer parte dai valori di fabbrica.
+
+## 7. Suoni e mute
+
+| Suono | Quando | Come suona |
+|---|---|---|
+| Avvio | Inizio Esposizione o ripresa passo-passo | beep acuto breve (1000 Hz, 60 ms) |
+| Metronomo | Ogni secondo di un Countdown | tick grave (300 Hz, 80 ms) |
+| Preavviso | 0,3 s prima di ogni Step | tre tick brevi (800 Hz, 30 ms) |
+| Step | A ogni Step del Test strip | beep medio (600 Hz, 150 ms) |
+| Suono di fine | Fine o Annullamento | tre toni discendenti (600, 450, 300 Hz) |
+| Avviso Focus | 10 s prima dello Spegnimento automatico | due toni (450 Hz, 200 ms) |
+| Errore | Avvio con tempo zero; valore rifiutato nel Menu di servizio | tono grave lungo (150 Hz, 300 ms) |
+| Conferma | Mute, Abilitazione relè, valore salvato nel Menu di servizio | beep molto acuto (1200 Hz, 40 ms) |
+
+**Mute.** Tenendo `*` per 1 s si attiva o disattiva; la conferma suona in entrambi i casi. Con il mute attivo suona solo il Suono di fine, perché la fine di un'Esposizione non passi inosservata; restano udibili anche la conferma del mute stesso e i suoni del Menu di servizio.
+
+## 8. Luci in camera oscura
+
+- L'LCD è sempre e solo rosso. 8 livelli di luminosità per l'LCD e 8 per il 7 segmenti, più fitti ai livelli bassi.
+- In Focus, a lampada spenta: `*`/`#` abbassano/alzano l'LCD; tenendo premuto `0`, `*`/`#` abbassano/alzano il 7 segmenti.
+- Durante ogni Esposizione (Focus acceso compreso) l'LCD scende al livello "LCD esposizione" del Menu di servizio (di fabbrica 1, il minimo) e torna al livello normale alla fine. Il 7 segmenti resta al livello scelto.
+
+## 9. Accensione e sicurezza
+
+- All'accensione e dopo ogni reset il relè resta spento finché non si avvia un'Esposizione. Un'Esposizione interrotta da una mancanza di corrente non riprende mai.
+- Il pulsante principale agisce solo dopo 20 ms di pressione stabile: un rimbalzo non avvia né annulla un'Esposizione.
+- **Watchdog:** se il firmware si blocca, la lampada si spegne entro 250 ms e la scheda si riavvia dopo 500 ms. Al riavvio l'LCD mostra `RESET: WDT` per 3 s e il contatore dei reset da watchdog aumenta.
+- Sotto 2,7 V di alimentazione la scheda si resetta (brown-out) con il relè spento.
+- Se l'LCD si guasta o si scollega il timer continua con il solo 7 segmenti; l'LCD viene ricollegato da solo appena risponde.
+
+## 10. Menu di servizio
+
+Si apre tenendo premuto `D` mentre si accende il timer (fino alla schermata iniziale). Nel menu non si avviano Esposizioni. I testi sull'LCD sono in italiano.
+
+| Comando | Azione |
+|---|---|
+| Encoder della Modalità, rotazione | Scorre le voci; dentro una voce, cambia schermata |
+| Encoder della Modalità, pressione | Entra nella voce; dentro una voce, conferma e salva il valore |
+| `D` | Torna all'elenco delle voci senza salvare |
+| Cifre | Inseriscono il valore, a calcolatrice |
+| `*` | Cambia il segno del valore (dopo le cifre) |
+
+Un valore fuori dai limiti dà il beep di errore e resta da reinserire; uno accettato dà il beep di conferma e riporta all'elenco.
+
+| Voce | Contenuto |
+|---|---|
+| Info | Versione del firmware e data di compilazione |
+| Contatori | Quattro schermate: Accensioni (ogni avvio, compresi i reset da watchdog), Reset watchdog, Esposizioni (Countdown e test strip, anche annullati), Ore lampada (tempo a relè acceso, Focus compreso) |
+| Salute | Tre schermate: Loop max (µs), ISR max (µs), Tick persi dall'accensione |
+| Test rele | La pressione accende e spegne il relè; uscendo il relè si spegne |
+| Test buzzer | La rotazione sceglie uno degli 8 suoni, la pressione lo suona (1 fine, 2 errore, 3 avviso Focus, 4 avvio, 5 step, 6 preavviso, 7 metronomo, 8 conferma) |
+| Test 7 segmenti | Accende tutti i segmenti (`888.8`) |
+| Test LCD | Riempie tutte le celle |
+| Test tastierino | Mostra l'ultimo tasto premuto; `D` si prova uscendo |
+| Test encoder | `M` e `P`: posizione e numero di pressioni dei due encoder |
+| Test pulsante | Premi, Premuto, Rilasciato |
+| Calibrazione | Tre schermate: Log calibrazione, Correzione ppm, Durata 600 s (vedi §11) |
+| LCD esposizione | Livello dell'LCD durante l'Esposizione, da 1 a 8 |
+| Tempo max Focus | Minuti dello Spegnimento automatico: 3, 5, 10, 15 o 20 |
+| Ripristino fabb | Dentro la voce, una pressione chiede conferma e una seconda riporta tutte le impostazioni ai valori di fabbrica, Correzione del clock compresa (i contatori restano); `D` annulla |
+| Esci | Torna all'uso normale |
+
+Nei test ogni comando va al componente in prova; `D` esce.
+
+## 11. Calibrazione del clock
+
+Il quarzo della scheda può scostarsi di qualche decina di parti per milione (ppm): 50 ppm sono 3 ms su 60 s. La Correzione del clock compensa questo scostamento ed è salvata con le impostazioni. Va misurata una volta; dopo un Ripristino di fabbrica torna a 0.
+
+### Metodo principale: script `tools/calibrate.py`
+
+Serve un PC con Python 3.10 o successivo e `pyserial` (`pip install pyserial`), e il cavo USB della scheda.
+
+1. Chiudere ogni programma che usa la porta seriale (anche `pio device monitor`).
+2. Sul timer: Menu di servizio → Calibrazione → schermata "Log calibrazione", pressione dell'encoder. L'LCD mostra `Attivo, D: esci`.
+3. Sul PC: `python3 tools/calibrate.py /dev/ttyACM0` (su Windows ad esempio `COM3`).
+4. Dopo 30 minuti lo script stampa, ad esempio, `Correzione del clock: +23 ppm`. Il valore è assoluto: non dipende dalla correzione già salvata.
+5. Sul timer: `D` chiude il log e torna all'elenco. Premere l'encoder per rientrare in Calibrazione, ruotare fino alla schermata "Correzione ppm", digitare il valore (`2` `3`), premere `*` se è negativo, premere l'encoder per salvare.
+
+Opzioni: `--minutes N` cambia la durata della misura; `--self-test` verifica lo script senza scheda. Se il timer si riavvia all'apertura della porta (riappare la schermata iniziale), interrompere lo script con Ctrl+C, riaprire il Menu di servizio e ripartire dal punto 2.
+
+### Senza PC: registrazione audio di un Countdown di 600,0 s
+
+Serve un registratore audio (lo smartphone va bene) e un programma che mostri la forma d'onda (ad esempio Audacity).
+
+1. Disattivare il mute (icona ♪ visibile): il beep di avvio non suona col mute. Si può disattivare l'Abilitazione relè per lasciare la lampada spenta.
+2. Countdown, tempo `6` `0` `0` `0` (600,0 s).
+3. Avviare la registrazione vicino al timer, premere il pulsante principale e attendere il Suono di fine.
+4. Sulla forma d'onda misurare il tempo dall'inizio del beep di avvio all'inizio del primo tono del Suono di fine. I tick del Metronomo, uno al secondo, aiutano a orientarsi.
+5. Riavviare il timer con `D` premuto: Menu di servizio → Calibrazione, ruotare fino alla schermata "Durata 600 s". Digitare la durata misurata in centesimi di secondo (`6` `0` `0` `1` `2` per 600,12 s) e premere l'encoder.
+
+Il timer calcola la nuova correzione partendo da quella salvata, quindi la misura si può ripetere per affinarla. Un errore di lettura di 10 ms sulla forma d'onda vale circa 17 ppm: lo script è più preciso.
+
+## 12. Log USB
+
+Collegando la scheda al PC (115200 baud, ad esempio `pio device monitor -b 115200`) il timer scrive una riga per evento, preceduta dai millisecondi dall'accensione:
 
 ```
-loop() {
-  mainButton.tick()        -> Gestione pulsante (OneButton, debounce)
-  appTimer.tick()          -> Esecuzione callback timer (arduino-timer)
-  tickSound()              -> State machine suono non-bloccante
-  manageMainButtonAction() -> Se premuto: esegui azione. Se fermo: leggi input.
-}
+t=12 BOOT reset=POWER
+t=8301 START mode=CD ch=A ms=100000
+t=108305 END ms=100000 measured=100000
 ```
 
-### Flusso quando il timer e' FERMO
+Eventi: `BOOT` (con la causa `POWER` o `WDT`), `ERROR settings=factory`, `START` (Modalità `FO`, `CD`, `TS`, Canale, durata chiesta), `END` e `CANCEL` (con la durata misurata dal timer), `LCD offline` / `LCD online`, `CAL` (log di calibrazione), `LOST lines=n` (righe scartate perché il PC non leggeva).
 
-```
-manageMainButtonAction()
-  -> onStop()
-     -> stopAllTimers()
-     -> evaluateEncoderMod()    (legge encoder modalita)
-     -> evaluateEncoderPrec()   (legge encoder precisione)
-     -> evaluateButtons()       (legge pulsanti encoder)
-     -> evaluateKey()           (legge keypad)
-```
+## 13. Riferimento rapido
 
-### Flusso quando il timer e' IN ESECUZIONE
-
-```
-manageMainButtonAction()
-  -> manageStarted()
-     -> operationStatus.current.startedAction()
-        -> focus() / countdown() / testStrip()
-           -> startFocusTimer() / startCountdownTimer() / startTestStripTimer()
-              -> appTimer.every(100, callback)
-```
-
-I callback del timer vengono eseguiti ogni 100ms da `appTimer.tick()`.
-
-### Librerie utilizzate
-
-| Libreria | Versione | Scopo |
-|----------|----------|-------|
-| Encoder | 1.4.4 | Lettura encoder rotativi |
-| Keypad | 3.1.1 | Keypad 4x4 a matrice |
-| LiquidCrystal_I2C | 1.1.4 | LCD I2C (non usato direttamente, dipendenza) |
-| EncoderButton | 1.0.6 | Gestione pulsanti encoder con debounce |
-| ArduinoSTL | 1.3.3 | Supporto STL minimale per String |
-| OneButton | 2.6.1 | Pulsante principale con click/hold detection |
-| arduino-timer | 3.0.1 | Timer non-bloccante con callback |
-| WaveShare-Lib | locale | Driver LCD RGB Waveshare |
-
----
-
-## Riferimento Rapido Comandi
-
-### Tasti numerici (0-9)
-Disponibili solo in COUNTDOWN e TEST STRIP. Inserimento sequenziale fino a 4 cifre.
-
-### Tasti lettera
-
-| Tasto | Pressione breve | Tenuta prolungata |
-|-------|-----------------|-------------------|
-| `A` | Seleziona canale A | - |
-| `B` | Seleziona canale B | - |
-| `C` | Seleziona canale C | - |
-| `D` | Reset canale corrente | - |
-
-### Tasti speciali
-
-| Tasto | In FOCUS | In COUNTDOWN / TEST STRIP | Tenuta prolungata |
-|-------|----------|---------------------------|-------------------|
-| `*` | Luminosita -1 | Tempo -1 step (Secondi) / F-stop -1 (F-Stop) | Toggle Mute |
-| `#` | Luminosita +1 | Tempo +1 step (Secondi) / F-stop +1 (F-Stop) | Toggle Relay canale |
-
-### Encoder
-
-| Encoder | Rotazione | Pressione |
-|---------|-----------|-----------|
-| Modalita (SX) | Cambia: FOCUS / COUNTDOWN / TEST STRIP | Toggle CO/PP (solo Test Strip) |
-| Precisione (DX) | Cambia livello precisione (11 valori) | Toggle tipo: Secondi (S) / F-Stop (F) |
-
-### Pulsante principale
-
-| Stato | Azione |
-|-------|--------|
-| Timer fermo | Avvia l'operazione corrente |
-| Timer in esecuzione | Ferma l'operazione |
-
----
-
-## Risorse memoria
-
-| Risorsa | Uso | Disponibile | Percentuale |
-|---------|-----|-------------|-------------|
-| RAM | 2050 bytes | 8192 bytes | 25.0% |
-| Flash | 28082 bytes | 253952 bytes | 11.1% |
+| Voglio… | Faccio… |
+|---|---|
+| Esporre per 12,5 s | Countdown, `1` `2` `5`, pulsante principale |
+| Ripetere l'ultima Esposizione | Pulsante principale |
+| Annullare un'Esposizione | Pulsante principale |
+| Un terzo di stop in più | F-Stop 1/3, `#` |
+| Una striscia in passo-passo | Test strip, pressione dell'encoder della Modalità fino a `PP` |
+| Silenziare il timer | `*` tenuto 1 s |
+| Esporre senza accendere la lampada | `#` tenuto 1 s (sparisce ⚡) |
+| Abbassare le luci | Focus a lampada spenta: `*` (LCD), `0` + `*` (7 segmenti) |
+| Aprire il Menu di servizio | `D` tenuto all'accensione |
