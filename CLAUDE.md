@@ -18,8 +18,8 @@ Lo sviluppatore è italiano: stringhe UI e commenti in parte in italiano. Preser
 
 | Branch | Piattaforma | Etichetta issue |
 |---|---|---|
-| `feature/micropython-esp32-port` | MicroPython su ESP32-WROOM-32 | `esp32` |
-| `feature/rewrite_to_improve_stability_and_performance` | C++/PlatformIO su Arduino Mega 2560 | `arduino` |
+| `feature/esp32-micropython-firmware` | MicroPython su ESP32-WROOM-32 | `esp32` |
+| `feature/arduino-mega-firmware` | C++/PlatformIO su Arduino Mega 2560 | `arduino` |
 
 Le modifiche comuni (documentazione, configurazione agenti) vanno su `main`; i due branch vengono poi ribasati su `main`.
 

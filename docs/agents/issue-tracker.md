@@ -51,8 +51,8 @@ This repo has two development lines branching from `main`, and they share one is
 
 | Label | Branch | Platform |
 | --- | --- | --- |
-| `esp32` | `feature/micropython-esp32-port` | MicroPython on ESP32-WROOM-32 |
-| `arduino` | `feature/rewrite_to_improve_stability_and_performance` | C++/PlatformIO on Arduino Mega 2560 |
+| `esp32` | `feature/esp32-micropython-firmware` | MicroPython on ESP32-WROOM-32 |
+| `arduino` | `feature/arduino-mega-firmware` | C++/PlatformIO on Arduino Mega 2560 |
 
 - Every issue gets exactly one platform label. Issues that apply to both lines (shared behaviour, docs on `main`) get both.
 - When creating an issue, apply the label of the branch you are working on (`git branch --show-current`).
