@@ -34,6 +34,13 @@ void Timer1Clock::startCountdown(uint32_t durationMs, bool lamp) {
   }
 }
 
+void Timer1Clock::startFocus(uint32_t limitMs, bool lamp) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    core.startFocus(limitMs);
+    if (lamp) RELAY_ON();
+  }
+}
+
 void Timer1Clock::startStrip(uint32_t firstStepMs, bool lamp) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     core.startStrip(firstStepMs);

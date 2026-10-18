@@ -10,6 +10,7 @@ class LcdWaveshare : public Lcd {
   void begin();
   bool writeAt(uint8_t col, uint8_t row, const char* s, uint8_t n) override;
   bool online() override;  // a ogni giro: fa avanzare l'inizializzazione
+  void setBrightness(uint8_t level) override;
 
  private:
   bool initStep();
@@ -17,5 +18,6 @@ class LcdWaveshare : public Lcd {
 
   uint8_t step_ = 0;      // passo dell'inizializzazione, READY quando finita
   uint32_t nextMs_ = 50;  // il controller vuole 40 ms dall'accensione prima dei comandi
+  uint8_t level_ = 3;    // livello di luminosità 1..8
   bool online_ = true;    // falso dal primo errore fino alla prossima inizializzazione riuscita
 };
