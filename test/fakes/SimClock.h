@@ -15,6 +15,11 @@ struct SimClock : TimingPort {
     relay = lamp;
     if (lamp) relayOnAtMs = nowMs;
   }
+  void startFocus(uint32_t limitMs, bool lamp) override {
+    core.startFocus(limitMs);
+    relay = lamp;
+    if (lamp) relayOnAtMs = nowMs;
+  }
   void startStrip(uint32_t firstStepMs, bool lamp) override {
     core.startStrip(firstStepMs);
     relay = lamp;

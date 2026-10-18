@@ -15,7 +15,9 @@ constexpr SettingsData kFactory = {{0, 0, 3, 3, 1, 1, 0}, {kFactoryChannel, kFac
 
 // Anche con il CRC giusto, valori che indicizzano tabelle restano nei limiti.
 static bool inRange(const SettingsData& d) {
-  if (d.g.activeChannel > 2) return false;
+  if (d.g.activeChannel > 2 || d.g.focusLimitIndex >= FOCUS_LIMIT_COUNT) return false;
+  auto badLevel = [](uint8_t l) { return l < 1 || l > LEVEL_COUNT; };
+  if (badLevel(d.g.lcdLevel) || badLevel(d.g.segLevel) || badLevel(d.g.lcdExposureLevel)) return false;
   for (const ChannelRecord& c : d.ch)
     if (c.mode >= MODE_COUNT || c.precisionIndex >= PRECISION_COUNT) return false;
   return true;
