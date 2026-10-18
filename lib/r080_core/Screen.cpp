@@ -25,9 +25,8 @@ void Screen::compose(uint32_t nowMs) {
     return;
   }
   // Disposizione del firmware precedente. Riga 2: precisione 0-7, Canale 9-12, nota 14, spina 15.
-  // shortcut: valori di fabbrica fissi (Countdown, Canale A, mute spento, relè abilitato) e
-  // testi in RAM perché il dominio non usa PROGMEM; diventano stato del Controller con i
-  // ticket di suoni e canali.
+  // shortcut: valori di fabbrica fissi (Countdown, Canale A, relè abilitato) e testi in RAM
+  // perché il dominio non usa PROGMEM; diventano stato del Controller con il ticket dei canali.
   memcpy(want_[0], "COUNTDOWN  [S]  ", 16);
   uint8_t i = ctl_.precisionIndex();
   if (ctl_.fstop()) {
@@ -45,7 +44,7 @@ void Screen::compose(uint32_t nowMs) {
     want_[1][4 + writeNumber(&want_[1][4], kSecondsSteps[i])] = 's';
   }
   memcpy(&want_[1][9], "Ch:A", 4);
-  want_[1][14] = LCD_NOTE;
+  want_[1][14] = ctl_.muted() ? ' ' : LCD_NOTE;
   want_[1][15] = LCD_PLUG;
 }
 

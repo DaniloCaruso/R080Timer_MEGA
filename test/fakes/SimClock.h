@@ -18,9 +18,15 @@ struct SimClock : TimingPort {
   void cancel() override { core.cancel(); relay = false; relayOffAtMs = nowMs; }
   bool running() override { return core.run() != Run::Idle; }
   uint32_t remainingMs() override { return core.remainingMs(); }
+  uint8_t takeEvents() override { uint8_t e = events; events = 0; return e; }
 
   void tick() {
     nowMs++;
-    if (core.tick()) { relay = false; relayOffAtMs = nowMs; }
+    TickOut out = core.tick();
+    events |= out.events;
+    if (out.relayOff) { relay = false; relayOffAtMs = nowMs; }
   }
+
+ private:
+  uint8_t events = 0;
 };
