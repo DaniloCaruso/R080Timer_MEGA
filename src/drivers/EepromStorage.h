@@ -7,4 +7,5 @@ class EepromStorage : public Storage {
  public:
   void read(uint16_t addr, uint8_t* dst, uint16_t n) override;
   void update(uint16_t addr, const uint8_t* src, uint16_t n) override;
+  bool ready() override;
 };

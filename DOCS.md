@@ -34,7 +34,7 @@ The LCD texts are in Italian; this manual quotes them as they appear, with a tra
 | Digits `0`–`9` | Enter the time (see §3). `0` is entered when the key is released. |
 | `*` / `#` | Decrease / increase the time by the precision (§4). In Focus they set the LCD brightness (§8). |
 | `0` held + `*` / `#` | In Focus: 7-segment brightness (§8). |
-| `*` held 1 s | Mute on/off, with a confirmation beep (§7). |
+| `*` held 1 s | Mute on/off; turning it off sounds a confirmation beep (§7). |
 | `#` held 1 s | Relay enable of the active Channel, with a confirmation beep (§6). |
 | `A` / `B` / `C` | Activate the matching Channel (§6). |
 | `D` | Clears set time, Base time and Offset of the active Channel. |
@@ -55,7 +55,7 @@ Shows a time in seconds with one decimal, on four digits: `010.0` = 10.0 s, `999
 |---|---|
 | Idle | The set time of the active Channel |
 | Countdown running | The remaining time, rounded up |
-| Focus on | The elapsed time (stops at `999.9` after 16 min 39.9 s) |
+| Focus on | The elapsed time; beyond 999.9 s as minutes.seconds (`17.05` = 17 min 05 s) |
 | Test strip running | The cumulative time since the start of the test |
 | Step-by-step test strip paused | The cumulative time of the next Step |
 
@@ -71,7 +71,7 @@ COUNTDOWN  [S]
 TEST STRIP [F]PP
 ```
 
-Row 2: precision (columns 1–7), Channel, ♪ icon (sounds on, hidden when muted) and ⚡ icon (relay enabled).
+Row 2: precision (columns 0–6), Channel, ♪ icon (sounds on, hidden when muted) and ⚡ icon (relay enabled).
 
 ```
  5s      Ch:A ♪⚡     Seconds precision: 5 s
@@ -125,7 +125,7 @@ Lamp on for as long as needed, to compose and focus.
 
 - Main button: the lamp turns on (if the Channel's relay enable is on) and the 7-segment counts the elapsed time. A second press turns it off, with the End sound.
 - **Automatic shut-off:** after the maximum time chosen in the Service menu (3, 5, 10, 15 or 20 minutes; factory 5) the lamp turns off by itself, with the End sound. A warning (two tones) sounds 10 s before.
-- No Metronome. The set time is not used, but stays in the Channel.
+- No Metronome. The set time is not used, but stays in the Channel: digits and the precision encoder (turn and press) have no effect.
 - Focus does not count as an Exposure in the counters; its lamp-on time counts in the lamp hours.
 
 ### Countdown
@@ -185,7 +185,7 @@ At the first power-on with v2.0.0 the settings of the previous version are not r
 | Error | Start with time zero; value refused in the Service menu | long low tone (150 Hz, 300 ms) |
 | Confirm | Mute, relay enable, value saved in the Service menu | very high beep (1200 Hz, 40 ms) |
 
-**Mute.** Hold `*` for 1 s to turn it on or off; the confirmation sounds both ways. While muted only the End sound plays, so the end of an Exposure is never missed; the mute confirmation itself and the Service menu sounds stay audible too.
+**Mute.** Hold `*` for 1 s to turn it on or off; turning it on stays silent, turning it off sounds the confirmation. While muted only the End sound plays, so the end of an Exposure is never missed; the Service menu sounds stay audible too.
 
 ## 8. Darkroom lights
 
