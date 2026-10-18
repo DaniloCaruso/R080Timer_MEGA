@@ -3,6 +3,8 @@
 #include <unity.h>
 #include <Controller.h>
 #include <Screen.h>
+#include <SoundScheduler.h>
+#include "../fakes/FakeBuzzer.h"
 #include "../fakes/FakeLcd.h"
 #include "../fakes/FakeLog.h"
 #include "../fakes/FakeSevenSeg.h"
@@ -13,15 +15,18 @@ struct Timer {
   FakeSevenSeg seg;
   FakeLcd lcd;
   FakeLog log;
-  Controller ctl{clock, seg};
+  FakeBuzzer buzzer{clock.nowMs};
+  SoundScheduler sound{buzzer};
+  Controller ctl{clock, seg, sound};
   Screen screen{lcd, log, ctl, "2.0.0"};
 
   Timer() { loop(); }
-  void loop() { ctl.update(); screen.render(clock.nowMs); }  // un giro di loop()
+  void loop() { ctl.update(); sound.tick(clock.nowMs); screen.render(clock.nowMs); }  // un giro di loop()
   void type(const char* digits) {
     for (; *digits; digits++) { ctl.onInput(Input::Digit, *digits - '0'); loop(); }
   }
   void press() { ctl.onInput(Input::MainPress, 0); loop(); }
+  void hold() { ctl.onInput(Input::StarHold, 0); loop(); }  // `*` tenuto 1 s, poi rilasciato
   void input(Input in, int8_t arg = 0) { ctl.onInput(in, arg); loop(); }
   void star() { input(Input::Star); }
   void hash() { input(Input::Hash); }
@@ -37,6 +42,14 @@ struct Timer {
 
 void setUp() {}
 void tearDown() {}
+
+// Controlla la nota n del buzzer: istante, frequenza e durata.
+static void assertNote(const Timer& t, uint8_t n, uint32_t atMs, uint16_t hz, uint16_t ms) {
+  TEST_ASSERT_TRUE_MESSAGE(n < t.buzzer.count, "nota mancante");
+  TEST_ASSERT_EQUAL_UINT32(atMs, t.buzzer.notes[n].atMs);
+  TEST_ASSERT_EQUAL_UINT16(hz, t.buzzer.notes[n].hz);
+  TEST_ASSERT_EQUAL_UINT16(ms, t.buzzer.notes[n].ms);
+}
 
 // REQ-5.1
 static void test_digits_enter_from_the_right() {
@@ -148,15 +161,18 @@ static void test_digits_are_ignored_during_countdown() {
   TEST_ASSERT_EQUAL_UINT16(12, t.seg.shown);
 }
 
-// REQ-3.8 (il beep di errore arriva con il ticket dei suoni)
-static void test_start_with_zero_time_does_nothing() {
+// REQ-3.8, REQ-8.7: start con tempo zero emette il beep di errore e resta fermo.
+static void test_start_with_zero_time_beeps_error_and_stays_idle() {
   Timer t;
   t.type("0");
+  t.advance(10);
   t.press();
   TEST_ASSERT_FALSE(t.clock.relay);
   t.advance(1);
   TEST_ASSERT_FALSE(t.clock.relay);
   TEST_ASSERT_EQUAL_UINT16(0, t.seg.shown);
+  TEST_ASSERT_EQUAL_UINT8(1, t.buzzer.count);
+  assertNote(t, 0, 10, 150, 300);
 }
 
 // REQ-7.9: nome e versione per 1,5 s dall'accensione.
@@ -219,6 +235,92 @@ static void test_lcd_is_redrawn_when_it_comes_back_online() {
   TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.lcd.cells[0]);
   TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.lcd.cells[1]);
   TEST_ASSERT_EQUAL_STRING("LCD online", t.log.last);
+}
+
+// REQ-8.1, REQ-8.7: beep acuto breve all'inizio dell'Esposizione.
+static void test_start_beeps() {
+  Timer t;
+  t.advance(2000);
+  t.press();
+  TEST_ASSERT_EQUAL_UINT8(1, t.buzzer.count);
+  assertNote(t, 0, 2000, 1000, 60);
+}
+
+// REQ-1.6, REQ-8.7: tick grave a ogni secondo dall'inizio del Countdown.
+static void test_metronome_ticks_every_second_of_countdown() {
+  Timer t;
+  t.type("35");
+  t.press();
+  t.advance(3499);
+  TEST_ASSERT_EQUAL_UINT8(4, t.buzzer.count);
+  assertNote(t, 1, 1000, 300, 80);
+  assertNote(t, 2, 2000, 300, 80);
+  assertNote(t, 3, 3000, 300, 80);
+}
+
+// Suono di fine: 600, 450, 300 Hz da 150 ms con pause di 80 ms, a partire da atMs.
+static void assertEndSound(const Timer& t, uint8_t first, uint32_t atMs) {
+  TEST_ASSERT_EQUAL_UINT8(first + 3, t.buzzer.count);
+  assertNote(t, first, atMs, 600, 150);
+  assertNote(t, first + 1, atMs + 230, 450, 150);
+  assertNote(t, first + 2, atMs + 460, 300, 150);
+}
+
+// REQ-8.4, REQ-8.7: tre toni discendenti alla fine del Countdown.
+static void test_end_of_countdown_plays_end_sound() {
+  Timer t;
+  t.type("35");
+  t.press();
+  t.advance(5000);
+  assertEndSound(t, 4, 3500);
+}
+
+// REQ-8.4: lo stesso Suono di fine all'Annullamento.
+static void test_cancel_plays_end_sound() {
+  Timer t;
+  t.type("35");
+  t.press();
+  t.advance(500);
+  t.press();
+  t.advance(2000);
+  assertEndSound(t, 1, 500);
+}
+
+// REQ-5.5, REQ-7.5: `*` tenuto 1 s alterna il mute con il beep di conferma, toglie e
+// rimette la nota sull'LCD e non tocca il tempo impostato.
+static void test_holding_star_toggles_mute_with_confirm_beep() {
+  Timer t;
+  t.type("12");
+  t.advance(2000);
+  t.hold();
+  t.advance(1);
+  TEST_ASSERT_EQUAL_UINT8(1, t.buzzer.count);
+  assertNote(t, 0, 2000, 1200, 40);
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A  \x02", t.lcd.cells[1]);
+  TEST_ASSERT_EQUAL_UINT16(12, t.seg.shown);
+  TEST_ASSERT_FALSE(t.clock.relay);
+
+  t.advance(1000);
+  t.hold();
+  t.advance(1);
+  TEST_ASSERT_EQUAL_UINT8(2, t.buzzer.count);
+  assertNote(t, 1, 3001, 1200, 40);
+  TEST_ASSERT_EQUAL_STRING("Pr: 1s   Ch:A \x01\x02", t.lcd.cells[1]);
+}
+
+// REQ-8.5: con il mute restano muti avvio, Metronomo ed errore; il Suono di fine suona.
+static void test_mute_silences_everything_but_end_sound() {
+  Timer t;
+  t.hold();
+  t.advance(100);
+  t.type("0");
+  t.press();
+  t.type("15");
+  t.press();
+  t.advance(1400);
+  TEST_ASSERT_EQUAL_UINT8(1, t.buzzer.count);  // la sola conferma del mute
+  t.advance(1000);
+  assertEndSound(t, 1, 1600);
 }
 
 // REQ-4.2: in Secondi */# spostano il tempo del valore di precisione (1 s di fabbrica).
@@ -452,12 +554,18 @@ int main() {
   RUN_TEST(test_first_digit_after_exposure_starts_a_new_time);
   RUN_TEST(test_first_digit_after_cancel_starts_a_new_time);
   RUN_TEST(test_digits_are_ignored_during_countdown);
-  RUN_TEST(test_start_with_zero_time_does_nothing);
+  RUN_TEST(test_start_with_zero_time_beeps_error_and_stays_idle);
   RUN_TEST(test_lcd_shows_name_and_version_at_power_on);
   RUN_TEST(test_lcd_shows_countdown_layout_after_splash);
   RUN_TEST(test_lcd_is_not_written_without_changes);
   RUN_TEST(test_countdown_ends_normally_with_lcd_offline);
   RUN_TEST(test_lcd_is_redrawn_when_it_comes_back_online);
+  RUN_TEST(test_start_beeps);
+  RUN_TEST(test_metronome_ticks_every_second_of_countdown);
+  RUN_TEST(test_end_of_countdown_plays_end_sound);
+  RUN_TEST(test_cancel_plays_end_sound);
+  RUN_TEST(test_holding_star_toggles_mute_with_confirm_beep);
+  RUN_TEST(test_mute_silences_everything_but_end_sound);
   RUN_TEST(test_star_hash_step_by_seconds_precision);
   RUN_TEST(test_seconds_step_stays_within_limits);
   RUN_TEST(test_first_digit_after_star_starts_a_new_time);

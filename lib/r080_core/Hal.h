@@ -19,6 +19,11 @@ struct Lcd {
   virtual bool online() = 0;
 };
 
+// Buzzer: suona hz per ms e si ferma da solo; una nuova nota sostituisce quella in corso.
+struct Buzzer {
+  virtual void play(uint16_t hz, uint16_t ms) = 0;
+};
+
 // Log degli eventi: una riga di testo per evento, mai bloccante.
 struct EventLog {
   virtual void line(const char* text) = 0;
@@ -31,4 +36,5 @@ struct TimingPort {
   virtual void cancel() = 0;
   virtual bool running() = 0;
   virtual uint32_t remainingMs() = 0;
+  virtual uint8_t takeEvents() = 0;  // eventi EV_* accumulati dalla ISR dall'ultima chiamata
 };
