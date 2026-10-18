@@ -5,15 +5,9 @@
 
 #include <stdint.h>
 #include "Counters.h"
+#include "Hal.h"
 #include "Settings.h"
 #include "SoundScheduler.h"
-
-enum class Input : uint8_t;  // in Controller.h
-
-// Salute del sistema (REQ-9.4): la scrivono i driver e il loop di main.cpp, il menu la mostra.
-struct Health {
-  uint32_t loopMaxUs = 0, isrMaxUs = 0, lostTicks = 0;
-};
 
 class ServiceMenu {
  public:

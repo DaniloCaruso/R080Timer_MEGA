@@ -3,12 +3,23 @@
 #pragma once
 
 #include <stdint.h>
+#include "Flash.h"
+
+// Input dell'utente, tradotti dai driver di tastierino, encoder e pulsanti.
+enum class Input : uint8_t { Digit, Star, Hash, StarHold, HashHold, ZeroStar, ZeroHash, Channel, KeyD, ModeTurn,
+                             ModeClick, PrecTurn, PrecClick, MainPress, MainRelease };
+
+// Salute del sistema (REQ-9.4): la scrivono i driver e il loop di main.cpp, il Menu di servizio la mostra.
+struct Health {
+  uint32_t loopMaxUs = 0, isrMaxUs = 0, lostTicks = 0;
+};
 
 // Luminosità a livelli 1..LEVEL_COUNT: i driver li traducono nei valori del dispositivo (REQ-7.11).
 constexpr uint8_t LEVEL_COUNT = 8;
 
 struct SevenSeg {
-  virtual void showDeciseconds(uint16_t ds) = 0;
+  virtual void showDeciseconds(uint16_t ds) = 0;  // `999.9`
+  virtual void showMinSec(uint16_t mmss) = 0;      // `17.05`: minuti*100 + secondi
   virtual void setBrightness(uint8_t level) = 0;
 };
 
@@ -30,19 +41,31 @@ struct Buzzer {
   virtual void play(uint16_t hz, uint16_t ms) = 0;
 };
 
-// EEPROM: update() riceve solo i byte da scrivere.
+// EEPROM: update() riceve solo i byte da scrivere; ready() è falso finché una scrittura è in corso.
 struct Storage {
   virtual void read(uint16_t addr, uint8_t* dst, uint16_t n) = 0;
   virtual void update(uint16_t addr, const uint8_t* src, uint16_t n) = 0;
+  virtual bool ready() = 0;
 };
 
 // Log degli eventi: una riga di testo per evento, mai bloccante.
 struct EventLog {
   virtual void line(const char* text) = 0;
+  // Una riga dal formato fmt in flash (FSTR), come printf, al massimo 47 caratteri.
+  void print(const char* fmt, ...) {
+    char b[48];
+    va_list a;
+    va_start(a, fmt);
+    fvsnprintf(b, sizeof b, fmt, a);
+    va_end(a);
+    line(b);
+  }
 };
 
 // Comandi al TimingCore della ISR. Il driver li esegue in modo atomico e
 // comanda il relè: acceso allo start se lamp è vero, spento all'Annullamento.
+// start* e cancel scartano gli eventi non ancora raccolti, nello stesso blocco atomico:
+// appartengono all'Esposizione precedente.
 // startStrip riprende anche il passo-passo in pausa, da elapsedMs.
 struct TimingPort {
   virtual void startCountdown(uint32_t durationMs, bool lamp) = 0;

@@ -17,7 +17,7 @@ jobs:
           path: ~/.platformio
           key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
       - run: pip install platformio
-      # REQ-11.1: la libreria di dominio non include header Arduino né AVR
-      - run: "! grep -rnE '#include *[<\"](Arduino|avr/|util/)' lib/r080_core"
+      # REQ-11.1: la libreria di dominio non include header Arduino né AVR (Flash.h: solo pgmspace sotto __AVR__)
+      - run: "! grep -rnE --exclude=Flash.h '#include *[<\"](Arduino|avr/|util/)' lib/r080_core"
       - run: pio run -e megaatmega2560
       - run: pio test -e native
