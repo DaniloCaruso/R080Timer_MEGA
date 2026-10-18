@@ -19,8 +19,25 @@ static OneButton mainButton;
 static OneButton precButton;
 static Encoder precEncoder(ENC_PREC_DT_PIN, ENC_PREC_CLK_PIN);
 static int32_t precLast = 0;  // ultima posizione già tradotta in tacche
+static Controller* keyTarget;  // il listener di Keypad non riceve contesto
+static bool starHeld = false;
 
 void InputDevices::begin() {
+  keypad.setHoldTime(1000);  // REQ-5.5
+  keyTarget = &ctl_;
+  // Il listener riceve i cambi di stato del primo tasto premuto. `*` agisce al rilascio, e
+  // solo se non è scattato l'HOLD: Keypad manda sempre un RELEASED dopo l'HOLD (C-20).
+  keypad.addEventListener([](char key) {
+    if (key != '*') return;
+    KeyState s = keypad.getState();
+    if (s == HOLD) {
+      starHeld = true;
+      keyTarget->onInput(Input::StarHold, 0);
+    } else if (s == RELEASED) {
+      if (!starHeld) keyTarget->onInput(Input::Star, 0);
+      starHeld = false;
+    }
+  });
   mainButton.setup(MAIN_BTN_PIN, INPUT_PULLUP, true);
   mainButton.setDebounceMs(20);
   // REQ-5.11: l'evento scatta alla pressione, appena superato l'antirimbalzo.
@@ -39,6 +56,6 @@ void InputDevices::poll() {
   while (precLast - pos >= 4) { precLast -= 4; ctl_.onInput(Input::PrecTurn, -1); }
   char key = keypad.getKey();
   if (key >= '0' && key <= '9') ctl_.onInput(Input::Digit, key - '0');
-  else if (key == '*') ctl_.onInput(Input::Star, 0);
+  // shortcut: `#` agisce alla pressione finché non ha l'HOLD (Abilitazione relè), poi va al rilascio come `*`.
   else if (key == '#') ctl_.onInput(Input::Hash, 0);
 }

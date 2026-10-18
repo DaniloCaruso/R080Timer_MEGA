@@ -2,6 +2,8 @@
 #include <Arduino.h>
 #include <Controller.h>
 #include <Screen.h>
+#include <SoundScheduler.h>
+#include "drivers/BuzzerTone.h"
 #include "drivers/InputDevices.h"
 #include "drivers/LcdWaveshare.h"
 #include "drivers/SevenSegSerial3.h"
@@ -12,7 +14,9 @@ static Timer1Clock timing;
 static SevenSegSerial3 sevenSeg;
 static LcdWaveshare lcd;
 static UsbLog usbLog;
-static Controller controller(timing, sevenSeg);
+static BuzzerTone buzzer;
+static SoundScheduler sound(buzzer);
+static Controller controller(timing, sevenSeg, sound);
 static Screen screen(lcd, usbLog, controller, FW_VERSION);
 static InputDevices inputs(controller);
 
@@ -27,5 +31,7 @@ void setup() {
 void loop() {
   inputs.poll();
   controller.update();
-  screen.render(millis());
+  uint32_t now = millis();
+  sound.tick(now);
+  screen.render(now);
 }
