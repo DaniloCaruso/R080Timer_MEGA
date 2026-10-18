@@ -2,13 +2,12 @@
 #define ENCODER_H
 
 #include <Arduino.h>
-#include <EncoderButton.h>
 #include "variables.h"
 #include "functions/operations.h"
 
 // PROTOTYPES
-void onModeButtonEvent(EncoderButton& encoderButton);
-void onPrecisionButtonEvent(EncoderButton& encoderButton);
+void onModeButtonEvent();
+void onPrecisionButtonEvent();
 void registerClickHandler();
 void evaluateButtons();
 void evaluateEncoderMod();
@@ -16,11 +15,11 @@ void evaluateEncoderPrec();
 
 // IMPLEMENTATIONS
 
-void onModeButtonEvent(EncoderButton& encoderButton) {
+void onModeButtonEvent() {
   operationStatus.current.switchModality(&operationStatus.current.modalityTypeStatus);
 }
 
-void onPrecisionButtonEvent(EncoderButton& encoderButton) {
+void onPrecisionButtonEvent() {
   // Quando si cambia tipo precisione (SECONDS <-> FSTOP)
   // inizializza F-stop state col tempo corrente come base
   operationStatus.current.switchPrecisionType(&operationStatus.current.precisionTypeStatus);
@@ -30,13 +29,13 @@ void onPrecisionButtonEvent(EncoderButton& encoderButton) {
 }
 
 void registerClickHandler() {
-  encoderModeButton.setClickHandler(onModeButtonEvent);
-  encoderPrecisionButton.setClickHandler(onPrecisionButtonEvent);
+  encoderModeButton.attachClick(onModeButtonEvent);
+  encoderPrecisionButton.attachClick(onPrecisionButtonEvent);
 }
 
 void evaluateButtons() {
-  encoderModeButton.update();
-  encoderPrecisionButton.update();
+  encoderModeButton.tick();
+  encoderPrecisionButton.tick();
 }
 
 void evaluateEncoderMod() {

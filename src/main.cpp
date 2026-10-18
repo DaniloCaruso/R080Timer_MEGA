@@ -3,10 +3,8 @@
 #include <avr/eeprom.h>
 #include <util/atomic.h>
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
 #include <SoftwareSerial.h>
 #include <Encoder.h>
-#include <EncoderButton.h>
 #include <OneButton.h>
 #include "types.h"
 #include "constants.h"
