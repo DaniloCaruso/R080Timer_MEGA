@@ -8,7 +8,7 @@ Guida per agenti Claude Code. Per pinout, installazione e comportamento utente, 
 
 **R080 Timer** — firmware per timer da camera oscura (ingranditore fotografico). 3 modalità (Focus, Countdown, Test Strip), navigazione F-Stop, 3 canali con memoria, persistenza impostazioni, suoni non bloccanti.
 
-Su questo branch (`feature/micropython-esp32-port`) è scritto in **MicroPython** per **ESP32-WROOM-32**. NON è Arduino, NON usa PlatformIO. Non generare mai codice C++/Arduino su questo branch: la versione Arduino vive su `main` e su `feature/rewrite_to_improve_stability_and_performance` (vedi §14).
+Su questo branch (`feature/esp32-micropython-firmware`) è scritto in **MicroPython** per **ESP32-WROOM-32**. NON è Arduino, NON usa PlatformIO. Non generare mai codice C++/Arduino su questo branch: la versione Arduino vive su `main` e su `feature/arduino-mega-firmware` (vedi §14).
 
 Lo sviluppatore è italiano: stringhe UI e commenti in parte in italiano (`"PRONTO"`, `"Ch:A"`, ecc.). Preservarli. **Rispondere all'utente in italiano.**
 
@@ -220,8 +220,8 @@ Per il comportamento utente (cosa fa ogni tasto, ogni modalità, ogni encoder) v
 
 | Branch | Piattaforma | Etichetta issue |
 |---|---|---|
-| `feature/micropython-esp32-port` (questo) | MicroPython su ESP32-WROOM-32 | `esp32` |
-| `feature/rewrite_to_improve_stability_and_performance` | C++/PlatformIO su Arduino Mega 2560 | `arduino` |
+| `feature/esp32-micropython-firmware` (questo) | MicroPython su ESP32-WROOM-32 | `esp32` |
+| `feature/arduino-mega-firmware` | C++/PlatformIO su Arduino Mega 2560 | `arduino` |
 
 Le modifiche comuni (documentazione, configurazione agenti) vanno su `main`; i due branch vengono poi ribasati su `main`.
 
