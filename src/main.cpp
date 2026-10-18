@@ -2,8 +2,10 @@
 #include <Arduino.h>
 #include <Controller.h>
 #include <Screen.h>
+#include <Settings.h>
 #include <SoundScheduler.h>
 #include "drivers/BuzzerTone.h"
+#include "drivers/EepromStorage.h"
 #include "drivers/InputDevices.h"
 #include "drivers/LcdWaveshare.h"
 #include "drivers/SevenSegSerial3.h"
@@ -16,12 +18,15 @@ static LcdWaveshare lcd;
 static UsbLog usbLog;
 static BuzzerTone buzzer;
 static SoundScheduler sound(buzzer);
-static Controller controller(timing, sevenSeg, sound);
+static EepromStorage eeprom;
+static Settings settings(eeprom);
+static Controller controller(timing, sevenSeg, sound, settings);
 static Screen screen(lcd, usbLog, controller, FW_VERSION);
 static InputDevices inputs(controller);
 
 void setup() {
   timing.begin();  // per primo: relè spento (REQ-2.1)
+  settings.load();  // REQ-6.4
   usbLog.begin();
   sevenSeg.begin();
   lcd.begin();
@@ -34,4 +39,5 @@ void loop() {
   uint32_t now = millis();
   sound.tick(now);
   screen.render(now);
+  settings.service(now);
 }

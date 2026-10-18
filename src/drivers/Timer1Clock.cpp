@@ -31,10 +31,10 @@ void Timer1Clock::begin() {
   TIMSK1 |= _BV(OCIE1A);
 }
 
-void Timer1Clock::startCountdown(uint32_t durationMs) {
+void Timer1Clock::startCountdown(uint32_t durationMs, bool lamp) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     core.startCountdown(durationMs);
-    RELAY_ON();
+    if (lamp) RELAY_ON();
   }
 }
 

@@ -24,17 +24,22 @@ void Screen::compose(uint32_t nowMs) {
     memcpy(&want_[1][col + 1], version_, n);
     return;
   }
-  // Disposizione del firmware precedente. Riga 2: precisione 0-7, Canale 9-12, nota 14, spina 15.
-  // shortcut: valori di fabbrica fissi (Countdown, Canale A, relè abilitato) e testi in RAM
-  // perché il dominio non usa PROGMEM; diventano stato del Controller con il ticket dei canali.
-  memcpy(want_[0], "COUNTDOWN  [S]  ", 16);
-  uint8_t i = ctl_.precisionIndex();
-  if (ctl_.fstop()) {
+  // Disposizione del firmware precedente. Riga 1: Modalità, tipo di precisione 12, Avanzamento 14.
+  // Riga 2: precisione 0-8, Canale 9-12, nota 14, spina 15.
+  // shortcut: testi in RAM perché il dominio non usa PROGMEM; da spostare se la RAM stringe.
+  static const char kModeRows[MODE_COUNT][17] = {"FOCUS           ", "COUNTDOWN  [S]  ", "TEST STRIP [S]  "};
+  const ChannelRecord& c = ctl_.channel();
+  memcpy(want_[0], kModeRows[c.mode], 16);
+  if (c.mode == TEST_STRIP) want_[0][14] = c.advance ? 'P' : 'C';
+  uint8_t i = c.precisionIndex;
+  if (c.mode == FOCUS) {
+    // REQ-7.10: in Focus nessuna precisione.
+  } else if (c.precisionKind) {
     // F-Stop: precisione alle colonne 0-5 (`Pr1/64`), Offset alle 6-8 (REQ-4.4, TECHNICAL C-13).
     want_[0][12] = 'F';
     memcpy(want_[1], "Pr1/", 4);
     writeNumber(&want_[1][4], kFStopDenominators[i]);
-    int8_t off = ctl_.offset();
+    int8_t off = c.offset;
     want_[1][6] = off > 0 ? '+' : off < 0 ? '-' : ' ';
     if (off < 0) off = -off;
     want_[1][7] = '0' + off / 10;
@@ -43,9 +48,10 @@ void Screen::compose(uint32_t nowMs) {
     memcpy(want_[1], "Pr: ", 4);
     want_[1][4 + writeNumber(&want_[1][4], kSecondsSteps[i])] = 's';
   }
-  memcpy(&want_[1][9], "Ch:A", 4);
+  memcpy(&want_[1][9], "Ch:", 3);
+  want_[1][12] = 'A' + ctl_.channelIndex();
   want_[1][14] = ctl_.muted() ? ' ' : LCD_NOTE;
-  want_[1][15] = LCD_PLUG;
+  want_[1][15] = c.relayEnabled ? LCD_PLUG : ' ';
 }
 
 void Screen::render(uint32_t nowMs) {
