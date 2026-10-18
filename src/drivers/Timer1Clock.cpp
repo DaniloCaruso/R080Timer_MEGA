@@ -38,6 +38,17 @@ void Timer1Clock::startCountdown(uint32_t durationMs, bool lamp) {
   }
 }
 
+void Timer1Clock::startStrip(uint32_t firstStepMs, bool lamp) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+    core.startStrip(firstStepMs);
+    if (lamp) RELAY_ON();
+  }
+}
+
+void Timer1Clock::setNextStep(uint32_t nextStepMs) {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { core.setNextStep(nextStepMs); }
+}
+
 void Timer1Clock::cancel() {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     core.cancel();
@@ -52,6 +63,11 @@ bool Timer1Clock::running() {
 
 uint32_t Timer1Clock::remainingMs() {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return core.remainingMs(); }
+  return 0;  // irraggiungibile, evita il warning
+}
+
+uint32_t Timer1Clock::elapsedMs() {
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) { return core.elapsedMs(); }
   return 0;  // irraggiungibile, evita il warning
 }
 
