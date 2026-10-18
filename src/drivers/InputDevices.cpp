@@ -64,6 +64,17 @@ static void onKey(Controller& ctl, char key, KeyState s) {
   else if (key == 'D') ctl.onInput(Input::KeyD, 0);
 }
 
+// `D` è all'incrocio fra l'ultima riga e l'ultima colonna: colonna a massa, riga in pull-up.
+bool InputDevices::keyDHeld() {
+  pinMode(KEYPAD_COL_PINS[3], OUTPUT);
+  digitalWrite(KEYPAD_COL_PINS[3], LOW);
+  pinMode(KEYPAD_ROW_PINS[3], INPUT_PULLUP);
+  delayMicroseconds(10);  // il pull-up carica la capacità della riga
+  bool held = digitalRead(KEYPAD_ROW_PINS[3]) == LOW;
+  pinMode(KEYPAD_COL_PINS[3], INPUT);  // da qui i pin li gestisce Keypad
+  return held;
+}
+
 void InputDevices::begin() {
   keypad.setHoldTime(1000);  // REQ-5.5, REQ-5.6
   mainButton.setup(MAIN_BTN_PIN, INPUT_PULLUP, true);
