@@ -1,6 +1,7 @@
 #include "Settings.h"
 
 #include <string.h>
+#include "Crc8.h"
 #include "Precision.h"
 
 constexpr uint8_t VERSION = 1;
@@ -11,16 +12,6 @@ constexpr uint32_t SAVE_DELAY_MS = 2000;  // REQ-6.7
 // mute spento, LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus 5 min, 0 ppm.
 constexpr ChannelRecord kFactoryChannel = {COUNTDOWN, 0, 0, 0, 100, 100, 0, 1};
 constexpr SettingsData kFactory = {{0, 0, 3, 3, 1, 1, 0}, {kFactoryChannel, kFactoryChannel, kFactoryChannel}};
-
-// CRC8, polinomio 0x07.
-static uint8_t crc8(const uint8_t* p, uint8_t n) {
-  uint8_t crc = 0;
-  while (n--) {
-    crc ^= *p++;
-    for (uint8_t i = 0; i < 8; i++) crc = crc & 0x80 ? (crc << 1) ^ 0x07 : crc << 1;
-  }
-  return crc;
-}
 
 // Anche con il CRC giusto, valori che indicizzano tabelle restano nei limiti.
 static bool inRange(const SettingsData& d) {
