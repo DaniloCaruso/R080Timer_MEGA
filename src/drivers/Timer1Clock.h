@@ -8,6 +8,7 @@ class Timer1Clock : public TimingPort {
  public:
   void begin();  // chiamare per primo in setup(): mette il relè in uscita a livello basso
   void startCountdown(uint32_t durationMs, bool lamp) override;
+  void startFocus(uint32_t limitMs, bool lamp) override;
   void startStrip(uint32_t firstStepMs, bool lamp) override;
   void setNextStep(uint32_t nextStepMs) override;
   void cancel() override;

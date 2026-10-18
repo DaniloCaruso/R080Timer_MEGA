@@ -72,6 +72,8 @@ void Screen::render(uint32_t nowMs) {
     memset(shown_, 0, sizeof shown_);  // il driver l'ha reinizializzato: ridisegna tutto
     online_ = true;
   }
+  uint8_t level = ctl_.lcdLevel();
+  if (level != level_) lcd_.setBrightness(level_ = level);
   compose(nowMs);
   for (uint8_t r = 0; r < 2; r++) {
     uint8_t first = 0, last = 15;

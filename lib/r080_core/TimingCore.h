@@ -4,10 +4,10 @@
 
 #include <stdint.h>
 
-enum class Run : uint8_t { Idle, Countdown, StripContinuous };
+enum class Run : uint8_t { Idle, Focus, Countdown, StripContinuous };
 
 // Eventi di un tick, a bit: la ISR li accumula, il loop li raccoglie.
-enum : uint8_t { EV_END = 1, EV_STEP = 2, EV_METRONOME = 4, EV_PREWARN = 8 };
+enum : uint8_t { EV_END = 1, EV_STEP = 2, EV_METRONOME = 4, EV_PREWARN = 8, EV_FOCUS_WARN = 16, EV_FOCUS_OFF = 32 };
 struct TickOut {
   uint8_t events;
   bool relayOff;
@@ -15,6 +15,7 @@ struct TickOut {
 
 constexpr uint32_t STRIP_LIMIT_MS = 999900;  // REQ-3.14
 constexpr uint32_t NO_STEP = 0xFFFFFFFF;     // prossimo Step non ancora calcolato dal loop
+constexpr uint32_t FOCUS_WARN_MS = 10000;    // REQ-3.4: avviso 10 s prima dello Spegnimento automatico
 
 class TimingCore {
  public:
@@ -23,6 +24,13 @@ class TimingCore {
     msInSecond_ = 0;
     target_ = durationMs;
     run_ = Run::Countdown;
+  }
+  // limitMs > FOCUS_WARN_MS: i limiti del Focus partono da 3 minuti.
+  void startFocus(uint32_t limitMs) {
+    elapsed_ = 0;
+    target_ = limitMs;
+    warn_ = limitMs - FOCUS_WARN_MS;  // calcolato qui: nella ISR resta un confronto
+    run_ = Run::Focus;
   }
   // Test strip: il loop calcola ogni Step (float, C-9) e lo passa con setNextStep().
   void startStrip(uint32_t firstStepMs) {
@@ -35,6 +43,7 @@ class TimingCore {
 
   TickOut tick() {
     if (run_ == Run::StripContinuous) return stripTick();
+    if (run_ == Run::Focus) return focusTick();
     if (run_ != Run::Countdown) return {0, false};
     if (++elapsed_ >= target_) {
       run_ = Run::Idle;
@@ -64,7 +73,16 @@ class TimingCore {
     return {static_cast<uint8_t>(left == 300 || left == 200 || left == 100 ? EV_PREWARN : 0), false};  // REQ-8.3
   }
 
+  // REQ-3.3, REQ-3.4: nessun Metronomo in Focus (REQ-8.2).
+  TickOut focusTick() {
+    if (++elapsed_ >= target_) {
+      run_ = Run::Idle;
+      return {EV_FOCUS_OFF, true};
+    }
+    return {elapsed_ == warn_ ? uint8_t(EV_FOCUS_WARN) : uint8_t(0), false};
+  }
+
   Run run_ = Run::Idle;
-  uint32_t elapsed_ = 0, target_ = 0, next_ = NO_STEP;
+  uint32_t elapsed_ = 0, target_ = 0, next_ = NO_STEP, warn_ = 0;
   uint16_t msInSecond_ = 0;
 };

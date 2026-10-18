@@ -23,5 +23,6 @@ class Screen {
   char want_[2][16];
   char shown_[2][16] = {};  // '\0' = cella sconosciuta, da riscrivere
   bool online_ = true;
+  uint8_t level_ = 0;  // luminosità già inviata all'LCD
   bool watchdogReset_ = false;
 };

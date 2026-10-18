@@ -58,6 +58,32 @@ static void test_no_metronome_when_idle() {
   for (int t = 0; t < 3000; t++) TEST_ASSERT_EQUAL_UINT8(0, core.tick().events);
 }
 
+// REQ-3.3, REQ-3.4: in Focus l'avviso a limite -10 s e lo Spegnimento automatico al limite esatto.
+static void test_focus_warns_ten_seconds_before_limit_and_turns_relay_off_at_limit() {
+  TimingCore core;
+  core.startFocus(300000);
+  for (uint32_t t = 1; t < 300000; t++) {
+    TickOut out = core.tick();
+    TEST_ASSERT_FALSE_MESSAGE(out.relayOff, "relè spento prima del limite");
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE(t == 290000 ? EV_FOCUS_WARN : 0, out.events, "evento fuori tempo");
+  }
+  TEST_ASSERT_EQUAL_UINT32(299999, core.elapsedMs());
+  TickOut out = core.tick();
+  TEST_ASSERT_TRUE(out.relayOff);
+  TEST_ASSERT_EQUAL_UINT8(EV_FOCUS_OFF, out.events);
+  TEST_ASSERT_TRUE(core.run() == Run::Idle);
+  TEST_ASSERT_FALSE(core.tick().relayOff);
+}
+
+static void test_cancelled_focus_never_turns_relay_off_later() {
+  TimingCore core;
+  core.startFocus(180000);
+  for (int t = 0; t < 1000; t++) core.tick();
+  TEST_ASSERT_EQUAL_UINT32(1000, core.elapsedMs());
+  core.cancel();
+  for (uint32_t t = 0; t < 180000; t++) TEST_ASSERT_EQUAL_UINT8(0, core.tick().events);
+}
+
 // REQ-1.5, REQ-8.3: Step al tick esatto, Preavviso a -300, -200, -100 ms; dopo lo Step il
 // prossimo arriva solo quando il loop lo ha calcolato.
 static void test_strip_steps_at_exact_tick_with_prewarn() {
@@ -92,6 +118,8 @@ static void test_strip_ends_at_999_9_seconds() {
 
 int main() {
   UNITY_BEGIN();
+  RUN_TEST(test_focus_warns_ten_seconds_before_limit_and_turns_relay_off_at_limit);
+  RUN_TEST(test_cancelled_focus_never_turns_relay_off_later);
   RUN_TEST(test_countdown_turns_relay_off_exactly_at_last_tick);
   RUN_TEST(test_cancelled_countdown_never_turns_relay_off_later);
   RUN_TEST(test_metronome_fires_every_second_from_exposure_start);

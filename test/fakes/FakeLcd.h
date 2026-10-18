@@ -7,6 +7,7 @@ struct FakeLcd : Lcd {
   char cells[2][17];  // ogni riga terminata da '\0' per i confronti tra stringhe
   bool isOnline = true;
   uint32_t writes = 0;
+  uint8_t level = 0;  // nessun livello ancora inviato
 
   FakeLcd() { fill(' '); }
   void fill(char c) {
@@ -19,4 +20,5 @@ struct FakeLcd : Lcd {
     return true;
   }
   bool online() override { return isOnline; }
+  void setBrightness(uint8_t l) override { level = l; }
 };

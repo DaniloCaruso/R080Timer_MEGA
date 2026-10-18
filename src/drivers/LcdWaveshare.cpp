@@ -10,8 +10,8 @@ static constexpr uint8_t CMD = 0x80, DATA = 0x40;  // byte di controllo: comando
 static constexpr uint8_t FUNCTION_SET = 0x28;      // 2 righe, 5x8
 static constexpr uint8_t READY = 4;
 static constexpr uint32_t RETRY_MS = 2000;
-// shortcut: rosso fisso al livello 3 di kLcdLevels (16), i livelli arrivano con il ticket delle luci
-static constexpr uint8_t RED_LEVEL = 16;
+// REQ-7.11: livelli 1..8 del rosso, più fitti in basso.
+static constexpr uint8_t kLcdLevels[LEVEL_COUNT] = {4, 8, 16, 28, 48, 80, 140, 255};
 
 // Caratteri personalizzati 1 (nota) e 2 (spina), contigui in CGRAM dall'indirizzo 8.
 static const uint8_t GLYPHS[16] = {
@@ -57,7 +57,7 @@ bool LcdWaveshare::initStep() {
       memcpy(cgram + 3, GLYPHS, sizeof GLYPHS);
       // REQ-7.1: sempre e solo rosso; MODE2 senza blink.
       return command(0x06) && send(LCD_ADDR, cgram, sizeof cgram) && setReg(REG_MODE1, 0) &&
-             setReg(REG_OUTPUT, 0xFF) && setReg(REG_MODE2, 0x00) && setReg(REG_RED, RED_LEVEL) &&
+             setReg(REG_OUTPUT, 0xFF) && setReg(REG_MODE2, 0x00) && setReg(REG_RED, kLcdLevels[level_ - 1]) &&
              setReg(REG_GREEN, 0) && setReg(REG_BLUE, 0);
     }
   }
@@ -75,6 +75,11 @@ bool LcdWaveshare::online() {
   if (!initStep()) fail();
   else if (++step_ == READY) online_ = true;
   return online_;
+}
+
+void LcdWaveshare::setBrightness(uint8_t level) {
+  level_ = level;  // da fermo lo applica la prossima inizializzazione
+  if (step_ == READY && !setReg(REG_RED, kLcdLevels[level - 1])) fail();
 }
 
 bool LcdWaveshare::writeAt(uint8_t col, uint8_t row, const char* s, uint8_t n) {
