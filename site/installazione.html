@@ -1,0 +1,1163 @@
+<!doctype html>
+<html lang="it" data-lang="it" data-title-it="Installazione · R080 Timer" data-title-en="Setup · R080 Timer">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Installazione · R080 Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+/* ---------- route (table of contents) ---------- */
+.route { counter-reset: phase; gap: 8px; }
+.route a { display: inline-flex; align-items: center; gap: 8px; counter-increment: phase; }
+.route a::before {
+  content: counter(phase, decimal-leading-zero);
+  font: 700 10.5px/1 var(--mono);
+  color: var(--magenta);
+  letter-spacing: .06em;
+}
+.route a:focus-visible, .toc a:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+
+.sec-head { display: grid; gap: 8px; }
+.sec-head .eyebrow { color: var(--c, var(--magenta)); }
+
+/* ---------- bill of materials ---------- */
+.bom { grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.bom .card { padding: 0; overflow: hidden; gap: 0; }
+.bom .art {
+  aspect-ratio: 20 / 11;
+  display: grid;
+  place-items: center;
+  color: var(--c, var(--violet));
+  background:
+    radial-gradient(120% 90% at 50% 0%, color-mix(in srgb, var(--c, var(--violet)) 20%, transparent), transparent 70%),
+    #120a24;
+  border-bottom: 1px solid var(--line);
+}
+.bom .art svg { width: 82%; height: auto; overflow: visible; }
+.bom .body { display: grid; gap: 8px; padding: 16px 18px 18px; }
+.bom .top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.bom .qty { font: 700 13px/1 var(--mono); color: var(--c, var(--violet)); }
+.bom .pins { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+.bom .pins .pill { --c: var(--line-2); color: var(--fg); }
+.extras { color: var(--muted); font-size: 14px; }
+
+/* ---------- wiring ---------- */
+.diff { display: grid; gap: 10px; }
+.diff .move { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font: 700 clamp(20px, 3vw, 28px)/1 var(--mono); }
+.diff .old { color: var(--faint); text-decoration: line-through; text-decoration-thickness: 2px; }
+.diff .arrow { color: var(--c, var(--violet)); }
+.diff .new { color: var(--c, var(--violet)); }
+.mains { align-items: center; }
+.mains .bolt { flex: none; width: 44px; height: 44px; color: var(--red); }
+
+/* ---------- power ---------- */
+.power .card { grid-template-columns: 56px 1fr; column-gap: 16px; }
+.power .card > :not(svg) { grid-column: 2; }
+.power .card > svg { grid-row: span 4; width: 56px; height: 56px; color: var(--c); }
+.power .volt { font: 700 26px/1 var(--display); color: var(--c); }
+
+/* ---------- commands ---------- */
+.cmdbox { position: relative; min-width: 0; }
+.cmdbox pre.cmd { padding-right: 96px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.cmdbox pre.cmd .c { color: var(--faint); }
+.copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  border: 1px solid var(--line-2);
+  background: var(--panel-2);
+  color: var(--fg);
+  font: 600 11.5px/1 var(--mono);
+  letter-spacing: .04em;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease;
+}
+.copy:hover { border-color: var(--violet); }
+.copy[data-state="ok"] { border-color: var(--green); color: var(--green); }
+.copy[data-state="sel"] { border-color: var(--amber); color: var(--amber); }
+.copy:focus-visible, .btn:focus-visible, .seg button:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.steps > li { min-width: 0; }
+.steps > li > * { min-width: 0; }
+.steps > li > .cmdbox, .steps > li > ul { display: grid; gap: 8px; }
+
+/* ---------- first boot: devices ---------- */
+.boot { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.devices { display: grid; gap: 14px; }
+.lcd {
+  --cell: clamp(12px, 2.1vw, 24px);
+  padding: 14px;
+  border-radius: 14px;
+  background: #0f2a17;
+  background: linear-gradient(180deg, #2a2f3a, #171a22);
+  border: 1px solid #3b4252;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+.lcd .glass {
+  display: grid;
+  gap: 4px;
+  padding: 12px 10px;
+  border-radius: 6px;
+  background: radial-gradient(120% 140% at 50% 0%, #ff4b55, #c3121f 70%);
+  box-shadow: inset 0 0 18px rgba(80, 0, 10, .55), 0 0 34px rgba(255, 60, 80, .25);
+}
+.lcd .row { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+.lcd .row span {
+  display: grid;
+  place-items: center;
+  height: calc(var(--cell) * 1.55);
+  border-radius: 2px;
+  background: rgba(120, 0, 15, .18);
+  color: #2b0207;
+  font: 700 var(--cell)/1 var(--mono);
+}
+.sevenseg {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: #0b0710;
+  border: 1px solid #2d2440;
+}
+.sevenseg .digits {
+  font: 700 clamp(30px, 5vw, 50px)/1 var(--mono);
+  letter-spacing: .08em;
+  color: #ff3b4f;
+  text-shadow: 0 0 14px rgba(255, 59, 79, .7);
+}
+.sevenseg .lbl { font: 600 11px/1.3 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); text-align: right; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg-2); }
+.seg button, .btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 600 13px/1 var(--body);
+  padding: 9px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--violet); color: var(--bg); }
+.btn { border: 1px solid var(--line-2); color: var(--fg); background: var(--panel-2); }
+.btn:hover { border-color: var(--violet); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.log { white-space: pre; }
+.log .ev { color: var(--cyan); }
+.log .err { color: var(--amber); }
+.expect { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.expect li { display: grid; grid-template-columns: 22px 1fr; gap: 10px; color: var(--muted); font-size: 14px; }
+.expect li::before { content: ""; width: 10px; height: 10px; margin-top: 6px; border-radius: 50%; background: var(--c, var(--green)); box-shadow: 0 0 10px var(--c, var(--green)); justify-self: center; }
+.expect b { color: var(--fg); font-weight: 600; }
+
+/* ---------- service menu ---------- */
+.menu-items { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.menu-items .card { padding: 14px 16px; gap: 6px; border-left: 3px solid var(--c, var(--violet)); }
+.lcdlabel {
+  justify-self: start;
+  padding: 4px 8px;
+  border-radius: 5px;
+  background: #b9101d;
+  color: #2b0207;
+  font: 700 12.5px/1.2 var(--mono);
+  white-space: pre;
+}
+.legend { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* ---------- calibration ---------- */
+.ppmfact { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: baseline; }
+.ppmfact .big { font: 700 clamp(26px, 4vw, 40px)/1 var(--display); color: var(--green); }
+.method { align-content: start; border-top: 3px solid var(--c); }
+.method .tag { color: var(--c); justify-self: start; }
+.method ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; color: var(--muted); font-size: 14px; }
+.method ol li::marker { color: var(--c); font: 700 13px var(--mono); }
+.calc { display: grid; gap: 12px; padding: 16px; border-radius: 16px; border: 1px dashed var(--line-2); background: var(--bg-2); }
+.calc .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.calc label { display: grid; gap: 6px; font: 600 12px/1.3 var(--mono); letter-spacing: .06em; color: var(--muted); }
+.calc input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: #0c0718;
+  color: var(--fg);
+  font: 600 16px/1.2 var(--mono);
+}
+.calc input:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+.calc .out { display: grid; gap: 8px; font-size: 14px; color: var(--muted); }
+.calc .out .res { font: 700 24px/1.1 var(--display); color: var(--green); }
+.calc .out .bad { color: var(--red); }
+.calc .keys { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+
+/* ---------- checklist ---------- */
+.check-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.meter { display: grid; gap: 6px; flex: 1 1 260px; }
+.meter .bar { height: 8px; border-radius: 999px; background: var(--bg-2); border: 1px solid var(--line); overflow: hidden; }
+.meter .fill { height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, var(--violet), var(--green)); transition: width .3s ease; }
+.meter .txt { font: 600 12px/1.3 var(--mono); letter-spacing: .06em; color: var(--muted); }
+.checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.checklist li label {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 4px 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease;
+}
+.checklist li label:hover { border-color: var(--line-2); }
+.checklist input {
+  grid-row: span 3;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin: 0;
+  border-radius: 7px;
+  border: 2px solid var(--line-2);
+  background: var(--bg-2);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.checklist input::after { content: ""; width: 10px; height: 6px; border: solid var(--bg); border-width: 0 0 3px 3px; transform: rotate(-45deg) translate(1px, -1px); opacity: 0; }
+.checklist input:checked { background: var(--green); border-color: var(--green); }
+.checklist input:checked::after { opacity: 1; }
+.checklist input:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.checklist li:has(input:checked) label { border-color: color-mix(in srgb, var(--green) 45%, transparent); background: color-mix(in srgb, var(--green) 6%, var(--panel)); }
+.checklist .t { font: 700 15px/1.3 var(--display); color: var(--fg); }
+.checklist .d { color: var(--muted); font-size: 14px; }
+.checklist .crit { justify-self: start; --c: var(--green); }
+
+/* ---------- troubleshooting ---------- */
+.trouble { display: grid; gap: 10px; }
+.trouble details { border-radius: 16px; border: 1px solid var(--line); background: var(--panel); }
+.trouble details[open] { border-color: var(--line-2); }
+.trouble summary {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 40px 1fr 20px;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  border-radius: 16px;
+}
+.trouble summary::-webkit-details-marker { display: none; }
+.trouble summary:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.trouble summary .ico { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); }
+.trouble summary .ico svg { width: 22px; height: 22px; }
+.trouble summary h3 { font-size: 15px; }
+.trouble summary .hint { display: block; color: var(--muted); font: 400 13.5px/1.4 var(--body); margin-top: 2px; }
+.trouble summary .chev { width: 12px; height: 12px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .2s ease; justify-self: center; }
+.trouble details[open] summary .chev { transform: rotate(225deg); }
+.trouble .fix { padding: 0 16px 16px 70px; display: grid; gap: 8px; }
+.trouble .fix ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--muted); font-size: 14px; }
+.trouble .fix li::marker { color: var(--c); }
+
+/* ---------- upgrade ---------- */
+.upgrade { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.upgrade .card { border-top: 3px solid var(--c); }
+.table-wrap.fit table.spec { min-width: 0; }
+.upgrade ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--muted); font-size: 14px; }
+
+@media (max-width: 900px) {
+  .boot { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .trouble .fix { padding-left: 16px; }
+  .power .card { grid-template-columns: 1fr; }
+  .power .card > :not(svg) { grid-column: 1; }
+  .power .card > svg { grid-row: auto; }
+  .lcd { padding: 8px; }
+  .lcd .glass { padding: 8px 6px; }
+  .lcd .row { gap: 1px; }
+}
+</style>
+</head>
+<body data-page="installazione.html">
+<main class="page">
+  <header class="page-head">
+    <span class="eyebrow"><span lang="it">Guida pratica · firmware v2.0.0</span><span lang="en">Practical guide · firmware v2.0.0</span></span>
+    <h1><span lang="it">Installazione e calibrazione</span><span lang="en">Setup and calibration</span></h1>
+    <p class="lede" lang="it">Dalla scatola dei componenti al timer collaudato: cosa comprare, come collegarlo, come caricare il firmware, cosa aspettarsi alla prima accensione, come <b>calibrare il clock</b> e come verificare che tutto funzioni prima di esporre la prima carta.</p>
+    <p class="lede" lang="en">From a box of parts to a tested timer: what to buy, how to wire it, how to flash the firmware, what to expect at the first power-on, how to <b>calibrate the clock</b> and how to check that everything works before exposing the first sheet of paper.</p>
+  </header>
+
+  <nav class="toc route" aria-label="Sezioni / Sections">
+    <a href="#componenti"><span lang="it">Componenti</span><span lang="en">Parts</span></a>
+    <a href="#cablaggio"><span lang="it">Cablaggio</span><span lang="en">Wiring</span></a>
+    <a href="#alimentazione"><span lang="it">Alimentazione</span><span lang="en">Power</span></a>
+    <a href="#firmware"><span lang="it">Firmware</span><span lang="en">Firmware</span></a>
+    <a href="#avvio"><span lang="it">Prima accensione</span><span lang="en">First boot</span></a>
+    <a href="#servizio"><span lang="it">Menu di servizio</span><span lang="en">Service menu</span></a>
+    <a href="#calibrazione"><span lang="it">Calibrazione</span><span lang="en">Calibration</span></a>
+    <a href="#collaudo"><span lang="it">Collaudo</span><span lang="en">Acceptance</span></a>
+    <a href="#problemi"><span lang="it">Problemi</span><span lang="en">Troubleshooting</span></a>
+    <a href="#aggiornamento"><span lang="it">Dalla v1</span><span lang="en">From v1</span></a>
+  </nav>
+
+  <!-- ================= BOM ================= -->
+  <section id="componenti">
+    <div class="sec-head">
+      <span class="eyebrow"><span lang="it">01 · Distinta componenti</span><span lang="en">01 · Bill of materials</span></span>
+      <h2><span lang="it">Cosa serve</span><span lang="en">What you need</span></h2>
+      <p class="sub" lang="it">Nove componenti, tutti facili da trovare. I pin indicati sono quelli della Mega; la mappa completa è nella pagina <a href="pinout.html">Pinout</a>.</p>
+      <p class="sub" lang="en">Nine parts, all easy to find. The pins shown are on the Mega; the full map is on the <a href="pinout.html">Pinout</a> page.</p>
+    </div>
+
+    <div class="grid bom">
+      <article class="card" style="--c: var(--cyan)">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 200 110" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="18" y="14" width="170" height="82" rx="7" fill="currentColor" fill-opacity=".08"/>
+            <line x1="52" y1="22" x2="178" y2="22" stroke-width="6" stroke-dasharray="3 2.4" opacity=".75"/>
+            <line x1="62" y1="88" x2="170" y2="88" stroke-width="6" stroke-dasharray="3 2.4" opacity=".75"/>
+            <line x1="180" y1="32" x2="180" y2="80" stroke-width="10" stroke-dasharray="3 2.4" opacity=".5"/>
+            <rect x="94" y="38" width="32" height="32" rx="2" fill="currentColor" fill-opacity=".25"/>
+            <rect x="90" y="34" width="40" height="40" rx="3" stroke-dasharray="2 2" opacity=".6"/>
+            <rect x="8" y="26" width="26" height="20" rx="2" fill="currentColor" fill-opacity=".3"/>
+            <rect x="8" y="62" width="28" height="20" rx="4" fill="currentColor" fill-opacity=".18"/>
+            <circle cx="22" cy="72" r="4"/>
+            <circle cx="60" cy="56" r="3" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="top"><h3>Arduino Mega 2560</h3><span class="qty">×1</span></div>
+          <p lang="it">Il cervello: ATmega2560 a 16 MHz. Timer1 conta il tempo di esposizione al millisecondo; la USB serve per caricare il firmware, leggere il log e calibrare.</p>
+          <p lang="en">The brain: ATmega2560 at 16 MHz. Timer1 counts exposure time to the millisecond; USB is used to flash the firmware, read the log and calibrate.</p>
+          <div class="pins"><span class="pill">USB · 115200 baud</span></div>
+        </div>
+      </article>
+
+      <article class="card" style="--c: var(--red)">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 200 110" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="10" y="16" width="180" height="78" rx="6" fill="currentColor" fill-opacity=".06"/>
+            <rect x="24" y="30" width="152" height="50" rx="3" fill="#e01b2b" fill-opacity=".9" stroke="none"/>
+            <text x="34" y="51" fill="#2b0207" stroke="none" font-family="JetBrains Mono, monospace" font-weight="700" font-size="13">COUNTDOWN&#160;&#160;[S]</text>
+            <text x="34" y="70" fill="#2b0207" stroke="none" font-family="JetBrains Mono, monospace" font-weight="700" font-size="13">&#160;1s&#160;&#160;&#160;&#160;&#160;Ch:A</text>
+            <circle cx="18" cy="24" r="2.5"/><circle cx="182" cy="24" r="2.5"/><circle cx="18" cy="86" r="2.5"/><circle cx="182" cy="86" r="2.5"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="top"><h3>Waveshare LCD1602 RGB</h3><span class="qty">×1</span></div>
+          <p lang="it">Mostra Modalità, precisione, Canale e icone. Retroilluminazione solo rossa. Due dispositivi sul bus I²C: testo a <code>0x3E</code>, retroilluminazione a <code>0x60</code>.</p>
+          <p lang="en">Shows Mode, precision, Channel and icons. Red backlight only. Two devices on the I²C bus: text at <code>0x3E</code>, backlight at <code>0x60</code>.</p>
+          <div class="pins"><span class="pill">SDA D20</span><span class="pill">SCL D21</span></div>
+        </div>
+      </article>
+
+      <article class="card" style="--c: var(--magenta)">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 200 110" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="20" y="18" width="160" height="74" rx="6" fill="#0b0710" stroke-opacity=".7"/>
+            <text x="100" y="72" text-anchor="middle" fill="#ff3b4f" stroke="none" font-family="JetBrains Mono, monospace" font-weight="700" font-size="40" letter-spacing="3">010.0</text>
+            <line x1="40" y1="96" x2="160" y2="96" stroke-width="5" stroke-dasharray="3 9" opacity=".7"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="top"><h3>SparkFun Serial 7-Segment</h3><span class="qty">×1</span></div>
+          <p lang="it">Il tempo in grande: impostato, rimanente o trascorso, quattro cifre con un decimale. Riceve i dati seriali a 9600 baud: si collega solo il suo ingresso RX.</p>
+          <p lang="en">The time, large: set, remaining or elapsed, four digits with one decimal. It receives serial data at 9600 baud: only its RX input is wired.</p>
+          <div class="pins"><span class="pill">RX ← D14 (TX3)</span></div>
+        </div>
+      </article>
+
+      <article class="card" style="--c: var(--violet)">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 200 110" fill="none" stroke="currentColor" stroke-width="1.6" font-family="JetBrains Mono, monospace" font-weight="700" font-size="10">
+            <rect x="40" y="6" width="112" height="98" rx="8" fill="currentColor" fill-opacity=".07"/>
+            <g fill="currentColor" fill-opacity=".14">
+              <rect x="48" y="14" width="22" height="18" rx="4"/><rect x="74" y="14" width="22" height="18" rx="4"/><rect x="100" y="14" width="22" height="18" rx="4"/><rect x="126" y="14" width="20" height="18" rx="4"/>
+              <rect x="48" y="36" width="22" height="18" rx="4"/><rect x="74" y="36" width="22" height="18" rx="4"/><rect x="100" y="36" width="22" height="18" rx="4"/><rect x="126" y="36" width="20" height="18" rx="4"/>
+              <rect x="48" y="58" width="22" height="18" rx="4"/><rect x="74" y="58" width="22" height="18" rx="4"/><rect x="100" y="58" width="22" height="18" rx="4"/><rect x="126" y="58" width="20" height="18" rx="4"/>
+              <rect x="48" y="80" width="22" height="18" rx="4"/><rect x="74" y="80" width="22" height="18" rx="4"/><rect x="100" y="80" width="22" height="18" rx="4"/><rect x="126" y="80" width="20" height="18" rx="4"/>
+            </g>
+            <g fill="currentColor" stroke="none" text-anchor="middle">
+              <text x="59" y="27">1</text><text x="85" y="27">2</text><text x="111" y="27">3</text><text x="136" y="27" fill="#ff8fd9">A</text>
+              <text x="59" y="49">4</text><text x="85" y="49">5</text><text x="111" y="49">6</text><text x="136" y="49" fill="#ff8fd9">B</text>
+              <text x="59" y="71">7</text><text x="85" y="71">8</text><text x="111" y="71">9</text><text x="136" y="71" fill="#ff8fd9">C</text>
+              <text x="59" y="93">*</text><text x="85" y="93">0</text><text x="111" y="93">#</text><text x="136" y="93" fill="#ff8fd9">D</text>
+            </g>
+            <path d="M152 40 C 170 40 170 60 190 60 M152 46 C 168 46 168 66 190 66 M152 52 C 166 52 166 72 190 72" opacity=".55"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="top"><h3><span lang="it">Tastierino 4×4</span><span lang="en">4×4 keypad</span></h3><span class="qty">×1</span></div>
+          <p lang="it">Cifre per il tempo, <kbd>*</kbd>/<kbd>#</kbd> per la precisione, <kbd class="letter">A</kbd><kbd class="letter">B</kbd><kbd class="letter">C</kbd> per i Canali, <kbd class="letter">D</kbd> per azzerare e, all'accensione, per il Menu di servizio.</p>
+          <p lang="en">Digits for the time, <kbd>*</kbd>/<kbd>#</kbd> for precision, <kbd class="letter">A</kbd><kbd class="letter">B</kbd><kbd class="letter">C</kbd> for the Channels, <kbd class="letter">D</kbd> to clear and, at power-on, for the Service menu.</p>
+          <div class="pins"><span class="pill"><span lang="it">righe</span><span lang="en">rows</span> D33 D31 D29 D27</span><span class="pill"><span lang="it">colonne</span><span lang="en">cols</span> D41 D39 D37 D35</span></div>
+        </div>
+      </article>
+
+      <article class="card" style="--c: var(--indigo)">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 200 110" fill="none" stroke="currentColor" stroke-width="2" font-family="JetBrains Mono, monospace" font-weight="700" font-size="11">
+            <rect x="14" y="30" width="76" height="62" rx="5" fill="currentColor" fill-opacity=".07"/>
+            <circle cx="52" cy="58" r="22" fill="currentColor" fill-opacity=".12"/>
+            <circle cx="52" cy="58" r="17" stroke-width="5" stroke-dasharray="2.2 2.2" opacity=".8"/>
+            <line x1="52" y1="46" x2="52" y2="58" stroke-width="3"/>
+            <rect x="110" y="30" width="76" height="62" rx="5" fill="currentColor" fill-opacity=".07"/>
+            <circle cx="148" cy="58" r="22" fill="currentColor" fill-opacity=".12"/>
+            <circle cx="148" cy="58" r="17" stroke-width="5" stroke-dasharray="2.2 2.2" opacity=".8"/>
+            <line x1="148" y1="58" x2="158" y2="50" stroke-width="3"/>
+            <text x="52" y="22" text-anchor="middle" fill="currentColor" stroke="none">M</text>
+            <text x="148" y="22" text-anchor="middle" fill="currentColor" stroke="none">P</text>
+            <line x1="26" y1="98" x2="78" y2="98" stroke-width="4" stroke-dasharray="3 7" opacity=".6"/>
+            <line x1="122" y1="98" x2="174" y2="98" stroke-width="4" stroke-dasharray="3 7" opacity=".6"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="top"><h3><span lang="it">Encoder rotativi KY-040</span><span lang="en">KY-040 rotary encoders</span></h3><span class="qty">×2</span></div>
+          <p lang="it">Con pulsante. Quello della Modalità (M) sceglie Focus, Countdown o Test strip; quello della precisione (P) sceglie passo e tipo, Secondi o F-Stop.</p>
+          <p lang="en">With push button. The Mode one (M) picks Focus, Countdown or Test strip; the precision one (P) picks the step and the type, Seconds or F-Stop.</p>
+          <div class="pins"><span class="pill">M · D3 / D4 / D17</span><span class="pill">P · D18 / D19 / D16</span></div>
+        </div>
+      </article>
+
+      <article class="card" style="--c: var(--green)">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 200 110" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="66" y="24" width="68" height="68" rx="8" fill="currentColor" fill-opacity=".07"/>
+            <circle cx="100" cy="58" r="24" fill="currentColor" fill-opacity=".22"/>
+            <circle cx="100" cy="58" r="16" opacity=".6"/>
+            <line x1="76" y1="92" x2="76" y2="104"/><line x1="124" y1="92" x2="124" y2="104"/>
+            <path d="M40 30 a 70 70 0 0 0 0 56 M160 30 a 70 70 0 0 1 0 56" opacity=".35"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="top"><h3><span lang="it">Pulsante principale</span><span lang="en">Main push button</span></h3><span class="qty">×1</span></div>
+          <p lang="it">Pulsante normalmente aperto, grande e facile da trovare al buio: avvia l'Esposizione e, durante, la annulla. Agisce alla pressione, dopo 20 ms stabili.</p>
+          <p lang="en">Normally open, large and easy to find in the dark: starts the Exposure and, while it runs, cancels it. Acts on press, after 20 ms of stable contact.</p>
+          <div class="pins"><span class="pill">D2 → GND</span></div>
+        </div>
+      </article>
+
+      <article class="card" style="--c: var(--amber)">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 200 110" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="84" cy="56" r="34" fill="currentColor" fill-opacity=".12"/>
+            <circle cx="84" cy="56" r="24" opacity=".45"/>
+            <circle cx="84" cy="56" r="5" fill="currentColor"/>
+            <path d="M130 40 a 22 22 0 0 1 0 32 M142 32 a 34 34 0 0 1 0 48 M154 24 a 46 46 0 0 1 0 64" stroke-linecap="round" opacity=".8"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="top"><h3><span lang="it">Buzzer passivo</span><span lang="en">Passive buzzer</span></h3><span class="qty">×1</span></div>
+          <p lang="it">Otto suoni distinti da 150 a 1200 Hz: avvio, Metronomo, Preavviso, Step, fine. Deve essere passivo: un buzzer attivo suona a una sola frequenza.</p>
+          <p lang="en">Eight distinct sounds from 150 to 1200 Hz: start, Metronome, Pre-warning, Step, end. It must be passive: an active buzzer sounds at one pitch only.</p>
+          <div class="pins"><span class="pill">D49</span></div>
+        </div>
+      </article>
+
+      <article class="card" style="--c: var(--red)">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 200 110" fill="none" stroke="currentColor" stroke-width="2" font-family="JetBrains Mono, monospace" font-weight="700" font-size="8">
+            <rect x="16" y="20" width="168" height="72" rx="6" fill="currentColor" fill-opacity=".06"/>
+            <rect x="60" y="30" width="70" height="52" rx="4" fill="#3b5bff" fill-opacity=".35" stroke="#7f8cff"/>
+            <path d="M80 56 h8 l4 -8 l6 16 l6 -16 l4 8 h8" stroke="#c9d0ff" stroke-width="1.6"/>
+            <rect x="142" y="30" width="34" height="52" rx="3" fill="currentColor" fill-opacity=".14"/>
+            <circle cx="159" cy="41" r="5"/><circle cx="159" cy="56" r="5"/><circle cx="159" cy="71" r="5"/>
+            <line x1="16" y1="40" x2="4" y2="40"/><line x1="16" y1="56" x2="4" y2="56"/><line x1="16" y1="72" x2="4" y2="72"/>
+            <g fill="currentColor" stroke="none"><text x="22" y="43">IN</text><text x="22" y="59">VCC</text><text x="22" y="75">GND</text></g>
+            <circle cx="46" cy="30" r="3" fill="#5cf2a8" stroke="none"/>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="top"><h3><span lang="it">Modulo relè 5 V</span><span lang="en">5 V relay module</span></h3><span class="qty">×1</span></div>
+          <p lang="it">Accende e spegne la lampada dell'ingranditore. Deve essere <b>attivo alto</b> (si eccita con D47 a livello alto) e con contatti adatti alla tensione di rete della lampada.</p>
+          <p lang="en">Switches the enlarger lamp on and off. It must be <b>active high</b> (energised with D47 high) with contacts rated for the lamp's mains voltage.</p>
+          <div class="pins"><span class="pill">IN ← D47</span></div>
+        </div>
+      </article>
+
+      <article class="card" style="--c: var(--amber)">
+        <div class="art" aria-hidden="true">
+          <svg viewBox="0 0 200 110" fill="none" stroke-width="2">
+            <line x1="14" y1="55" x2="58" y2="55" stroke="#a99ad6" stroke-width="3"/>
+            <line x1="142" y1="55" x2="186" y2="55" stroke="#a99ad6" stroke-width="3"/>
+            <rect x="56" y="38" width="88" height="34" rx="16" fill="#e8c99a" stroke="#c9a46b"/>
+            <rect x="72" y="38" width="8" height="34" fill="#7a4a1e"/>
+            <rect x="88" y="38" width="8" height="34" fill="#1a1a1a"/>
+            <rect x="104" y="38" width="8" height="34" fill="#ff8a1e"/>
+            <rect x="124" y="38" width="6" height="34" fill="#d4af37"/>
+            <text x="100" y="96" text-anchor="middle" fill="#ffc65c" font-family="JetBrains Mono, monospace" font-weight="700" font-size="13">10 kΩ</text>
+          </svg>
+        </div>
+        <div class="body">
+          <div class="top"><h3><span lang="it">Resistenza 10 kΩ</span><span lang="en">10 kΩ resistor</span></h3><span class="qty">×1</span></div>
+          <p lang="it">Pull-down sul relè: tiene la lampada spenta nell'istante fra l'accensione e il primo comando del firmware, bootloader compreso. Bande marrone, nero, arancio.</p>
+          <p lang="en">Pull-down on the relay: keeps the lamp off between power-on and the firmware's first command, bootloader included. Bands brown, black, orange.</p>
+          <div class="pins"><span class="pill">D47 → GND</span></div>
+        </div>
+      </article>
+    </div>
+    <p class="extras" lang="it">In più: cavi Dupont o cavo schermato corto per l'I²C, cavo USB A–B, un alimentatore (vedi sotto), un contenitore isolato e una presa o morsettiera per la lampada.</p>
+    <p class="extras" lang="en">Also: Dupont wires or a short shielded cable for I²C, a USB A–B cable, a power supply (see below), an insulated enclosure and a socket or terminal block for the lamp.</p>
+  </section>
+
+  <!-- ================= WIRING ================= -->
+  <section id="cablaggio">
+    <div class="sec-head">
+      <span class="eyebrow"><span lang="it">02 · Cablaggio</span><span lang="en">02 · Wiring</span></span>
+      <h2><span lang="it">Collegamenti in sintesi</span><span lang="en">Wiring at a glance</span></h2>
+      <p class="sub" lang="it">Tutte le periferiche prendono 5 V e GND dalla Mega. Pulsanti e pulsanti degli encoder chiudono verso GND: il pull-up è quello interno. Per la mappa interattiva, il tastierino riga per riga e le risorse del microcontrollore vedi <a href="pinout.html">Pinout</a>.</p>
+      <p class="sub" lang="en">Every peripheral takes 5 V and GND from the Mega. Buttons and encoder buttons close to GND: the internal pull-up is used. For the interactive map, the keypad row by row and the microcontroller resources see <a href="pinout.html">Pinout</a>.</p>
+    </div>
+
+    <div class="table-wrap">
+      <table class="spec">
+        <thead><tr>
+          <th><span lang="it">Componente</span><span lang="en">Part</span></th>
+          <th><span lang="it">Pin della Mega</span><span lang="en">Mega pin</span></th>
+          <th><span lang="it">Note</span><span lang="en">Notes</span></th>
+        </tr></thead>
+        <tbody>
+          <tr><td>LCD (I²C)</td><td><code>SDA D20</code> · <code>SCL D21</code></td><td><span lang="it">100 kHz, timeout 3 ms: un LCD scollegato non blocca il timer</span><span lang="en">100 kHz, 3 ms timeout: an unplugged LCD never stalls the timer</span></td></tr>
+          <tr><td><span lang="it">7 segmenti (RX del display)</span><span lang="en">7-segment (display RX)</span></td><td><code>D14</code> (TX3)</td><td><span lang="it">Serial3, 9600 baud; D15 (RX3) resta scollegato</span><span lang="en">Serial3, 9600 baud; D15 (RX3) stays unconnected</span></td></tr>
+          <tr><td><span lang="it">Tastierino righe / colonne</span><span lang="en">Keypad rows / columns</span></td><td><code>D33 D31 D29 D27</code> / <code>D41 D39 D37 D35</code></td><td><span lang="it">Righe 1–4, colonne 1–4</span><span lang="en">Rows 1–4, columns 1–4</span></td></tr>
+          <tr><td><span lang="it">Encoder Modalità DT / CLK / SW</span><span lang="en">Mode encoder DT / CLK / SW</span></td><td><code>D3 / D4 / D17</code></td><td><span lang="it">DT su INT5; una tacca = 4 conteggi</span><span lang="en">DT on INT5; one detent = 4 counts</span></td></tr>
+          <tr><td><span lang="it">Encoder precisione DT / CLK / SW</span><span lang="en">Precision encoder DT / CLK / SW</span></td><td><code>D18 / D19 / D16</code></td><td>INT3 / INT2</td></tr>
+          <tr><td><span lang="it">Pulsante principale</span><span lang="en">Main button</span></td><td><code>D2</code></td><td><span lang="it">Verso GND, antirimbalzo 20 ms</span><span lang="en">To GND, 20 ms debounce</span></td></tr>
+          <tr><td>Buzzer</td><td><code>D49</code></td><td><span lang="it"><code>tone()</code> su Timer2</span><span lang="en"><code>tone()</code> on Timer2</span></td></tr>
+          <tr><td><span lang="it">Relè della lampada</span><span lang="en">Lamp relay</span></td><td><code>D47</code></td><td><span lang="it">Attivo alto, con 10 kΩ verso GND</span><span lang="en">Active high, with 10 kΩ to GND</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3><span lang="it">Le due modifiche della v2.0.0</span><span lang="en">The two v2.0.0 wiring changes</span></h3>
+    <div class="grid two">
+      <div class="card diff" style="--c: var(--magenta)">
+        <span class="tag"><span lang="it">7 segmenti</span><span lang="en">7-segment</span></span>
+        <div class="move" aria-label="A2 → D14"><span class="old">A2</span><span class="arrow" aria-hidden="true">→</span><span class="new">D14</span></div>
+        <p lang="it">L'ingresso dati del display passa a TX3, la seriale hardware Serial3. SoftwareSerial su A2 disabilitava gli interrupt per circa 1 ms a byte, e il tempo di esposizione vive di interrupt. A2 ora è libero.</p>
+        <p lang="en">The display's data input moves to TX3, the hardware Serial3. SoftwareSerial on A2 disabled interrupts for about 1 ms per byte, and exposure timing lives on interrupts. A2 is now free.</p>
+      </div>
+      <div class="card diff" style="--c: var(--amber)">
+        <span class="tag"><span lang="it">Relè</span><span lang="en">Relay</span></span>
+        <div class="move" aria-label="D47 10 kΩ GND"><span class="new">D47</span><span class="arrow" aria-hidden="true">—</span><span style="color:var(--fg)">10 kΩ</span><span class="arrow" aria-hidden="true">—</span><span class="new">GND</span></div>
+        <p lang="it">Fra l'accensione e la prima istruzione di <code>setup()</code> il pin è un ingresso flottante: la resistenza tiene il relè spento. Se il modulo ha già una sua pull-down, in parallelo è innocua.</p>
+        <p lang="en">Between power-on and the first instruction of <code>setup()</code> the pin is a floating input: the resistor keeps the relay off. If the module already has its own pull-down, the two in parallel are harmless.</p>
+      </div>
+    </div>
+
+    <div class="warn mains">
+      <svg class="bolt" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+      <div>
+        <p lang="it"><b>Tensione di rete, 230 V.</b> I contatti del relè (COM e NO) commutano la tensione di rete della lampada: è il solo punto pericoloso del progetto. Lavorare sempre con la spina staccata; usare il contatto <b>NO</b>, così a relè spento la lampada è spenta; morsetti chiusi, contenitore isolato, nessun conduttore di rete vicino ai fili a 5 V, fusibile sulla linea. Nel dubbio, far fare questa parte a un elettricista.</p>
+        <p lang="en"><b>Mains voltage, 230 V.</b> The relay contacts (COM and NO) switch the lamp's mains voltage: it is the only dangerous point of the project. Always work with the plug pulled; use the <b>NO</b> contact, so the lamp is off whenever the relay is off; closed terminals, insulated enclosure, no mains conductor near the 5 V wires, a fuse on the line. If in doubt, have an electrician do this part.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= POWER ================= -->
+  <section id="alimentazione">
+    <div class="sec-head">
+      <span class="eyebrow"><span lang="it">03 · Alimentazione</span><span lang="en">03 · Power</span></span>
+      <h2><span lang="it">Due modi di alimentarlo</span><span lang="en">Two ways to power it</span></h2>
+    </div>
+    <div class="grid two power">
+      <div class="card" style="--c: var(--cyan)">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M24 4v30"/><path d="M24 4l-5 6h10z" fill="currentColor"/><path d="M24 22l-9-6v-4"/><path d="M24 26l9-6v-6"/><rect x="12" y="8" width="6" height="5" fill="currentColor"/><circle cx="33" cy="12" r="3"/><circle cx="24" cy="38" r="5"/></svg>
+        <span class="tag">USB</span>
+        <span class="volt">5 V</span>
+        <p lang="it">Dal PC o da un alimentatore USB. È il modo comodo al banco ed è comunque necessario per caricare il firmware, leggere il log e calibrare con lo script.</p>
+        <p lang="en">From the PC or a USB charger. The handy choice at the bench, and needed anyway to flash the firmware, read the log and calibrate with the script.</p>
+      </div>
+      <div class="card" style="--c: var(--amber)">
+        <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><rect x="6" y="14" width="24" height="20" rx="4"/><circle cx="18" cy="24" r="4"/><path d="M30 24h12M36 18v12"/></svg>
+        <span class="tag"><span lang="it">Presa jack</span><span lang="en">DC jack</span></span>
+        <span class="volt">7–12 V</span>
+        <p lang="it">Per l'uso in camera oscura senza PC. Il regolatore della scheda dà i 5 V alle periferiche; verso i 9 V scalda meno che a 12 V. Con jack e USB collegati insieme la scheda sceglie da sola.</p>
+        <p lang="en">For darkroom use without a PC. The board's regulator feeds 5 V to the peripherals; around 9 V it runs cooler than at 12 V. With jack and USB both plugged in the board picks on its own.</p>
+      </div>
+    </div>
+    <div class="note">
+      <strong>Brown-out</strong>
+      <p lang="it">Se la tensione scende sotto 2,7 V la scheda si resetta con il relè spento; al ritorno della corrente un'Esposizione interrotta non riprende mai.</p>
+      <p lang="en">If the supply drops below 2.7 V the board resets with the relay off; when power comes back an interrupted Exposure is never resumed.</p>
+    </div>
+  </section>
+
+  <!-- ================= FIRMWARE ================= -->
+  <section id="firmware">
+    <div class="sec-head">
+      <span class="eyebrow"><span lang="it">04 · Firmware</span><span lang="en">04 · Firmware</span></span>
+      <h2><span lang="it">Compilare e caricare</span><span lang="en">Build and flash</span></h2>
+      <p class="sub" lang="it">Le librerie (Encoder, Keypad, OneButton) le scarica PlatformIO al primo build; l'LCD ha un driver proprio.</p>
+      <p class="sub" lang="en">PlatformIO fetches the libraries (Encoder, Keypad, OneButton) on the first build; the LCD has its own driver.</p>
+    </div>
+    <ol class="steps">
+      <li>
+        <h3><span lang="it">Installare PlatformIO</span><span lang="en">Install PlatformIO</span></h3>
+        <p lang="it">L'estensione PlatformIO IDE di VS Code, oppure PlatformIO Core da riga di comando:</p>
+        <p lang="en">The PlatformIO IDE extension for VS Code, or PlatformIO Core from the command line:</p>
+        <div class="cmdbox"><pre class="cmd">python3 -m pip install -U platformio</pre></div>
+      </li>
+      <li>
+        <h3><span lang="it">Scaricare il progetto</span><span lang="en">Get the project</span></h3>
+        <p lang="it">Finché la v2.0.0 è in collaudo il firmware sta sul branch <code>feature/arduino-mega-firmware</code>; dopo il rilascio usare il tag <code>v2.0.0</code>.</p>
+        <p lang="en">While v2.0.0 is under acceptance testing the firmware lives on the <code>feature/arduino-mega-firmware</code> branch; after the release use the <code>v2.0.0</code> tag.</p>
+        <div class="cmdbox"><pre class="cmd">git clone https://github.com/DaniloCaruso/R080Timer_MEGA.git
+cd R080Timer_MEGA
+git checkout feature/arduino-mega-firmware</pre></div>
+      </li>
+      <li>
+        <h3><span lang="it">Compilare</span><span lang="en">Build</span></h3>
+        <p lang="it">Ambiente predefinito <code>megaatmega2560</code>.</p>
+        <p lang="en">Default environment <code>megaatmega2560</code>.</p>
+        <div class="cmdbox"><pre class="cmd">pio run</pre></div>
+      </li>
+      <li>
+        <h3><span lang="it">Caricare sulla scheda</span><span lang="en">Upload to the board</span></h3>
+        <p lang="it">Collegare la Mega via USB e chiudere ogni monitor seriale aperto: la porta viene trovata da sola.</p>
+        <p lang="en">Plug the Mega in over USB and close any open serial monitor: the port is found automatically.</p>
+        <div class="cmdbox"><pre class="cmd">pio run -t upload</pre></div>
+      </li>
+      <li>
+        <h3><span lang="it">Test sul PC (facoltativo)</span><span lang="en">Tests on the PC (optional)</span></h3>
+        <p lang="it">Prova la logica di dominio (tempi, F-Stop, test strip, menu, calibrazione) senza scheda; serve un compilatore C++ sul PC.</p>
+        <p lang="en">Exercises the domain logic (timing, F-Stop, test strip, menu, calibration) without a board; needs a C++ compiler on the PC.</p>
+        <div class="cmdbox"><pre class="cmd">pio test -e native</pre></div>
+      </li>
+      <li>
+        <h3><span lang="it">Leggere il log degli eventi</span><span lang="en">Read the event log</span></h3>
+        <p lang="it">Una riga per evento, preceduta dai millisecondi dall'accensione: <code>BOOT</code>, <code>START</code>, <code>END</code>, <code>CANCEL</code>, <code>LCD offline</code>/<code>online</code>, <code>ERROR settings=factory</code>.</p>
+        <p lang="en">One line per event, prefixed by milliseconds since power-on: <code>BOOT</code>, <code>START</code>, <code>END</code>, <code>CANCEL</code>, <code>LCD offline</code>/<code>online</code>, <code>ERROR settings=factory</code>.</p>
+        <div class="cmdbox"><pre class="cmd">pio device monitor -b 115200</pre></div>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ================= FIRST BOOT ================= -->
+  <section id="avvio">
+    <div class="sec-head">
+      <span class="eyebrow"><span lang="it">05 · Prima accensione</span><span lang="en">05 · First boot</span></span>
+      <h2><span lang="it">Cosa dovresti vedere</span><span lang="en">What you should see</span></h2>
+      <p class="sub" lang="it">Il formato delle impostazioni in EEPROM è nuovo (versione e CRC8): alla prima accensione con la v2.0.0 nulla di vecchio viene letto e il timer parte dai valori di fabbrica.</p>
+      <p class="sub" lang="en">The EEPROM settings format is new (version and CRC8): at the first power-on with v2.0.0 nothing old is read and the timer starts from factory values.</p>
+    </div>
+
+    <div class="boot">
+      <div class="panel">
+        <div class="controls">
+          <div class="seg" role="group" aria-label="Scenario">
+            <button type="button" data-scn="power" aria-pressed="true"><span lang="it">Accensione</span><span lang="en">Power-on</span></button>
+            <button type="button" data-scn="wdt" aria-pressed="false"><span lang="it">Dopo un watchdog</span><span lang="en">After a watchdog</span></button>
+          </div>
+          <button type="button" class="btn" id="replay"><span lang="it">▶ Riproduci</span><span lang="en">▶ Replay</span></button>
+        </div>
+        <div class="devices">
+          <div class="lcd" role="img" aria-label="LCD 16×2" id="lcd"><div class="glass"><div class="row"></div><div class="row"></div></div></div>
+          <div class="sevenseg">
+            <span class="digits" id="seg">010.0</span>
+            <span class="lbl"><span lang="it">7 segmenti</span><span lang="en">7-segment</span><br><span id="phase"></span></span>
+          </div>
+          <pre class="cmd log" id="log" aria-label="Log USB"></pre>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3><span lang="it">Valori di fabbrica</span><span lang="en">Factory values</span></h3>
+        <ul class="expect">
+          <li lang="it"><span><b>Avvio:</b> <code>- R080 Timer -</code> e <code>v2.0.0</code> per 1,5 s, poi il Canale A.</span></li>
+          <li lang="en"><span><b>Start:</b> <code>- R080 Timer -</code> and <code>v2.0.0</code> for 1.5 s, then Channel A.</span></li>
+          <li lang="it"><span><b>Ogni Canale:</b> Countdown, Secondi 1 s, Avanzamento continuo, 10,0 s, relè abilitato (⚡).</span></li>
+          <li lang="en"><span><b>Every Channel:</b> Countdown, Seconds 1 s, continuous Advance, 10.0 s, relay enabled (⚡).</span></li>
+          <li lang="it"><span><b>Globali:</b> mute spento (♪ visibile), LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus massimo 5 minuti, correzione del clock 0 ppm.</span></li>
+          <li lang="en"><span><b>Global:</b> mute off (♪ visible), LCD level 3, 7-segment level 3, LCD during exposure level 1, Focus maximum 5 minutes, clock correction 0 ppm.</span></li>
+          <li lang="it" style="--c: var(--amber)"><span><b>Log:</b> <code>ERROR settings=factory</code> compare una volta sola, quando non c'è un blocco valido; dalla seconda accensione no.</span></li>
+          <li lang="en" style="--c: var(--amber)"><span><b>Log:</b> <code>ERROR settings=factory</code> appears once, when there is no valid block; not from the second power-on.</span></li>
+          <li lang="it" style="--c: var(--red)"><span><b>Relè:</b> resta spento finché non si avvia un'Esposizione. Se scatta all'accensione vedi <a href="#t-relay">Problemi</a>.</span></li>
+          <li lang="en" style="--c: var(--red)"><span><b>Relay:</b> stays off until an Exposure is started. If it clicks at power-on see <a href="#t-relay">Troubleshooting</a>.</span></li>
+        </ul>
+        <div class="note">
+          <strong><span lang="it">Primo giro</span><span lang="en">First run</span></strong>
+          <p lang="it">Disabilita il relè con <kbd>#</kbd> tenuto 1 s (⚡ sparisce), premi il pulsante principale: senti il beep di avvio, il Metronomo a ogni secondo e i tre toni di fine dopo 10 s.</p>
+          <p lang="en">Disable the relay by holding <kbd>#</kbd> for 1 s (⚡ disappears), press the main button: you hear the start beep, the Metronome every second and the three end tones after 10 s.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SERVICE MENU ================= -->
+  <section id="servizio">
+    <div class="sec-head">
+      <span class="eyebrow"><span lang="it">06 · Menu di servizio</span><span lang="en">06 · Service menu</span></span>
+      <h2><span lang="it">Tenere <kbd class="letter">D</kbd> all'accensione</span><span lang="en">Hold <kbd class="letter">D</kbd> at power-on</span></h2>
+      <p class="sub" lang="it">Tieni premuto <kbd class="letter">D</kbd>, dai corrente (o premi RESET sulla Mega) e lascia il tasto quando compare <code>MENU SERVIZIO</code>. Nel menu non si avviano Esposizioni e i suoni restano udibili anche col mute. Le voci sull'LCD sono in italiano.</p>
+      <p class="sub" lang="en">Hold <kbd class="letter">D</kbd>, power up (or press RESET on the Mega) and release the key when <code>MENU SERVIZIO</code> appears. No Exposure can start in the menu, and its sounds stay audible even when muted. The LCD items are in Italian.</p>
+    </div>
+
+    <div class="table-wrap fit">
+      <table class="spec">
+        <thead><tr><th><span lang="it">Comando</span><span lang="en">Control</span></th><th><span lang="it">Azione</span><span lang="en">Action</span></th></tr></thead>
+        <tbody>
+          <tr><td><span lang="it">Encoder Modalità, rotazione</span><span lang="en">Mode encoder, turn</span></td><td><span lang="it">Scorre le voci; dentro una voce cambia schermata</span><span lang="en">Scrolls the items; inside an item changes screen</span></td></tr>
+          <tr><td><span lang="it">Encoder Modalità, pressione</span><span lang="en">Mode encoder, press</span></td><td><span lang="it">Entra nella voce; dentro, conferma e salva (beep di conferma)</span><span lang="en">Enters the item; inside, confirms and saves (confirm beep)</span></td></tr>
+          <tr><td><kbd class="letter">D</kbd></td><td><span lang="it">Torna all'elenco senza salvare; nei test esce dal test</span><span lang="en">Back to the list without saving; in the tests it leaves the test</span></td></tr>
+          <tr><td><kbd>0</kbd>–<kbd>9</kbd></td><td><span lang="it">Inseriscono il valore, a calcolatrice; fuori limite = beep di errore</span><span lang="en">Enter the value, calculator style; out of range = error beep</span></td></tr>
+          <tr><td><kbd>*</kbd></td><td><span lang="it">Cambia il segno (dopo le cifre)</span><span lang="en">Changes the sign (after the digits)</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="legend">
+      <span class="pill" style="--c: var(--cyan)"><span lang="it">diagnostica</span><span lang="en">diagnostics</span></span>
+      <span class="pill" style="--c: var(--magenta)"><span lang="it">test hardware</span><span lang="en">hardware tests</span></span>
+      <span class="pill" style="--c: var(--green)"><span lang="it">calibrazione</span><span lang="en">calibration</span></span>
+      <span class="pill" style="--c: var(--amber)"><span lang="it">regolazioni</span><span lang="en">settings</span></span>
+      <span class="pill" style="--c: var(--red)"><span lang="it">ripristino</span><span lang="en">reset</span></span>
+    </div>
+
+    <div class="grid menu-items">
+      <div class="card" style="--c: var(--cyan)"><span class="lcdlabel">&gt;Info</span><p lang="it">Versione del firmware e data di compilazione: per sapere cosa c'è sulla scheda.</p><p lang="en">Firmware version and build date: to know what is on the board.</p></div>
+      <div class="card" style="--c: var(--cyan)"><span class="lcdlabel">&gt;Contatori</span><p lang="it">Quattro schermate: Accensioni, Reset watchdog, Esposizioni, Ore lampada. Sopravvivono al ripristino di fabbrica.</p><p lang="en">Four screens: power-ons, watchdog resets, Exposures, lamp hours. They survive a factory reset.</p></div>
+      <div class="card" style="--c: var(--cyan)"><span class="lcdlabel">&gt;Salute</span><p lang="it">Loop max e ISR max in µs, Tick persi di Timer1 dall'accensione: il polso del firmware dopo il montaggio.</p><p lang="en">Loop max and ISR max in µs, Timer1 ticks lost since power-on: the firmware's pulse after assembly.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test rele</span><p lang="it">Una pressione accende, un'altra spegne; uscendo il relè si spegne. Prova del modulo senza esporre.</p><p lang="en">One press on, another off; leaving turns it off. Checks the module without an exposure.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test buzzer</span><p lang="it">Ruota per scegliere uno degli 8 suoni, premi per sentirlo: 1 fine, 2 errore, 3 avviso Focus, 4 avvio, 5 step, 6 preavviso, 7 metronomo, 8 conferma.</p><p lang="en">Turn to pick one of the 8 sounds, press to hear it: 1 end, 2 error, 3 Focus warning, 4 start, 5 step, 6 pre-warning, 7 metronome, 8 confirm.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test 7 segmenti</span><p lang="it">Accende tutti i segmenti, <code>888.8</code>: un segmento spento è un difetto del display.</p><p lang="en">Lights every segment, <code>888.8</code>: a dark segment is a display fault.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test LCD</span><p lang="it">Riempie tutte le 32 celle con il blocco pieno.</p><p lang="en">Fills all 32 cells with a solid block.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test tastierino</span><p lang="it">Mostra l'ultimo tasto premuto; <kbd class="letter">D</kbd> si prova uscendo. Righe e colonne scambiate si vedono subito.</p><p lang="en">Shows the last key pressed; <kbd class="letter">D</kbd> is tested by leaving. Swapped rows and columns show up at once.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test encoder</span><p lang="it"><code>M</code> e <code>P</code>: posizione e numero di pressioni dei due encoder. Verso invertito = DT e CLK scambiati.</p><p lang="en"><code>M</code> and <code>P</code>: position and press count of both encoders. Reversed direction = DT and CLK swapped.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test pulsante</span><p lang="it"><code>Premi</code>, <code>Premuto</code>, <code>Rilasciato</code>: verifica il pulsante principale.</p><p lang="en"><code>Premi</code> (press), <code>Premuto</code> (pressed), <code>Rilasciato</code> (released): checks the main button.</p></div>
+      <div class="card" style="--c: var(--green)"><span class="lcdlabel">&gt;Calibrazione</span><p lang="it">Tre schermate: Log calibrazione, Correzione ppm, Durata 600 s. Vedi <a href="#calibrazione">Calibrazione</a>.</p><p lang="en">Three screens: Log calibrazione, Correzione ppm, Durata 600 s. See <a href="#calibrazione">Calibration</a>.</p></div>
+      <div class="card" style="--c: var(--amber)"><span class="lcdlabel">&gt;LCD esposizione</span><p lang="it">Livello dell'LCD durante l'Esposizione, da 1 a 8 (fabbrica 1, il minimo).</p><p lang="en">LCD level during the Exposure, 1 to 8 (factory 1, the minimum).</p></div>
+      <div class="card" style="--c: var(--amber)"><span class="lcdlabel">&gt;Tempo max Focus</span><p lang="it">Minuti prima dello spegnimento automatico del Focus: 3, 5, 10, 15 o 20 (fabbrica 5).</p><p lang="en">Minutes before Focus shuts off by itself: 3, 5, 10, 15 or 20 (factory 5).</p></div>
+      <div class="card" style="--c: var(--red)"><span class="lcdlabel">&gt;Ripristino fabb</span><p lang="it">Dentro la voce una pressione chiede <code>Confermi?</code>, una seconda riporta tutto ai valori di fabbrica, correzione del clock compresa; i contatori restano. <kbd class="letter">D</kbd> annulla.</p><p lang="en">Inside the item one press asks <code>Confermi?</code>, a second restores everything to factory values, clock correction included; counters are kept. <kbd class="letter">D</kbd> cancels.</p></div>
+      <div class="card" style="--c: var(--violet)"><span class="lcdlabel">&gt;Esci</span><p lang="it">Torna all'uso normale senza riavviare, con le impostazioni già salvate.</p><p lang="en">Back to normal use without restarting, with settings already saved.</p></div>
+    </div>
+  </section>
+
+  <!-- ================= CALIBRATION ================= -->
+  <section id="calibrazione">
+    <div class="sec-head" style="--c: var(--green)">
+      <span class="eyebrow"><span lang="it">07 · Calibrazione del clock</span><span lang="en">07 · Clock calibration</span></span>
+      <h2><span lang="it">Una volta sola, dopo il primo caricamento</span><span lang="en">Once, after the first upload</span></h2>
+    </div>
+    <div class="panel ppmfact">
+      <span class="big">50 ppm = 3 ms / 60 s</span>
+      <p class="sub" lang="it">Il quarzo della Mega può scostarsi di qualche decina di parti per milione. La Correzione del clock (±1000 ppm) compensa lo scostamento ed è salvata con le impostazioni; torna a 0 dopo un Ripristino di fabbrica. Obiettivo dopo la calibrazione: errore al massimo 2 ms su un'Esposizione di 60,0 s.</p>
+      <p class="sub" lang="en">The Mega's crystal can be off by a few tens of parts per million. The clock correction (±1000 ppm) compensates for it and is saved with the settings; it returns to 0 after a factory reset. Target after calibration: at most 2 ms error on a 60.0 s Exposure.</p>
+    </div>
+
+    <div class="grid two">
+      <div class="panel method" style="--c: var(--green)">
+        <span class="tag pill" style="--c: var(--green)"><span lang="it">Metodo principale · PC</span><span lang="en">Main method · PC</span></span>
+        <h3><code>tools/calibrate.py</code></h3>
+        <p class="sub" lang="it">Per 30 minuti lo script confronta il conteggio dei millisecondi che il firmware scrive sul log (<code>CAL ms=…</code>, una riga al secondo, senza correzione) con l'orologio del PC, e stima la pendenza con una regressione lineare che assorbe il ritardo variabile della USB. Il risultato è assoluto: non dipende dalla correzione già salvata.</p>
+        <p class="sub" lang="en">For 30 minutes the script compares the millisecond count the firmware writes to the log (<code>CAL ms=…</code>, one line per second, uncorrected) with the PC clock, and estimates the slope with a linear regression that absorbs the variable USB delay. The result is absolute: it does not depend on the correction already saved.</p>
+        <p class="sub" lang="it">Serve Python 3.10 o successivo e <code>pyserial</code>:</p>
+        <p class="sub" lang="en">You need Python 3.10 or later and <code>pyserial</code>:</p>
+        <div class="cmdbox"><pre class="cmd">python3 -m pip install pyserial</pre></div>
+        <ol>
+          <li lang="it">Chiudi ogni programma che usa la porta seriale, anche <code>pio device monitor</code>.</li>
+          <li lang="en">Close any program using the serial port, including <code>pio device monitor</code>.</li>
+          <li lang="it">Sul timer: Menu di servizio → <code>Calibrazione</code> → schermata <code>Log calibrazione</code>, premi l'encoder. L'LCD mostra <code>Attivo, D: esci</code>.</li>
+          <li lang="en">On the timer: Service menu → <code>Calibrazione</code> → <code>Log calibrazione</code> screen, press the encoder. The LCD shows <code>Attivo, D: esci</code>.</li>
+          <li lang="it">Sul PC (su Windows ad esempio <code>COM3</code>):</li>
+          <li lang="en">On the PC (on Windows e.g. <code>COM3</code>):</li>
+        </ol>
+        <div class="cmdbox"><pre class="cmd">python3 tools/calibrate.py /dev/ttyACM0</pre></div>
+        <ol start="4">
+          <li lang="it">Dopo 30 minuti lo script stampa ad esempio <code>Correzione del clock: +23 ppm (1800 righe)</code>.</li>
+          <li lang="en">After 30 minutes the script prints e.g. <code>Correzione del clock: +23 ppm (1800 righe)</code>.</li>
+          <li lang="it"><kbd class="letter">D</kbd> chiude il log. Rientra in <code>Calibrazione</code>, ruota fino a <code>Correzione ppm</code>, digita <kbd>2</kbd><kbd>3</kbd>, <kbd>*</kbd> se negativo, premi l'encoder per salvare.</li>
+          <li lang="en"><kbd class="letter">D</kbd> closes the log. Enter <code>Calibrazione</code> again, turn to <code>Correzione ppm</code>, type <kbd>2</kbd><kbd>3</kbd>, <kbd>*</kbd> if negative, press the encoder to save.</li>
+        </ol>
+        <p class="sub" lang="it">Opzioni: <code>--minutes N</code> cambia la durata; <code>--self-test</code> prova lo script senza scheda. Se all'apertura della porta riappare la schermata iniziale, il timer si è riavviato: Ctrl+C, riapri il Menu di servizio e riparti dal punto 2.</p>
+        <p class="sub" lang="en">Options: <code>--minutes N</code> changes the length; <code>--self-test</code> checks the script without a board. If the start screen appears again when the port opens, the timer has restarted: Ctrl+C, open the Service menu again and restart from step 2.</p>
+        <div class="cmdbox"><pre class="cmd">python3 tools/calibrate.py --self-test</pre></div>
+      </div>
+
+      <div class="panel method" style="--c: var(--cyan)">
+        <span class="tag pill" style="--c: var(--cyan)"><span lang="it">Senza PC · audio</span><span lang="en">No PC · audio</span></span>
+        <h3><span lang="it">Countdown di 600,0 s registrato</span><span lang="en">A recorded 600.0 s Countdown</span></h3>
+        <p class="sub" lang="it">Serve un registratore (lo smartphone va bene) e un programma che mostri la forma d'onda, ad esempio Audacity.</p>
+        <p class="sub" lang="en">You need a recorder (a smartphone is fine) and a program that shows the waveform, for example Audacity.</p>
+        <ol>
+          <li lang="it">Mute spento (♪ visibile): col mute il beep di avvio non suona. Puoi disabilitare il relè per lasciare la lampada spenta.</li>
+          <li lang="en">Mute off (♪ visible): when muted the start beep does not sound. You can disable the relay to keep the lamp dark.</li>
+          <li lang="it">Countdown, tempo <kbd>6</kbd><kbd>0</kbd><kbd>0</kbd><kbd>0</kbd> (600,0 s).</li>
+          <li lang="en">Countdown, time <kbd>6</kbd><kbd>0</kbd><kbd>0</kbd><kbd>0</kbd> (600.0 s).</li>
+          <li lang="it">Registra vicino al timer, premi il pulsante principale, aspetta il Suono di fine.</li>
+          <li lang="en">Record near the timer, press the main button, wait for the End sound.</li>
+          <li lang="it">Misura dall'inizio del beep di avvio all'inizio del primo tono di fine; i tick del Metronomo aiutano a orientarsi.</li>
+          <li lang="en">Measure from the start of the start beep to the start of the first end tone; the Metronome ticks help you find your way.</li>
+          <li lang="it">Riavvia con <kbd class="letter">D</kbd>: <code>Calibrazione</code> → <code>Durata 600 s</code>, digita la durata in centesimi di secondo e premi l'encoder.</li>
+          <li lang="en">Restart holding <kbd class="letter">D</kbd>: <code>Calibrazione</code> → <code>Durata 600 s</code>, type the duration in hundredths of a second and press the encoder.</li>
+        </ol>
+
+        <div class="calc" id="calc">
+          <h3><span lang="it">Calcolatore</span><span lang="en">Calculator</span></h3>
+          <div class="fields">
+            <label for="cal-measured"><span><span lang="it">Durata misurata (s)</span><span lang="en">Measured duration (s)</span></span>
+              <input id="cal-measured" type="text" inputmode="decimal" autocomplete="off" value="600.12"></label>
+            <label for="cal-current"><span><span lang="it">Correzione salvata (ppm)</span><span lang="en">Saved correction (ppm)</span></span>
+              <input id="cal-current" type="number" inputmode="numeric" min="-1000" max="1000" step="1" value="0"></label>
+          </div>
+          <div class="out" id="cal-out" aria-live="polite"></div>
+        </div>
+        <p class="sub" lang="it">Il timer parte dalla correzione salvata, quindi la misura si può ripetere per affinarla. Un errore di lettura di 10 ms vale circa 17 ppm: lo script è più preciso.</p>
+        <p class="sub" lang="en">The timer starts from the saved correction, so the measurement can be repeated to refine it. A 10 ms reading error is about 17 ppm: the script is more accurate.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ACCEPTANCE ================= -->
+  <section id="collaudo">
+    <div class="sec-head">
+      <span class="eyebrow"><span lang="it">08 · Collaudo</span><span lang="en">08 · Acceptance</span></span>
+      <h2><span lang="it">Le prove su scheda che contano</span><span lang="en">The on-board checks that matter</span></h2>
+      <p class="sub" lang="it">I punti salienti della Checklist di collaudo prevista per ogni rilascio: ciò che i test sul PC non possono misurare. Le spunte restano solo in questo browser; non sostituiscono la checklist firmata.</p>
+      <p class="sub" lang="en">The highlights of the acceptance checklist planned for every release: what the PC tests cannot measure. Ticks stay in this browser only; they do not replace the signed checklist.</p>
+    </div>
+    <div class="panel">
+      <div class="check-head">
+        <div class="meter">
+          <span class="txt" id="check-txt"></span>
+          <div class="bar" aria-hidden="true"><div class="fill" id="check-fill"></div></div>
+        </div>
+        <button type="button" class="btn" id="check-reset"><span lang="it">Azzera le spunte</span><span lang="en">Clear ticks</span></button>
+      </div>
+      <ul class="checklist" id="checklist">
+        <li><label><input type="checkbox" data-k="relay-boot">
+          <span class="t"><span lang="it">Relè spento all'accensione</span><span lang="en">Relay off at power-on</span></span>
+          <span class="d"><span lang="it">LED o analizzatore logico su D47 per 10 accensioni consecutive: il pin non sale mai, bootloader compreso.</span><span lang="en">LED or logic analyser on D47 for 10 consecutive power-ups: the pin never goes high, bootloader included.</span></span>
+          <span class="pill crit"><span lang="it">0 impulsi</span><span lang="en">0 pulses</span></span></label></li>
+        <li><label><input type="checkbox" data-k="relay-edge">
+          <span class="t"><span lang="it">Bordo del relè su D47</span><span lang="en">Relay edge on D47</span></span>
+          <span class="d"><span lang="it">Analizzatore logico su D47: fine del Countdown e ogni Step passo-passo spengono il relè sul bordo teorico.</span><span lang="en">Logic analyser on D47: the end of a Countdown and every step-by-step Step switch the relay off on the theoretical edge.</span></span>
+          <span class="pill crit">≤ 1 ms</span></label></li>
+        <li><label><input type="checkbox" data-k="metronome">
+          <span class="t"><span lang="it">Jitter del Metronomo</span><span lang="en">Metronome jitter</span></span>
+          <span class="d"><span lang="it">Registrazione audio di 30 s di Countdown: deviazione standard del periodo fra i tick.</span><span lang="en">Audio recording of 30 s of Countdown: standard deviation of the period between ticks.</span></span>
+          <span class="pill crit">σ &lt; 1 ms</span></label></li>
+        <li><label><input type="checkbox" data-k="accuracy">
+          <span class="t"><span lang="it">Precisione su 60,0 s</span><span lang="en">Accuracy over 60.0 s</span></span>
+          <span class="d"><span lang="it">Dopo la calibrazione, un'Esposizione di 60,0 s misurata con un riferimento esterno.</span><span lang="en">After calibration, a 60.0 s Exposure measured against an external reference.</span></span>
+          <span class="pill crit">≤ 2 ms</span></label></li>
+        <li><label><input type="checkbox" data-k="lcd">
+          <span class="t"><span lang="it">LCD scollegato</span><span lang="en">LCD unplugged</span></span>
+          <span class="d"><span lang="it">Stacca l'LCD durante un Countdown: l'Esposizione finisce in orario sul 7 segmenti, il log scrive <code>LCD offline</code>; ricollegato, <code>LCD online</code> e schermo ridisegnato.</span><span lang="en">Unplug the LCD during a Countdown: the Exposure ends on time on the 7-segment, the log writes <code>LCD offline</code>; plugged back, <code>LCD online</code> and the screen is redrawn.</span></span>
+          <span class="pill crit"><span lang="it">nessun blocco</span><span lang="en">no stall</span></span></label></li>
+        <li><label><input type="checkbox" data-k="watchdog">
+          <span class="t">Watchdog</span>
+          <span class="d"><span lang="it">Con un build di prova che blocca il loop: lampada spenta entro 250 ms, riavvio a 500 ms, <code>RESET: WDT</code> per 3 s, contatore Reset watchdog +1, log <code>BOOT reset=WDT</code>.</span><span lang="en">With a test build that blocks the loop: lamp off within 250 ms, restart at 500 ms, <code>RESET: WDT</code> for 3 s, watchdog reset counter +1, log <code>BOOT reset=WDT</code>.</span></span>
+          <span class="pill crit">≤ 250 ms</span></label></li>
+        <li><label><input type="checkbox" data-k="power">
+          <span class="t"><span lang="it">Mancanza di corrente</span><span lang="en">Power loss</span></span>
+          <span class="d"><span lang="it">Togli corrente durante un'Esposizione e riaccendi: timer fermo, relè spento, l'Esposizione non riprende.</span><span lang="en">Cut power during an Exposure and power up again: timer idle, relay off, the Exposure does not resume.</span></span>
+          <span class="pill crit"><span lang="it">non riprende</span><span lang="en">no resume</span></span></label></li>
+        <li><label><input type="checkbox" data-k="persist">
+          <span class="t"><span lang="it">Persistenza</span><span lang="en">Persistence</span></span>
+          <span class="d"><span lang="it">Cambia Canali, mute e luminosità, aspetta 2 s, spegni e riaccendi: tutto com'era.</span><span lang="en">Change Channels, mute and brightness, wait 2 s, power off and on: everything as it was.</span></span>
+          <span class="pill crit"><span lang="it">tutto ritrovato</span><span lang="en">all restored</span></span></label></li>
+        <li><label><input type="checkbox" data-k="sounds">
+          <span class="t"><span lang="it">Suoni e comandi</span><span lang="en">Sounds and controls</span></span>
+          <span class="d"><span lang="it">Gli 8 suoni da Test buzzer, distinguibili; pressioni brevi ripetute, pressioni lunghe e combinazioni senza perdite né doppie azioni.</span><span lang="en">The 8 sounds from Test buzzer, distinguishable; repeated short presses, long presses and combinations with nothing lost or doubled.</span></span>
+          <span class="pill crit"><span lang="it">a orecchio</span><span lang="en">by ear</span></span></label></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= TROUBLESHOOTING ================= -->
+  <section id="problemi">
+    <div class="sec-head">
+      <span class="eyebrow"><span lang="it">09 · Risoluzione dei problemi</span><span lang="en">09 · Troubleshooting</span></span>
+      <h2><span lang="it">Se qualcosa non va</span><span lang="en">If something is wrong</span></h2>
+    </div>
+    <div class="trouble">
+      <details style="--c: var(--red)">
+        <summary>
+          <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h4M6 14h8"/></svg></span>
+          <span><h3><span lang="it">LCD vuoto o con caratteri strani</span><span lang="en">LCD blank or garbled</span></h3><span class="hint"><span lang="it">Il timer funziona comunque: tempo e relè non dipendono dal display.</span><span lang="en">The timer still works: time and relay never depend on the display.</span></span></span>
+          <span class="chev" aria-hidden="true"></span>
+        </summary>
+        <div class="fix"><ul>
+          <li lang="it">Sulla Mega l'I²C è su <code>D20</code> (SDA) e <code>D21</code> (SCL), non su A4/A5 come sulla Uno. Controlla anche 5 V e GND.</li>
+          <li lang="en">On the Mega I²C is on <code>D20</code> (SDA) and <code>D21</code> (SCL), not A4/A5 as on the Uno. Check 5 V and GND too.</li>
+          <li lang="it">Retroilluminazione accesa ma niente testo: il controller del testo (<code>0x3E</code>) non risponde, mentre quello della luce (<code>0x60</code>) sì. Fili corti, contatti saldi.</li>
+          <li lang="en">Backlight on but no text: the text controller (<code>0x3E</code>) is not answering while the backlight one (<code>0x60</code>) is. Short wires, firm contacts.</li>
+          <li lang="it">Troppo scuro: in Focus a lampada spenta <kbd>#</kbd> alza la luminosità. Durante l'Esposizione l'LCD scende di proposito al livello di <code>LCD esposizione</code>.</li>
+          <li lang="en">Too dark: in Focus with the lamp off <kbd>#</kbd> raises the brightness. During the Exposure the LCD drops on purpose to the <code>LCD esposizione</code> level.</li>
+          <li lang="it">Contatto intermittente: il log alterna <code>LCD offline</code> e <code>LCD online</code>; al ritorno il driver ridisegna tutto da solo. Prova con <code>Test LCD</code>.</li>
+          <li lang="en">Intermittent contact: the log alternates <code>LCD offline</code> and <code>LCD online</code>; on return the driver redraws everything by itself. Try <code>Test LCD</code>.</li>
+        </ul></div>
+      </details>
+
+      <details style="--c: var(--magenta)">
+        <summary>
+          <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 5h6M6 6v5M14 6v5M7 12h6M6 13v5M14 13v5M7 19h6"/><circle cx="19" cy="19" r="1.2" fill="currentColor"/></svg></span>
+          <span><h3><span lang="it">7 segmenti spento</span><span lang="en">7-segment dark</span></h3><span class="hint"><span lang="it">Quasi sempre il filo dei dati.</span><span lang="en">Almost always the data wire.</span></span></span>
+          <span class="chev" aria-hidden="true"></span>
+        </summary>
+        <div class="fix"><ul>
+          <li lang="it">Cablaggio v1: il filo è ancora su A2. Va su <code>D14</code> (TX3).</li>
+          <li lang="en">v1 wiring: the wire is still on A2. It goes to <code>D14</code> (TX3).</li>
+          <li lang="it">Va collegato l'ingresso <b>RX</b> del display, non il TX. Più 5 V e GND.</li>
+          <li lang="en">Wire the display's <b>RX</b> input, not TX. Plus 5 V and GND.</li>
+          <li lang="it">Il firmware parla a 9600 baud, il valore di fabbrica del display: se il display è stato riconfigurato a un'altra velocità non capisce.</li>
+          <li lang="en">The firmware talks at 9600 baud, the display's factory rate: if the display was reconfigured to another speed it will not understand.</li>
+          <li lang="it">Luminosità al minimo: in Focus a lampada spenta tieni <kbd>0</kbd> e premi <kbd>#</kbd>. <code>Test 7 segmenti</code> deve mostrare <code>888.8</code>.</li>
+          <li lang="en">Brightness at minimum: in Focus with the lamp off hold <kbd>0</kbd> and press <kbd>#</kbd>. <code>Test 7 segmenti</code> must show <code>888.8</code>.</li>
+        </ul></div>
+      </details>
+
+      <details style="--c: var(--violet)">
+        <summary>
+          <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><path d="M14 14l6 6M20 14l-6 6"/></svg></span>
+          <span><h3><span lang="it">Tasti o encoder non rispondono</span><span lang="en">Buttons or encoders not responding</span></h3><span class="hint"><span lang="it">Prima di tutto: è uno stato in cui sono ignorati di proposito?</span><span lang="en">First: is it a state where they are ignored on purpose?</span></span></span>
+          <span class="chev" aria-hidden="true"></span>
+        </summary>
+        <div class="fix"><ul>
+          <li lang="it">Durante un'Esposizione, anche Focus acceso, tastierino ed encoder sono ignorati: funziona solo il pulsante principale.</li>
+          <li lang="en">During an Exposure, Focus on included, keypad and encoders are ignored: only the main button works.</li>
+          <li lang="it">In Focus cifre ed encoder della precisione non hanno effetto. Avviare con tempo zero dà il beep di errore: non è un guasto.</li>
+          <li lang="en">In Focus digits and the precision encoder have no effect. Starting with time zero gives the error beep: not a fault.</li>
+          <li lang="it">Pulsante principale fra <code>D2</code> e GND, senza resistenze esterne: il pull-up è interno. Agisce alla pressione.</li>
+          <li lang="en">Main button between <code>D2</code> and GND, no external resistors: the pull-up is internal. It acts on press.</li>
+          <li lang="it">Tasti sbagliati: righe <code>D33 D31 D29 D27</code>, colonne <code>D41 D39 D37 D35</code>, nell'ordine. Encoder al contrario: DT e CLK scambiati.</li>
+          <li lang="en">Wrong keys: rows <code>D33 D31 D29 D27</code>, columns <code>D41 D39 D37 D35</code>, in that order. Encoder backwards: DT and CLK swapped.</li>
+          <li lang="it">Isola il componente con <code>Test tastierino</code>, <code>Test encoder</code>, <code>Test pulsante</code> del Menu di servizio.</li>
+          <li lang="en">Isolate the part with <code>Test tastierino</code>, <code>Test encoder</code>, <code>Test pulsante</code> in the Service menu.</li>
+        </ul></div>
+      </details>
+
+      <details style="--c: var(--amber)" id="t-relay">
+        <summary>
+          <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg></span>
+          <span><h3><span lang="it">Il relè scatta all'accensione</span><span lang="en">Relay clicks at power-on</span></h3><span class="hint"><span lang="it">Non deve mai succedere: la lampada potrebbe accendersi sulla carta.</span><span lang="en">It must never happen: the lamp could flash the paper.</span></span></span>
+          <span class="chev" aria-hidden="true"></span>
+        </summary>
+        <div class="fix"><ul>
+          <li lang="it">Manca la resistenza da 10 kΩ fra <code>D47</code> e GND: durante il bootloader il pin flotta.</li>
+          <li lang="en">The 10 kΩ resistor between <code>D47</code> and GND is missing: the pin floats during the bootloader.</li>
+          <li lang="it">Modulo <b>attivo basso</b> (o ponticello su «L»): sarebbe acceso proprio quando il firmware lo vuole spento. Serve un modulo attivo alto, o il ponticello su «H».</li>
+          <li lang="en"><b>Active-low</b> module (or jumper on "L"): it would be on exactly when the firmware wants it off. You need an active-high module, or the jumper on "H".</li>
+          <li lang="it">Lampada sul contatto NC invece che su NO: si accende a relè spento.</li>
+          <li lang="en">Lamp on the NC contact instead of NO: it lights with the relay off.</li>
+          <li lang="it">Verifica con un LED o un analizzatore logico su D47 per 10 accensioni, come nel collaudo.</li>
+          <li lang="en">Check with an LED or logic analyser on D47 over 10 power-ups, as in the acceptance test.</li>
+        </ul></div>
+      </details>
+
+      <details style="--c: var(--cyan)">
+        <summary>
+          <span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v4h4"/><path d="M12 8v4l3 2"/></svg></span>
+          <span><h3><span lang="it">All'avvio compare <code>RESET: WDT</code></span><span lang="en"><code>RESET: WDT</code> shown at start-up</span></h3><span class="hint"><span lang="it">Il watchdog ha riavviato la scheda: il loop si era fermato.</span><span lang="en">The watchdog restarted the board: the loop had stopped.</span></span></span>
+          <span class="chev" aria-hidden="true"></span>
+        </summary>
+        <div class="fix"><ul>
+          <li lang="it">La sicurezza ha funzionato: lampada spenta entro 250 ms, riavvio a 500 ms, nessuna Esposizione ripresa. Il messaggio resta 3 s.</li>
+          <li lang="en">The safety net worked: lamp off within 250 ms, restart at 500 ms, no Exposure resumed. The message stays 3 s.</li>
+          <li lang="it">Il conteggio è in <code>Contatori</code> → <code>Reset watchdog</code>; nel log c'è <code>BOOT reset=WDT</code>.</li>
+          <li lang="en">The count is in <code>Contatori</code> → <code>Reset watchdog</code>; the log shows <code>BOOT reset=WDT</code>.</li>
+          <li lang="it">Se si ripete: controlla alimentazione e disturbi dalla commutazione della lampada (fili di rete lontani dai 5 V), guarda <code>Salute</code> → <code>Loop max</code>, salva il log USB e apri una issue.</li>
+          <li lang="en">If it repeats: check the supply and interference from lamp switching (mains wires away from the 5 V ones), look at <code>Salute</code> → <code>Loop max</code>, save the USB log and open an issue.</li>
+        </ul></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- ================= UPGRADE ================= -->
+  <section id="aggiornamento">
+    <div class="sec-head">
+      <span class="eyebrow"><span lang="it">10 · Aggiornare dalla v1</span><span lang="en">10 · Upgrading from v1</span></span>
+      <h2><span lang="it">Tre cose da fare, una volta</span><span lang="en">Three things to do, once</span></h2>
+    </div>
+    <div class="grid upgrade">
+      <div class="card" style="--c: var(--magenta)">
+        <span class="tag"><span lang="it">1 · Ricablare</span><span lang="en">1 · Rewire</span></span>
+        <ul>
+          <li lang="it">Filo del 7 segmenti da A2 a <code>D14</code>.</li>
+          <li lang="en">7-segment wire from A2 to <code>D14</code>.</li>
+          <li lang="it">Resistenza da 10 kΩ fra <code>D47</code> e GND.</li>
+          <li lang="en">10 kΩ resistor between <code>D47</code> and GND.</li>
+          <li lang="it">Tutto il resto è invariato.</li>
+          <li lang="en">Everything else is unchanged.</li>
+        </ul>
+      </div>
+      <div class="card" style="--c: var(--amber)">
+        <span class="tag"><span lang="it">2 · Reimpostare</span><span lang="en">2 · Re-enter settings</span></span>
+        <ul>
+          <li lang="it">Le impostazioni della v1 non vengono lette: si riparte una volta dai valori di fabbrica (log <code>ERROR settings=factory</code>).</li>
+          <li lang="en">v1 settings are not read: the timer starts once from factory values (log <code>ERROR settings=factory</code>).</li>
+          <li lang="it">Reinserisci tempi e precisioni dei Canali A, B, C; ora ogni Canale ricorda l'impostazione completa.</li>
+          <li lang="en">Re-enter times and precisions of Channels A, B, C; each Channel now remembers the complete setting.</li>
+        </ul>
+      </div>
+      <div class="card" style="--c: var(--green)">
+        <span class="tag"><span lang="it">3 · Calibrare</span><span lang="en">3 · Calibrate</span></span>
+        <ul>
+          <li lang="it">Misura la Correzione del clock con <a href="#calibrazione">uno dei due metodi</a>.</li>
+          <li lang="en">Measure the clock correction with <a href="#calibrazione">either method</a>.</li>
+          <li lang="it">Il firmware v1 resta disponibile al tag <code>pre-rewrite</code>.</li>
+          <li lang="en">The v1 firmware stays available at the <code>pre-rewrite</code> tag.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">
+      <strong><span lang="it">Abitudini</span><span lang="en">Habits</span></strong>
+      <p lang="it">Cambia qualcosa nell'uso: il pulsante principale agisce alla pressione; in Focus <kbd>*</kbd>/<kbd>#</kbd> regolano l'LCD e <kbd>0</kbd>+<kbd>*</kbd>/<kbd>#</kbd> il 7 segmenti; le cifre dopo un'Esposizione iniziano un tempo nuovo; il Focus si spegne da solo dopo 5 minuti.</p>
+      <p lang="en">A few things change in use: the main button acts on press; in Focus <kbd>*</kbd>/<kbd>#</kbd> adjust the LCD and <kbd>0</kbd>+<kbd>*</kbd>/<kbd>#</kbd> the 7-segment; digits after an Exposure start a new time; Focus turns off by itself after 5 minutes.</p>
+    </div>
+  </section>
+</main>
+<footer class="site">
+  <span lang="it">R080 Timer · firmware v2.0.0 · Arduino Mega 2560 · fonti: DOCS-IT.md, PINOUT.md, TECNICO.md, tools/calibrate.py · licenza CC0 1.0</span>
+  <span lang="en">R080 Timer · firmware v2.0.0 · Arduino Mega 2560 · sources: DOCS.md, PINOUT.md, TECNICO.md, tools/calibrate.py · CC0 1.0 licence</span>
+</footer>
+<script src="assets/site.js"></script>
+<script>
+(function () {
+  const lang = () => document.documentElement.dataset.lang === "en" ? "en" : "it";
+  const bi = (it, en) => `<span lang="it">${it}</span><span lang="en">${en}</span>`;
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function load(key) { try { return JSON.parse(localStorage.getItem(key) || "null"); } catch (e) { return null; } }
+  function save(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { /* storage blocked: ticks live for this visit only */ } }
+
+  /* ---------- copy buttons ---------- */
+  const COPY = bi("Copia", "Copy"), OK = bi("Copiato", "Copied"), SEL = bi("Ctrl+C", "Ctrl+C");
+  document.querySelectorAll(".cmdbox").forEach((box) => {
+    const pre = box.querySelector("pre");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "copy";
+    b.innerHTML = COPY;
+    box.appendChild(b);
+    function done(state) {
+      b.dataset.state = state;
+      b.innerHTML = state === "ok" ? OK : SEL;
+      setTimeout(() => { b.innerHTML = COPY; delete b.dataset.state; }, 1800);
+    }
+    function selectText() {
+      const r = document.createRange();
+      r.selectNodeContents(pre);
+      const s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+      let ok = false;
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+      done(ok ? "ok" : "sel");  // not copied: text stays selected for Ctrl+C
+    }
+    b.addEventListener("click", () => {
+      const text = pre.textContent;
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => done("ok"), selectText);
+      } else selectText();
+    });
+  });
+
+  /* ---------- first boot simulator (texts from Screen.cpp) ---------- */
+  const SPLASH = [" - R080 Timer - ", "     v2.0.0     "];
+  const MAIN = ["COUNTDOWN  [S]  ", " 1s      Ch:A ♪⚡"];
+  const WDT = ["RESET: WDT      ", "                "];
+  const SCN = {
+    power: { frames: [[SPLASH, 1500, bi("schermata iniziale", "start screen")], [MAIN, 0, bi("pronto, Canale A", "ready, Channel A")]],
+             log: '<span class="ev">t=12 BOOT reset=POWER</span>\n<span class="err">t=12 ERROR settings=factory</span>' },
+    wdt: { frames: [[WDT, 3000, bi("causa del reset, 3 s", "reset cause, 3 s")], [MAIN, 0, bi("pronto, Canale A", "ready, Channel A")]],
+           log: '<span class="ev">t=12 BOOT reset=WDT</span>' }
+  };
+  const rows = document.querySelectorAll("#lcd .row");
+  const phase = document.getElementById("phase");
+  const logEl = document.getElementById("log");
+  let scn = "power", timer = null;
+  function paint(lines) {
+    lines.forEach((line, i) => {
+      rows[i].innerHTML = Array.from(line.padEnd(16).slice(0, 16)).map((ch) => `<span>${ch === " " ? "&nbsp;" : ch}</span>`).join("");
+    });
+    document.getElementById("lcd").setAttribute("aria-label", "LCD: " + lines.map((l) => l.trim()).join(" / "));
+  }
+  function play() {
+    clearTimeout(timer);
+    const f = SCN[scn].frames;
+    logEl.innerHTML = SCN[scn].log;
+    const show = (i) => {
+      paint(f[i][0]);
+      phase.innerHTML = f[i][2];
+      if (f[i][1] && i + 1 < f.length) timer = setTimeout(() => show(i + 1), f[i][1]);
+    };
+    show(0);
+  }
+  document.querySelectorAll("[data-scn]").forEach((b) => b.addEventListener("click", () => {
+    scn = b.dataset.scn;
+    document.querySelectorAll("[data-scn]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    play();
+  }));
+  document.getElementById("replay").addEventListener("click", play);
+  if (reduced) { // no autoplay: show the ready state, replay on request
+    paint(MAIN); phase.innerHTML = SCN.power.frames[1][2]; logEl.innerHTML = SCN.power.log;
+  } else play();
+
+  /* ---------- audio calibration calculator (same maths as ClockCorrection.cpp) ---------- */
+  function ppmFromMeasurement(nominalMs, measuredMs, currentPpm) {
+    const ppm = (1e6 + currentPpm) * (measuredMs / nominalMs) - 1e6;
+    if (ppm >= 1000) return 1000;
+    if (ppm <= -1000) return -1000;
+    return Math.trunc(ppm < 0 ? ppm - 0.5 : ppm + 0.5);
+  }
+  const mIn = document.getElementById("cal-measured"), cIn = document.getElementById("cal-current"), out = document.getElementById("cal-out");
+  function calc() {
+    const L = lang();
+    const raw = mIn.value.trim().replace(",", ".");
+    const sec = Number(raw);
+    const cur = Math.round(Number(cIn.value || 0));
+    const hundredths = Math.round(sec * 100);
+    if (!raw || !isFinite(sec) || hundredths <= 0 || hundredths > 99999) {
+      out.innerHTML = `<span class="bad">${bi("Inserisci una durata fra 0,01 e 999,99 s.", "Enter a duration between 0.01 and 999.99 s.")}</span>`;
+      return;
+    }
+    if (!isFinite(cur) || cur < -1000 || cur > 1000) {
+      out.innerHTML = `<span class="bad">${bi("La correzione salvata va da −1000 a +1000 ppm.", "The saved correction ranges from −1000 to +1000 ppm.")}</span>`;
+      return;
+    }
+    const ppm = ppmFromMeasurement(600000, hundredths * 10, cur);
+    const keys = String(hundredths).split("").map((d) => `<kbd>${d}</kbd>`).join("");
+    const fmt = (n, d) => n.toLocaleString(L === "it" ? "it-IT" : "en-GB", { minimumFractionDigits: d, maximumFractionDigits: d });
+    const signed = (ppm > 0 ? "+" : ppm < 0 ? "−" : "") + Math.abs(ppm);
+    const slow = sec > 600 ? bi("la scheda è lenta", "the board is slow") : sec < 600 ? bi("la scheda è veloce", "the board is fast") : bi("nessuno scostamento", "no offset");
+    out.innerHTML =
+      `<span class="res">${signed} ppm</span>` +
+      `<span>${bi(`Durata ${fmt(sec, 2)} s: ${slow}.`, `Duration ${fmt(sec, 2)} s: ${slow}.`)}</span>` +
+      `<span class="keys">${bi("Da digitare in <code>Durata 600 s</code>:", "Type in <code>Durata 600 s</code>:")} ${keys} ${bi("poi l'encoder.", "then the encoder.")}</span>` +
+      (Math.abs(ppm) === 1000 ? `<span class="bad">${bi("Al limite di ±1000 ppm: ricontrolla la misura.", "At the ±1000 ppm limit: check the measurement.")}</span>` : "");
+  }
+  mIn.addEventListener("input", calc);
+  cIn.addEventListener("input", calc);
+  calc();
+
+  /* ---------- acceptance checklist (localStorage) ---------- */
+  const KEY = "r080-collaudo";
+  const boxes = Array.from(document.querySelectorAll("#checklist input"));
+  const state = load(KEY) || {};
+  boxes.forEach((b) => { b.checked = !!state[b.dataset.k]; });
+  function progress() {
+    const n = boxes.filter((b) => b.checked).length;
+    document.getElementById("check-fill").style.width = (100 * n / boxes.length) + "%";
+    document.getElementById("check-txt").innerHTML = bi(`${n} di ${boxes.length} prove superate`, `${n} of ${boxes.length} checks passed`);
+  }
+  boxes.forEach((b) => b.addEventListener("change", () => {
+    state[b.dataset.k] = b.checked;
+    save(KEY, state);
+    progress();
+  }));
+  document.getElementById("check-reset").addEventListener("click", () => {
+    boxes.forEach((b) => { b.checked = false; state[b.dataset.k] = false; });
+    save(KEY, state);
+    progress();
+  });
+  progress();
+
+  // number formats follow the language
+  document.addEventListener("r080:lang", calc);
+})();
+</script>
+</body>
+</html>

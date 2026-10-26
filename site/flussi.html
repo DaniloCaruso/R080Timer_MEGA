@@ -1,0 +1,1101 @@
+<!doctype html>
+<html lang="it" data-lang="it" data-title-it="Flussi · R080 Timer" data-title-en="Flows · R080 Timer">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Flussi · R080 Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+/* ---------- flow stage ---------- */
+.stage { display: grid; gap: 18px; min-width: 0; max-width: 1640px; width: 100%; justify-self: center; }
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 14px 9px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font: 500 14px/1 var(--body);
+  cursor: pointer;
+  transition: color .2s ease, border-color .2s ease, background .2s ease;
+}
+.tab .n { font: 700 11px/1 var(--mono); color: var(--faint); padding: 4px 6px; border-radius: 999px; background: rgba(169, 133, 255, .1); }
+.tab:hover { color: var(--fg); border-color: var(--line-2); }
+.tab[aria-selected="true"] { color: var(--fg); border-color: var(--violet); background: linear-gradient(120deg, rgba(169, 133, 255, .26), rgba(255, 92, 200, .14)); box-shadow: 0 0 24px -6px rgba(169, 133, 255, .6); }
+.tab[aria-selected="true"] .n { color: var(--bg); background: var(--violet); }
+.tab:focus-visible, .ctl:focus-visible, .chip:focus-visible, .dot:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+.flow-intro { display: grid; gap: 6px; }
+.flow-intro h2 span.k { color: var(--magenta); font: 700 .7em/1 var(--mono); letter-spacing: .1em; margin-right: 10px; vertical-align: middle; }
+.flow-intro p { color: var(--muted); max-width: 80ch; }
+
+.stage-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .stage-grid { grid-template-columns: minmax(0, 1fr); } }
+
+.board {
+  position: relative;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(600px 300px at 20% 0%, rgba(169, 133, 255, .10), transparent 70%),
+    radial-gradient(500px 300px at 90% 100%, rgba(69, 224, 255, .06), transparent 70%),
+    linear-gradient(180deg, #170c2b, #120a22);
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+}
+.board-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chips .lbl { font: 600 10.5px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); margin-right: 4px; }
+.chip {
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  padding: 6px 11px; border-radius: 999px; font: 500 13px/1.1 var(--body); cursor: pointer;
+}
+.chip:hover { color: var(--fg); border-color: var(--line-2); }
+.chip[aria-pressed="true"] { color: var(--bg); background: var(--cyan); border-color: var(--cyan); font-weight: 600; }
+.controls { display: flex; gap: 6px; align-items: center; }
+.ctl {
+  width: 38px; height: 38px; display: grid; place-items: center;
+  border-radius: 12px; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--fg); cursor: pointer;
+}
+.ctl svg { width: 16px; height: 16px; fill: currentColor; }
+.ctl:hover { border-color: var(--violet); }
+.ctl.play { width: auto; padding: 0 16px 0 12px; gap: 8px; display: inline-flex; align-items: center; font: 600 13px/1 var(--body);
+  background: linear-gradient(120deg, var(--violet), var(--magenta)); color: #1a0b2e; border: 0; box-shadow: 0 6px 22px -8px var(--magenta); }
+.ctl:disabled { opacity: .35; cursor: default; }
+
+.diagram-scroll { overflow-x: auto; overflow-y: hidden; padding: 8px 6px 4px; -webkit-overflow-scrolling: touch; }
+.diagram-scroll svg { display: block; width: 100%; height: auto; margin: 0 auto; }
+
+/* svg: nodes */
+.node { cursor: pointer; outline: none; }
+.node .shape { fill: color-mix(in srgb, var(--k) 9%, #1b1033); stroke: color-mix(in srgb, var(--k) 50%, transparent); stroke-width: 1.4; transition: fill .35s ease, stroke .35s ease; }
+.node .halo { fill: none; stroke: var(--k); stroke-width: 10; opacity: 0; transition: opacity .35s ease; }
+.node .kdot { fill: var(--k); }
+.node .nt { fill: var(--fg); font: 600 14px var(--body); text-anchor: middle; }
+.node .ns { fill: var(--muted); font: 500 10.5px var(--mono); text-anchor: middle; }
+.node.ask .shape { stroke-dasharray: 5 4; }
+.node.dim .nt { fill: var(--muted); }
+.node:hover .shape { stroke: var(--k); }
+.node:focus-visible .shape { stroke: var(--fg); stroke-width: 2.4; }
+.node.seen .shape { fill: color-mix(in srgb, var(--k) 15%, #1b1033); stroke: color-mix(in srgb, var(--k) 75%, transparent); }
+.node.on .shape { fill: color-mix(in srgb, var(--k) 26%, #1b1033); stroke: var(--k); stroke-width: 2.2; }
+.node.on .halo { opacity: .55; animation: pulse 1.8s ease-in-out infinite; }
+.node.on .ns { fill: #ece4ff; }
+@keyframes pulse { 50% { opacity: .2; } }
+
+/* svg: edges */
+.edge .wire { fill: none; stroke: #4a3678; stroke-width: 1.6; transition: stroke .35s ease; }
+.edge.dash .wire { stroke-dasharray: 4 5; }
+.edge .head { fill: #4a3678; transition: fill .35s ease; }
+.edge .flow { fill: none; stroke: var(--k); stroke-width: 2.6; stroke-dasharray: 7 11; stroke-linecap: round; opacity: 0; }
+.edge .lbg { fill: #150b28; stroke: #2f2054; stroke-width: 1; }
+.edge .lt { fill: var(--faint); font: 500 10.5px var(--mono); text-anchor: middle; dominant-baseline: central; }
+.edge.seen .wire { stroke: color-mix(in srgb, var(--k) 55%, #4a3678); }
+.edge.seen .head { fill: color-mix(in srgb, var(--k) 55%, #4a3678); }
+.edge.seen .lt { fill: var(--muted); }
+.edge.on .wire { stroke: var(--k); stroke-width: 2; filter: url(#glow); }
+.edge.on .head { fill: var(--k); }
+.edge.on .flow { opacity: 1; animation: flow 0.9s linear infinite; }
+.edge.on .lbg { stroke: var(--k); fill: color-mix(in srgb, var(--k) 18%, #150b28); }
+.edge.on .lt { fill: var(--fg); }
+@keyframes flow { to { stroke-dashoffset: -36; } }
+.token { fill: #fff; filter: url(#glow); pointer-events: none; }
+.lane rect { fill: rgba(169, 133, 255, .04); stroke: var(--line); stroke-dasharray: 3 5; }
+.lane text { fill: var(--faint); font: 600 10.5px var(--mono); letter-spacing: .14em; text-transform: uppercase; text-anchor: end; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 12px 16px 14px; border-top: 1px solid var(--line); font: 500 12px/1.3 var(--body); color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 10px; height: 10px; border-radius: 4px; background: var(--k); box-shadow: 0 0 8px var(--k); }
+.legend .hint { color: var(--faint); margin-left: auto; }
+
+/* ---------- side panel ---------- */
+.side { display: grid; gap: 14px; min-width: 0; }
+.stepcard { border-left: 3px solid var(--k, var(--violet)); }
+.stepcard .meta { display: flex; justify-content: space-between; gap: 10px; font: 600 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+.stepcard h3 { color: var(--k, var(--fg)); font-size: 18px; }
+.stepcard p { color: var(--muted); font-size: 14.5px; }
+.stepcard p.cap { color: var(--fg); }
+.dots { display: flex; flex-wrap: wrap; gap: 5px; }
+.dot { width: 22px; height: 8px; border-radius: 999px; border: 0; background: var(--line); cursor: pointer; padding: 0; }
+.dot.seen { background: color-mix(in srgb, var(--violet) 55%, var(--line)); }
+.dot.on { background: var(--magenta); box-shadow: 0 0 10px var(--magenta); width: 32px; }
+
+.dev { display: grid; gap: 12px; }
+.dev h4 { margin: 0; font: 600 10.5px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--faint); display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.seg7box { border-radius: 14px; padding: 12px 14px; background: #0a0510; border: 1px solid #2a1b44; box-shadow: inset 0 0 30px rgba(0, 0, 0, .6); }
+.seg7box svg { display: block; width: 100%; max-width: 250px; height: auto; margin: 0 auto; }
+.seg7 .s { fill: rgba(255, 84, 114, .07); }
+.seg7 .s.lit { fill: #ff3d5f; filter: url(#segglow); }
+.lcd {
+  border-radius: 12px; padding: 10px; display: grid; gap: 4px;
+  background: linear-gradient(180deg, #d0203e, #a5122c);
+  border: 6px solid #1c1426; box-shadow: 0 0 0 1px #3a2766, 0 0 34px -8px rgba(255, 40, 80, .55), inset 0 0 16px rgba(0, 0, 0, .25);
+  transition: filter .4s ease;
+}
+.lcd.dim { filter: brightness(.48) saturate(.9); }
+.lcd .row { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+.lcd .c {
+  aspect-ratio: 5 / 8; display: grid; place-items: center;
+  background: rgba(255, 255, 255, .07); border-radius: 2px;
+  color: #2c040d; font: 700 clamp(11px, 3.4vw, 16px)/1 var(--mono);
+}
+.lcd .c.full { background: #2c040d; }
+.lcd .c svg { width: 72%; height: 72%; fill: #2c040d; }
+.lamp { display: flex; flex-wrap: wrap; gap: 8px; }
+.lamp .pill i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
+.sound { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: center; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: #150b28; min-height: 54px; }
+.sound svg { grid-row: span 2; width: 96px; height: 34px; }
+.sound svg rect { fill: var(--magenta); }
+.sound b { font: 600 14px/1.2 var(--body); color: var(--fg); }
+.sound small { font: 500 11.5px/1.2 var(--mono); color: var(--muted); }
+.sound.off b { color: var(--faint); font-weight: 500; }
+.sound.off svg rect { fill: var(--line); }
+.sound.go svg rect { animation: beep .5s ease-out 2; }
+@keyframes beep { 40% { fill: #fff; } }
+.note.small { font-size: 13px; }
+</style>
+</head>
+<body data-page="flussi.html">
+<main class="page">
+  <header class="page-head">
+    <span class="eyebrow"><span lang="it">Comportamento · firmware v2.0.0</span><span lang="en">Behaviour · firmware v2.0.0</span></span>
+    <h1><span lang="it">Flussi</span><span lang="en">Flows</span></h1>
+    <p class="lede" lang="it">Come si comporta il timer, un flusso alla volta. Scegli un flusso, premi <b>Riproduci</b> per seguire una sequenza tipica passo per passo, oppure tocca uno stato per leggerne la spiegazione. Nel pannello accanto al diagramma vedi cosa mostrano il <b>7 segmenti</b> e l'<b>LCD</b>, lo stato del relè e il suono di ogni passo.</p>
+    <p class="lede" lang="en">How the timer behaves, one flow at a time. Pick a flow, press <b>Play</b> to follow a typical sequence step by step, or tap a state to read what it does. In the panel next to the diagram you see what the <b>7-segment</b> display and the <b>LCD</b> show, the relay state and the sound of each step.</p>
+  </header>
+
+  <section class="stage wide" aria-label="Flussi / Flows">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="flow-intro" id="intro"></div>
+    <div class="stage-grid" role="tabpanel" id="flow-panel">
+      <div class="board">
+        <div class="board-bar">
+          <div class="chips" id="scen"></div>
+          <div class="controls">
+            <button type="button" class="ctl" id="b-prev"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h2v10H4zM13 3v10L7 8z"/></svg></button>
+            <button type="button" class="ctl play" id="b-play"></button>
+            <button type="button" class="ctl" id="b-next"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3h2v10h-2zM3 3v10l6-5z"/></svg></button>
+            <button type="button" class="ctl" id="b-reset"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5a5.5 5.5 0 1 1-5.2 7.3l1.9-.6A3.5 3.5 0 1 0 8 4.5H6.8L8.6 6.3 7.2 7.7 3 3.5 7.2-.7 8.6.7 6.8 2.5z" transform="translate(0 1)"/></svg></button>
+          </div>
+        </div>
+        <div class="diagram-scroll" id="dscroll"></div>
+        <div class="legend">
+          <span style="--k:var(--violet)"><i></i><span lang="it">Fermo</span><span lang="en">Idle</span></span>
+          <span style="--k:var(--indigo)"><i></i><span lang="it">Comando, lettura</span><span lang="en">Command, read</span></span>
+          <span style="--k:var(--amber)"><i></i><span lang="it">Lampada accesa</span><span lang="en">Lamp on</span></span>
+          <span style="--k:var(--cyan)"><i></i><span lang="it">Relè spento, pausa</span><span lang="en">Relay off, pause</span></span>
+          <span style="--k:var(--magenta)"><i></i><span lang="it">Avviso, menu</span><span lang="en">Warning, menu</span></span>
+          <span style="--k:var(--green)"><i></i><span lang="it">Fine, salvato</span><span lang="en">End, saved</span></span>
+          <span style="--k:var(--red)"><i></i><span lang="it">Errore, annullamento</span><span lang="en">Error, cancel</span></span>
+          <span class="hint"><span lang="it">Bordo tratteggiato = domanda</span><span lang="en">Dashed border = question</span></span>
+        </div>
+      </div>
+      <aside class="side" aria-live="polite">
+        <div class="panel stepcard" id="card"></div>
+        <div class="panel dev" id="dev"></div>
+      </aside>
+    </div>
+  </section>
+
+  <div class="note small"><strong><span lang="it">Fonte</span><span lang="en">Source</span></strong>
+    <p lang="it">Ogni passo è verificato sul codice del firmware v2.0.0 (<code>Controller.cpp</code>, <code>TimingCore.h</code>, <code>ServiceMenu.cpp</code>, <code>Settings.cpp</code>, <code>Screen.cpp</code>). I tempi del 7 segmenti sono esempi; i testi dell'LCD sono quelli reali, carattere per carattere.</p>
+    <p lang="en">Every step is checked against the v2.0.0 firmware code (<code>Controller.cpp</code>, <code>TimingCore.h</code>, <code>ServiceMenu.cpp</code>, <code>Settings.cpp</code>, <code>Screen.cpp</code>). The 7-segment times are examples; the LCD texts are the real ones, character by character.</p>
+  </div>
+</main>
+<footer class="site"><span lang="it">R080 Timer · timer per ingranditore su Arduino Mega 2560 · firmware v2.0.0</span><span lang="en">R080 Timer · enlarger timer on Arduino Mega 2560 · firmware v2.0.0</span></footer>
+<script src="assets/site.js"></script>
+<script>
+(function () {
+  "use strict";
+  const T = (it, en) => ({ it, en: en === undefined ? it : en });
+  const lang = () => (document.documentElement.dataset.lang === "en" ? "en" : "it");
+  const L = (o) => (o == null ? "" : typeof o === "string" ? o : o[lang()]);
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const KIND = { idle: "--violet", input: "--indigo", lamp: "--amber", off: "--cyan", warn: "--magenta", end: "--green", err: "--red", ask: "--fg", mute: "--faint" };
+
+  // LCD rows, exactly as Screen.cpp composes them: row 2 = precision (cols 0-6), Ch:x (9-12), note (14), plug (15).
+  const pad = (s) => (s + " ".repeat(16)).slice(0, 16);
+  const R1 = { F: "FOCUS", CD: "COUNTDOWN  [S]", TS: "TEST STRIP [S]CO", TSF: "TEST STRIP [F]CO", TP: "TEST STRIP [S]PP" };
+  const r2 = (p, ch, note, plug) => (p + "         ").slice(0, 9) + "Ch:" + (ch || "A") + " " + (note === false ? " " : "♪") + (plug === false ? " " : "⚡");
+  const LCD_CD = [R1.CD, r2(" 1s")];
+  const LCD_F = [R1.F, r2("")];
+  const MENU = (item) => ["MENU SERVIZIO", ">" + item];
+
+  // Sounds from SoundScheduler.cpp: [hz, ms] (hz 0 = pause).
+  const SND = {
+    start: [T("Avvio", "Start"), "1000 Hz · 60 ms", [[1000, 60]]],
+    metro: [T("Metronomo", "Metronome"), "300 Hz · 80 ms", [[300, 80]]],
+    pre: [T("Preavviso", "Pre-warning"), "3 × 800 Hz · 30 ms", [[800, 30], [0, 70], [800, 30], [0, 70], [800, 30]]],
+    step: [T("Step", "Step"), "600 Hz · 150 ms", [[600, 150]]],
+    end: [T("Suono di fine", "End sound"), "600 · 450 · 300 Hz", [[600, 150], [0, 80], [450, 150], [0, 80], [300, 150]]],
+    warn: [T("Avviso Focus", "Focus warning"), "2 × 450 Hz · 200 ms", [[450, 200], [0, 100], [450, 200]]],
+    error: [T("Errore", "Error"), "150 Hz · 300 ms", [[150, 300]]],
+    ok: [T("Conferma", "Confirm"), "1200 Hz · 40 ms", [[1200, 40]]]
+  };
+
+  /* ------------------------------------------------------------------ flows
+     node: [id, x, y, kind, title, sub, info]
+     edge: [from, to, label, opts{bend, loop:"top|bottom|left|right", id, dash}]
+     step: {n, via?, seg?, lcd?, r?, snd?, c}  seg/lcd/r carry over to the next steps */
+  const FLOWS = [
+    {
+      id: "boot", tab: T("Accensione", "Power-on"),
+      intro: T("Dall'alimentazione all'ultimo stato salvato: relè spento per primo, controllo del watchdog, schermata iniziale. Con D premuto si apre il Menu di servizio.",
+        "From power to the last saved state: relay off first, watchdog check, splash screen. With D held the Service menu opens."),
+      nodes: [
+        ["pow", 120, 70, "input", T("Accensione", "Power-on"), T("o reset", "or reset"),
+          T("La scheda parte da zero: alimentazione, reset da watchdog o brown-out (sotto 2,7 V). Un'Esposizione interrotta da un reset non riprende mai.",
+            "The board starts from scratch: power, watchdog reset or brown-out (below 2.7 V). An exposure cut short by a reset never resumes.")],
+        ["rel", 360, 70, "off", T("Relè spento", "Relay off"), T("Timer1 avviato per primo", "Timer1 started first"),
+          T("La prima riga di setup() avvia Timer1 e tiene basso il pin del relè: la lampada resta spenta finché non si avvia un'Esposizione.",
+            "The first line of setup() starts Timer1 and holds the relay pin low: the lamp stays off until an exposure starts.")],
+        ["wdt", 600, 70, "off", T("Watchdog", "Watchdog"), T("marcatore letto · armato", "marker read · armed"),
+          T("Un marcatore in RAM non inizializzata dice se il riavvio viene dal watchdog. Poi il watchdog si arma: se il loop si blocca, a 250 ms spegne il relè e a 500 ms resetta la scheda.",
+            "A marker in uninitialised RAM tells whether the restart came from the watchdog. Then the watchdog is armed: if the loop hangs it turns the relay off at 250 ms and resets the board at 500 ms.")],
+        ["load", 840, 70, "input", T("Lettura", "Load"), T("D, impostazioni, contatori", "D, settings, counters"),
+          T("Legge una sola volta il tasto D, carica le impostazioni (CRC8, altrimenti valori di fabbrica) e aumenta il contatore delle accensioni; dopo un watchdog anche quello dei reset.",
+            "Reads the D key once, loads the settings (CRC8, otherwise factory defaults) and bumps the power-on counter; after a watchdog reset also the reset counter.")],
+        ["cause", 840, 210, "ask", T("Causa del riavvio?", "Restart cause?"), T("log BOOT reset=…", "log BOOT reset=…"),
+          T("Il log USB scrive BOOT reset=POWER o BOOT reset=WDT. Solo il reset da watchdog si riconosce: il bootloader cancella gli altri flag.",
+            "The USB log writes BOOT reset=POWER or BOOT reset=WDT. Only the watchdog reset is recognised: the bootloader clears the other flags.")],
+        ["wmsg", 600, 350, "err", T("RESET: WDT", "RESET: WDT"), T("3 s sull'LCD", "3 s on the LCD"),
+          T("Dopo un reset da watchdog l'LCD mostra la causa per 3 s, al posto della schermata iniziale, che non compare. Se D era premuto, poi si apre il Menu di servizio.",
+            "After a watchdog reset the LCD shows the cause for 3 s, instead of the splash screen, which does not appear. If D was held, the Service menu opens next.")],
+        ["splash", 1080, 350, "idle", T("Schermata iniziale", "Splash screen"), T("nome e versione · 1,5 s", "name and version · 1.5 s"),
+          T("“- R080 Timer -” e la versione per 1,5 s. Il 7 segmenti mostra già il tempo impostato del Canale attivo.",
+            "“- R080 Timer -” and the version for 1.5 s. The 7-segment already shows the set time of the active channel.")],
+        ["idle", 840, 500, "end", T("Ultimo stato salvato", "Last saved state"), T("fermo, relè spento", "idle, relay off"),
+          T("Tutto come allo spegnimento: Canale attivo, i tre Canali, mute, luminosità, impostazioni del menu. Il timer è fermo con il relè spento.",
+            "Everything as it was at power-off: active channel, the three channels, mute, brightness, menu settings. The timer is idle with the relay off.")],
+        ["menu", 1080, 500, "warn", T("Menu di servizio", "Service menu"), T("D tenuto all'accensione", "D held at power-on"),
+          T("Se D era premuto all'avvio, finita la schermata iniziale si apre il Menu di servizio. Nel menu non si avviano Esposizioni.",
+            "If D was held at start-up, the Service menu opens once the splash screen ends. No exposure can start inside the menu.")]
+      ],
+      edges: [
+        ["pow", "rel", ""], ["rel", "wdt", ""], ["wdt", "load", ""], ["load", "cause", ""],
+        ["cause", "wmsg", T("WDT"), { bend: -30 }], ["cause", "splash", T("POWER"), { bend: 30 }],
+        ["wmsg", "idle", T("3 s")], ["splash", "idle", T("1,5 s", "1.5 s")],
+        ["splash", "menu", T("D tenuto", "D held")]
+      ],
+      sc: [
+        { name: T("Accensione normale", "Normal power-on"), steps: [
+          { n: "pow", seg: "", lcd: ["", ""], r: false, c: T("Arriva la corrente: la scheda si avvia, display ancora spenti.", "Power arrives: the board starts, displays still dark.") },
+          { n: "rel", c: T("Timer1 parte per primo e tiene il relè spento.", "Timer1 starts first and keeps the relay off.") },
+          { n: "wdt", c: T("Nessun marcatore: avvio normale. Il watchdog ora sorveglia il loop.", "No marker: normal start. The watchdog now guards the loop.") },
+          { n: "load", c: T("Impostazioni valide, contatore Accensioni +1.", "Settings valid, power-on counter +1.") },
+          { n: "cause", c: T("Causa POWER: il log scrive BOOT reset=POWER.", "Cause POWER: the log writes BOOT reset=POWER.") },
+          { n: "splash", seg: "010.0", lcd: [" - R080 Timer - ", "     v2.0.0"], c: T("Schermata iniziale per 1,5 s; il 7 segmenti mostra già 10,0 s.", "Splash for 1.5 s; the 7-segment already shows 10.0 s.") },
+          { n: "idle", lcd: LCD_CD, c: T("Ultimo stato salvato: Countdown, Canale A, pronto.", "Last saved state: Countdown, channel A, ready.") }
+        ] },
+        { name: T("Dopo un blocco", "After a hang"), steps: [
+          { n: "pow", seg: "", lcd: ["", ""], r: false, c: T("Il loop si era bloccato: a 250 ms la ISR del watchdog ha spento il relè e scritto il marcatore, a 500 ms la scheda si è riavviata.", "The loop had hung: at 250 ms the watchdog ISR turned the relay off and wrote the marker, at 500 ms the board restarted.") },
+          { n: "rel", c: T("Relè spento, come a ogni avvio.", "Relay off, as at every start.") },
+          { n: "wdt", c: T("Marcatore trovato: il riavvio viene dal watchdog.", "Marker found: the restart came from the watchdog.") },
+          { n: "load", c: T("Accensioni +1 e Reset watchdog +1.", "Power-ons +1 and watchdog resets +1.") },
+          { n: "cause", c: T("Causa WDT: il log scrive BOOT reset=WDT.", "Cause WDT: the log writes BOOT reset=WDT.") },
+          { n: "wmsg", seg: "010.0", lcd: ["RESET: WDT", ""], c: T("L'LCD mostra RESET: WDT per 3 s.", "The LCD shows RESET: WDT for 3 s.") },
+          { n: "idle", lcd: LCD_CD, c: T("Poi direttamente l'ultimo stato salvato: la schermata iniziale non compare. Nessuna Esposizione riprende.", "Then straight to the last saved state: no splash screen. No exposure resumes.") }
+        ] },
+        { name: T("D tenuto", "D held"), steps: [
+          { n: "pow", seg: "", lcd: ["", ""], r: false, c: T("D premuto mentre si accende il timer.", "D held while the timer powers on.") },
+          { n: "rel" }, { n: "wdt" },
+          { n: "load", c: T("D letto una volta sola, qui: il Menu di servizio è aperto.", "D is read only once, here: the Service menu is open.") },
+          { n: "cause" },
+          { n: "splash", seg: "010.0", lcd: [" - R080 Timer - ", "     v2.0.0"], c: T("La schermata iniziale compare comunque per 1,5 s.", "The splash screen still shows for 1.5 s.") },
+          { n: "menu", lcd: MENU("Info"), c: T("Menu di servizio, prima voce Info. Si scorre con l'encoder della Modalità.", "Service menu, first item Info. Scroll with the mode encoder.") }
+        ] }
+      ]
+    },
+    {
+      id: "countdown", tab: T("Countdown", "Countdown"),
+      intro: T("Una singola Esposizione lunga quanto il tempo impostato, con il Metronomo a ogni secondo e lo spegnimento del relè dal timer hardware, al millisecondo.",
+        "A single exposure as long as the set time, with the metronome every second and the relay switched off by the hardware timer, to the millisecond."),
+      nodes: [
+        ["err", 140, 80, "err", T("Beep di errore", "Error beep"), T("tempo 0,0", "time 0.0"),
+          T("Con tempo 0,0 la pressione non avvia nulla: tono grave lungo (150 Hz, 300 ms), relè spento, il timer resta fermo.",
+            "With time 0.0 the press starts nothing: long low tone (150 Hz, 300 ms), relay off, the timer stays idle.")],
+        ["entry", 420, 80, "input", T("Inserimento", "Time entry"), T("cifre da destra", "digits from the right"),
+          T("Le cifre entrano da destra in decimi di secondo, fino a quattro: 1 2 5 = 12,5 s. Il tempo inserito diventa anche il Tempo base, con Offset zero.",
+            "Digits enter from the right in tenths of a second, up to four: 1 2 5 = 12.5 s. The entered time also becomes the base time, with offset zero.")],
+        ["idle", 140, 270, "idle", T("Fermo", "Idle"), T("7 seg: tempo impostato", "7-seg: set time"),
+          T("Il 7 segmenti mostra il tempo impostato del Canale attivo; tastierino ed encoder sono attivi. D azzera tempo, Tempo base e Offset.",
+            "The 7-segment shows the set time of the active channel; keypad and encoders are live. D clears time, base time and offset.")],
+        ["expo", 700, 270, "lamp", T("Esposizione", "Exposure"), T("relè acceso · residuo", "relay on · remaining"),
+          T("Relè acceso (se l'Abilitazione relè è attiva), beep di avvio, impostazioni salvate subito, LCD al livello di esposizione. Il 7 segmenti conta alla rovescia, arrotondando per eccesso.",
+            "Relay on (if relay enable is on), start beep, settings saved at once, LCD at exposure level. The 7-segment counts down, rounded up.")],
+        ["isr", 1000, 270, "off", T("Fine dalla ISR", "End from the ISR"), T("relè spento al ms", "relay off on the ms"),
+          T("Nel tick di Timer1 in cui il tempo arriva al traguardo la ISR spegne il relè scrivendo su PORTL: la durata non dipende dal loop.",
+            "In the Timer1 tick where time reaches the target the ISR turns the relay off by writing PORTL: the duration does not depend on the loop.")],
+        ["cancel", 700, 450, "err", T("Annullamento", "Cancel"), T("pressione durante", "press while running"),
+          T("Una pressione durante l'Esposizione spegne subito il relè. Conta comunque come Esposizione; il log scrive CANCEL.",
+            "A press during the exposure switches the relay off at once. It still counts as an exposure; the log writes CANCEL.")],
+        ["end", 1000, 450, "end", T("Fine", "End"), T("suono di fine · ripeti", "end sound · repeat"),
+          T("Suono di fine (tre toni discendenti, suona anche col mute). Il 7 segmenti torna al tempo impostato: un'altra pressione ripete la stessa Esposizione.",
+            "End sound (three falling tones, plays even when muted). The 7-segment returns to the set time: another press repeats the same exposure.")]
+      ],
+      edges: [
+        ["idle", "entry", T("cifre", "digits")], ["entry", "expo", T("pressione", "press")],
+        ["idle", "expo", T("pressione", "press")], ["idle", "idle", T("D: 0,0", "D: 0.0"), { loop: "left" }],
+        ["idle", "err", T("pressione a 0,0", "press at 0.0"), { bend: -26 }], ["err", "idle", T("resta fermo", "stays idle"), { bend: -26 }],
+        ["expo", "expo", T("ogni secondo: metronomo", "every second: metronome"), { loop: "top" }],
+        ["expo", "isr", T("residuo 0", "0 left")], ["isr", "end", ""],
+        ["expo", "cancel", T("pressione", "press")], ["cancel", "end", ""],
+        ["end", "idle", T("pronto a ripetere", "ready to repeat"), { c: [580, 700] }]
+      ],
+      sc: [
+        { name: T("Esposizione completa", "Full exposure"), steps: [
+          { n: "idle", seg: "010.0", lcd: LCD_CD, r: false, c: T("Fermo sul Canale A: 10,0 s di fabbrica.", "Idle on channel A: factory 10.0 s.") },
+          { n: "entry", seg: "012.5", c: T("Digito 1 2 5: le cifre entrano da destra, 12,5 s.", "I type 1 2 5: digits enter from the right, 12.5 s.") },
+          { n: "expo", r: true, snd: "start", c: T("Pressione: relè acceso, beep di avvio, impostazioni salvate subito.", "Press: relay on, start beep, settings saved at once.") },
+          { n: "expo", seg: "011.5", snd: "metro", c: T("A ogni secondo intero dall'avvio un tick del Metronomo. Il residuo è arrotondato per eccesso.", "At every whole second from the start a metronome tick. The remaining time is rounded up.") },
+          { n: "expo", seg: "000.5", snd: "metro", c: T("Ultimo tick a 12 s: mancano 0,5 s.", "Last tick at 12 s: 0.5 s to go.") },
+          { n: "isr", seg: "000.1", r: false, c: T("Al ms 12 500 la ISR spegne il relè, nello stesso tick.", "At ms 12 500 the ISR turns the relay off, in that very tick.") },
+          { n: "end", seg: "012.5", snd: "end", c: T("Suono di fine; il 7 segmenti torna a 012.5. Log END con la durata misurata, Esposizioni +1.", "End sound; the 7-segment goes back to 012.5. Log END with the measured duration, exposures +1.") },
+          { n: "idle", c: T("Un'altra pressione ripete la stessa Esposizione.", "Another press repeats the same exposure.") }
+        ] },
+        { name: T("Annullamento", "Cancel"), steps: [
+          { n: "idle", seg: "010.0", lcd: LCD_CD, r: false, c: T("Fermo, 10,0 s.", "Idle, 10.0 s.") },
+          { n: "expo", r: true, snd: "start", c: T("Pressione: Esposizione avviata.", "Press: exposure started.") },
+          { n: "expo", seg: "006.0", snd: "metro", c: T("Quarto tick del Metronomo: residuo 6,0 s.", "Fourth metronome tick: 6.0 s left.") },
+          { n: "cancel", seg: "005.3", r: false, c: T("Pressione durante l'Esposizione: relè spento subito, log CANCEL, conta come Esposizione.", "Press while running: relay off at once, log CANCEL, counts as an exposure.") },
+          { n: "end", seg: "010.0", snd: "end", c: T("Suono di fine; il 7 segmenti torna a 010.0.", "End sound; the 7-segment returns to 010.0.") },
+          { n: "idle", c: T("La pressione successiva riparte dal tempo pieno.", "The next press starts again from the full time.") }
+        ] },
+        { name: T("Tempo zero", "Zero time"), steps: [
+          { n: "idle", seg: "010.0", lcd: LCD_CD, r: false, c: T("Fermo, 10,0 s.", "Idle, 10.0 s.") },
+          { n: "idle", seg: "000.0", c: T("D azzera tempo impostato, Tempo base e Offset.", "D clears set time, base time and offset.") },
+          { n: "err", snd: "error", c: T("Pressione con 0,0: beep di errore, nessuna Esposizione.", "Press at 0.0: error beep, no exposure.") },
+          { n: "idle", c: T("Il timer resta fermo: si digita un tempo nuovo.", "The timer stays idle: type a new time.") }
+        ] }
+      ]
+    },
+    {
+      id: "focus", tab: T("Focus", "Focus"),
+      intro: T("Lampada accesa a tempo libero per comporre e mettere a fuoco, con spegnimento automatico di sicurezza.",
+        "Lamp on for free time to compose and focus, with a safety auto-off."),
+      nodes: [
+        ["idle", 140, 270, "idle", T("Focus fermo", "Focus idle"), T("* / # luci · cifre ignorate", "* / # lights · digits off"),
+          T("In Focus cifre ed encoder della precisione non hanno effetto; * / # regolano la luminosità dell'LCD, 0 tenuto + * / # quella del 7 segmenti. Il tempo impostato resta nel Canale.",
+            "In Focus digits and the precision encoder do nothing; * / # set the LCD brightness, 0 held + * / # the 7-segment one. The set time stays in the channel.")],
+        ["on", 430, 270, "lamp", T("Lampada accesa", "Lamp on"), T("tempo trascorso", "elapsed time"),
+          T("Pressione: relè acceso, beep di avvio. Il 7 segmenti conta il tempo trascorso; nessun Metronomo. LCD al livello di esposizione.",
+            "Press: relay on, start beep. The 7-segment counts the elapsed time; no metronome. LCD at exposure level.")],
+        ["mmss", 760, 90, "lamp", T("Oltre 999,9 s", "Past 999.9 s"), T("7 seg in mm.ss", "7-seg in mm.ss"),
+          T("Oltre 999,9 s il 7 segmenti passa a minuti.secondi: 17.05 = 17 min 05 s. Succede solo con il limite di 20 minuti.",
+            "Past 999.9 s the 7-segment switches to minutes.seconds: 17.05 = 17 min 05 s. Only happens with the 20-minute limit.")],
+        ["warn", 760, 270, "warn", T("Avviso", "Warning"), T("10 s prima · 2 × 450 Hz", "10 s before · 2 × 450 Hz"),
+          T("Dieci secondi prima dello Spegnimento automatico suonano due toni da 450 Hz. La lampada resta accesa.",
+            "Ten seconds before the auto-off two 450 Hz tones play. The lamp stays on.")],
+        ["auto", 1060, 270, "off", T("Spegnimento automatico", "Auto-off"), T("3·5·10·15·20 min, def. 5", "3·5·10·15·20 min, def. 5"),
+          T("Al tempo massimo scelto nel Menu di servizio (3, 5, 10, 15 o 20 minuti; di fabbrica 5) la ISR spegne il relè.",
+            "At the maximum time chosen in the Service menu (3, 5, 10, 15 or 20 minutes; factory 5) the ISR turns the relay off.")],
+        ["stop", 760, 450, "input", T("Stop manuale", "Manual stop"), T("seconda pressione", "second press"),
+          T("Una seconda pressione del pulsante principale spegne la lampada.",
+            "A second press of the main button turns the lamp off.")],
+        ["end", 1060, 450, "end", T("Fine", "End"), T("suono di fine", "end sound"),
+          T("Suono di fine, LCD al livello normale, 7 segmenti al tempo impostato. Il Focus non conta come Esposizione, ma il tempo a relè acceso va nelle ore di lampada.",
+            "End sound, LCD back to normal level, 7-segment to the set time. Focus is not counted as an exposure, but its relay-on time adds to the lamp hours.")]
+      ],
+      edges: [
+        ["idle", "on", T("pressione", "press")], ["on", "on", T("conta", "counting"), { loop: "bottom" }],
+        ["on", "mmss", T("1000 s (limite 20 min)", "1000 s (20 min limit)"), { dash: true, bend: 20 }], ["mmss", "warn", ""],
+        ["on", "warn", T("limite − 10 s", "limit − 10 s")], ["warn", "auto", T("limite", "limit")],
+        ["on", "stop", T("pressione", "press"), { bend: 20 }], ["warn", "stop", T("pressione", "press")],
+        ["auto", "end", ""], ["stop", "end", ""],
+        ["end", "idle", T("pronto", "ready"), { c: [600, 700] }]
+      ],
+      sc: [
+        { name: T("Spegnimento automatico", "Auto-off"), steps: [
+          { n: "idle", seg: "010.0", lcd: LCD_F, r: false, c: T("Focus fermo: il 7 segmenti mostra il tempo del Canale, che il Focus non usa.", "Focus idle: the 7-segment shows the channel time, which Focus does not use.") },
+          { n: "on", seg: "000.0", r: true, snd: "start", c: T("Pressione: lampada accesa, beep di avvio.", "Press: lamp on, start beep.") },
+          { n: "on", seg: "125.4", c: T("Il 7 segmenti conta il tempo trascorso, in silenzio.", "The 7-segment counts the elapsed time, silently.") },
+          { n: "warn", seg: "290.0", snd: "warn", c: T("Limite di fabbrica 5 min: a 4:50 l'avviso, due toni.", "Factory limit 5 min: at 4:50 the warning, two tones.") },
+          { n: "auto", seg: "300.0", r: false, c: T("A 5:00 la ISR spegne il relè.", "At 5:00 the ISR turns the relay off.") },
+          { n: "end", seg: "010.0", snd: "end", c: T("Suono di fine; il 7 segmenti torna al tempo impostato.", "End sound; the 7-segment returns to the set time.") },
+          { n: "idle", c: T("Pronto per un'altra accensione.", "Ready to switch on again.") }
+        ] },
+        { name: T("Limite 20 min", "20 min limit"), steps: [
+          { n: "idle", seg: "010.0", lcd: LCD_F, r: false, c: T("Tempo max Focus a 20 minuti nel Menu di servizio.", "Focus max time set to 20 minutes in the Service menu.") },
+          { n: "on", seg: "000.0", r: true, snd: "start", c: T("Pressione: lampada accesa.", "Press: lamp on.") },
+          { n: "mmss", seg: "17.05", c: T("A 1025 s il 7 segmenti mostra 17.05: 17 min 05 s.", "At 1025 s the 7-segment shows 17.05: 17 min 05 s.") },
+          { n: "warn", seg: "19.50", snd: "warn", c: T("A 19:50 l'avviso.", "At 19:50 the warning.") },
+          { n: "auto", seg: "20.00", r: false, c: T("A 20:00 relè spento dalla ISR.", "At 20:00 relay off from the ISR.") },
+          { n: "end", seg: "010.0", snd: "end", c: T("Suono di fine.", "End sound.") }
+        ] },
+        { name: T("Stop manuale", "Manual stop"), steps: [
+          { n: "idle", seg: "010.0", lcd: LCD_F, r: false, c: T("Focus fermo.", "Focus idle.") },
+          { n: "on", seg: "000.0", r: true, snd: "start", c: T("Pressione: lampada accesa.", "Press: lamp on.") },
+          { n: "on", seg: "042.7", c: T("Messa a fuoco in corso: 42,7 s.", "Focusing: 42.7 s.") },
+          { n: "stop", r: false, c: T("Seconda pressione: relè spento.", "Second press: relay off.") },
+          { n: "end", seg: "010.0", snd: "end", c: T("Suono di fine; il tempo va nelle ore di lampada, non nelle Esposizioni.", "End sound; the time goes to lamp hours, not to exposures.") },
+          { n: "idle", c: T("Di nuovo fermo.", "Idle again.") }
+        ] }
+      ]
+    },
+    {
+      id: "strip", tab: T("Test strip continuo", "Continuous test strip"),
+      intro: T("Una serie di Step cumulativi su una sola striscia: la lampada resta accesa e si copre una striscia a ogni beep di step.",
+        "A series of cumulative steps on one strip: the lamp stays on and you cover a strip at every step beep."),
+      nodes: [
+        ["idle", 140, 270, "idle", T("Fermo", "Idle"), T("TEST STRIP · CO", "TEST STRIP · CO"),
+          T("Avanzamento continuo (CO), scelto premendo l'encoder della Modalità. Il primo Step è il tempo impostato; con 0,0 la pressione dà il beep di errore.",
+            "Continuous advance (CO), chosen by pressing the mode encoder. The first step is the set time; at 0.0 the press gives the error beep.")],
+        ["run", 430, 270, "lamp", T("Lampada accesa", "Lamp on"), T("cumulativo · St:n", "cumulative · St:n"),
+          T("La lampada resta accesa da uno Step all'altro. Il 7 segmenti mostra il tempo cumulativo dall'inizio, l'LCD lo Step in corso (St:n). Nessun Metronomo.",
+            "The lamp stays on from one step to the next. The 7-segment shows the cumulative time from the start, the LCD the current step (St:n). No metronome.")],
+        ["pre", 720, 100, "warn", T("Preavviso", "Pre-warning"), T("−300 · −200 · −100 ms", "−300 · −200 · −100 ms"),
+          T("Tre tick brevi (800 Hz, 30 ms) a 0,3, 0,2 e 0,1 s dallo Step: il tempo di preparare il cartoncino.",
+            "Three short ticks (800 Hz, 30 ms) at 0.3, 0.2 and 0.1 s before the step: time to get the card ready.")],
+        ["step", 720, 440, "warn", T("Step", "Step"), T("beep 600 Hz · St:n+1", "600 Hz beep · St:n+1"),
+          T("Allo Step il beep: si copre una striscia. Lo Step successivo si calcola sempre dal Tempo base: Secondi T + k·P, F-Stop Tempo base · 2^((Offset + k) / p).",
+            "At the step the beep: cover one strip. The next step is always computed from the base time: seconds T + k·P, F-stop base · 2^((offset + k) / p).")],
+        ["end", 140, 470, "end", T("Fine prova", "Strip ended"), T("suono di fine · 1 Esposizione", "end sound · 1 exposure"),
+          T("Suono di fine, 7 segmenti al tempo impostato. La prova intera conta come una sola Esposizione, anche se annullata.",
+            "End sound, 7-segment to the set time. The whole strip counts as one exposure, even if cancelled.")]
+      ],
+      edges: [
+        ["idle", "run", T("pressione", "press")], ["run", "pre", T("Step − 300 ms", "step − 300 ms")],
+        ["pre", "step", T("Step", "step"), { bend: -40 }], ["step", "run", T("lampada sempre accesa", "lamp stays on")],
+        ["run", "end", T("pressione: annulla", "press: cancel"), { bend: 34, id: "cancel" }],
+        ["run", "end", T("999,9 s cumulativi", "999.9 s cumulative"), { bend: -34, id: "limit" }],
+        ["end", "idle", T("prossima prova: Step 1", "next strip: step 1")]
+      ],
+      sc: [
+        { name: T("Secondi: 5 s + 5 s", "Seconds: 5 s + 5 s"), steps: [
+          { n: "idle", seg: "005.0", lcd: [R1.TS, r2(" 5s")], r: false, c: T("Tempo 5,0 s, precisione Secondi 5 s: Step a 5, 10, 15, 20 s…", "Time 5.0 s, seconds precision 5 s: steps at 5, 10, 15, 20 s…") },
+          { n: "run", seg: "002.0", lcd: [R1.TS, r2("St:1")], r: true, snd: "start", c: T("Pressione: lampada accesa, beep di avvio. LCD: St:1.", "Press: lamp on, start beep. LCD: St:1.") },
+          { n: "pre", seg: "004.7", snd: "pre", c: T("A 4,7 · 4,8 · 4,9 s tre tick.", "At 4.7 · 4.8 · 4.9 s three ticks.") },
+          { n: "step", seg: "005.0", lcd: [R1.TS, r2("St:2")], snd: "step", c: T("Step 1 a 5,0 s: beep, si copre la prima striscia. Ora St:2 verso 10,0 s.", "Step 1 at 5.0 s: beep, cover the first strip. Now St:2 towards 10.0 s.") },
+          { n: "run", seg: "008.0", c: T("La lampada non si è mai spenta.", "The lamp never went off.") },
+          { n: "pre", seg: "009.7", snd: "pre", c: T("Preavviso dello Step 2.", "Pre-warning for step 2.") },
+          { n: "step", seg: "010.0", lcd: [R1.TS, r2("St:3")], snd: "step", c: T("Step 2 a 10,0 s.", "Step 2 at 10.0 s.") },
+          { n: "end", via: "cancel", seg: "005.0", lcd: [R1.TS, r2(" 5s")], r: false, snd: "end", c: T("Pressione: annullamento. Suono di fine, 7 segmenti di nuovo a 005.0.", "Press: cancel. End sound, 7-segment back to 005.0.") },
+          { n: "idle", c: T("La prossima prova riparte da 5,0 s.", "The next strip starts again at 5.0 s.") }
+        ] },
+        { name: T("F-Stop 1/2 fino a 999,9 s", "F-stop 1/2 up to 999.9 s"), steps: [
+          { n: "idle", seg: "008.0", lcd: [R1.TSF, r2("1/2  00")], r: false, c: T("Tempo base 8,0 s, F-Stop 1/2: Step a 8,0 → 11,3 → 16,0 → 22,6 s…", "Base time 8.0 s, F-stop 1/2: steps at 8.0 → 11.3 → 16.0 → 22.6 s…") },
+          { n: "run", seg: "004.0", lcd: [R1.TSF, r2("St:1")], r: true, snd: "start", c: T("Pressione: lampada accesa.", "Press: lamp on.") },
+          { n: "pre", seg: "007.7", snd: "pre", c: T("Preavviso.", "Pre-warning.") },
+          { n: "step", seg: "008.0", lcd: [R1.TSF, r2("St:2")], snd: "step", c: T("Step 1 a 8,0 s; lo Step 2 è 8,0 · 2^(1/2) = 11,3 s.", "Step 1 at 8.0 s; step 2 is 8.0 · 2^(1/2) = 11.3 s.") },
+          { n: "run", seg: "850.0", lcd: [R1.TSF, r2("St:15")], c: T("Dopo lo Step 14 (724,1 s) il 15 cadrebbe a 1024 s, oltre il limite.", "After step 14 (724.1 s) step 15 would fall at 1024 s, past the limit.") },
+          { n: "end", via: "limit", seg: "008.0", lcd: [R1.TSF, r2("1/2  00")], r: false, snd: "end", c: T("A 999,9 s cumulativi la ISR spegne il relè: fine automatica, Suono di fine.", "At 999.9 s cumulative the ISR turns the relay off: automatic end, end sound.") },
+          { n: "idle", c: T("Pronto per una nuova prova dallo Step 1.", "Ready for a new strip from step 1.") }
+        ] }
+      ]
+    },
+    {
+      id: "stepped", tab: T("Test strip passo-passo", "Step-by-step test strip"),
+      intro: T("A ogni Step la lampada si spegne al millisecondo e il timer aspetta: si sposta la carta e si preme per esporre solo l'incremento.",
+        "At every step the lamp goes off to the millisecond and the timer waits: move the paper and press to expose only the increment."),
+      nodes: [
+        ["idle", 140, 270, "idle", T("Fermo", "Idle"), T("TEST STRIP · PP", "TEST STRIP · PP"),
+          T("Avanzamento passo-passo (PP), scelto premendo l'encoder della Modalità. Il primo Step è il tempo impostato.",
+            "Step-by-step advance (PP), chosen by pressing the mode encoder. The first step is the set time.")],
+        ["run", 430, 270, "lamp", T("Lampada accesa", "Lamp on"), T("fino allo Step", "up to the step"),
+          T("Prima pressione: dall'inizio al primo Step. Dopo ogni pausa solo l'incremento fino allo Step successivo, con il beep di avvio. Il pulsante principale annulla.",
+            "First press: from zero to the first step. After each pause only the increment to the next step, with the start beep. The main button cancels.")],
+        ["pre", 720, 100, "warn", T("Preavviso", "Pre-warning"), T("3 tick prima dello Step", "3 ticks before the step"),
+          T("Tre tick da 800 Hz a −300, −200 e −100 ms dallo Step.", "Three 800 Hz ticks at −300, −200 and −100 ms from the step.")],
+        ["pause", 720, 440, "off", T("Pausa", "Pause"), T("relè spento dalla ISR", "relay off from the ISR"),
+          T("Nel tick dello Step la ISR spegne il relè; beep di step. Il 7 segmenti mostra il tempo cumulativo dello Step successivo. Cifre, * / # e l'encoder della precisione sono ignorati.",
+            "In the step tick the ISR turns the relay off; step beep. The 7-segment shows the cumulative time of the next step. Digits, * / # and the precision encoder are ignored.")],
+        ["end", 430, 470, "end", T("Fine prova", "Strip ended"), T("suono di fine", "end sound"),
+          T("In pausa D conclude la prova; con la lampada accesa il pulsante principale annulla; a 999,9 s si conclude da sola. Suono di fine, 7 segmenti al tempo impostato, una sola Esposizione.",
+            "In pause D ends the strip; with the lamp on the main button cancels; at 999.9 s it ends by itself. End sound, 7-segment to the set time, one exposure.")],
+        ["other", 1080, 440, "idle", T("Altro Canale o Modalità", "Other channel or mode"), T("A/B/C · encoder Modalità", "A/B/C · mode encoder"),
+          T("In pausa A, B, C o una rotazione dell'encoder della Modalità concludono la prova come D e in più attivano quel Canale o la Modalità vicina.",
+            "In pause A, B, C or turning the mode encoder end the strip like D and also select that channel or the next mode.")]
+      ],
+      edges: [
+        ["idle", "run", T("pressione", "press")], ["run", "pre", T("Step − 300 ms", "step − 300 ms")],
+        ["pre", "pause", T("Step: relè spento", "step: relay off"), { bend: -40 }],
+        ["pause", "run", T("pressione: incremento", "press: increment")],
+        ["pause", "end", T("D")], ["pause", "other", T("A/B/C · encoder M", "A/B/C · mode enc.")],
+        ["run", "end", T("pressione · 999,9 s", "press · 999.9 s")],
+        ["end", "idle", T("Step 1", "step 1")]
+      ],
+      sc: [
+        { name: T("Due Step, poi D", "Two steps, then D"), steps: [
+          { n: "idle", seg: "005.0", lcd: [R1.TP, r2(" 5s")], r: false, c: T("Tempo 5,0 s, Secondi 5 s, passo-passo.", "Time 5.0 s, seconds 5 s, step-by-step.") },
+          { n: "run", seg: "002.5", lcd: [R1.TP, r2("St:1")], r: true, snd: "start", c: T("Pressione: lampada accesa verso lo Step 1.", "Press: lamp on towards step 1.") },
+          { n: "pre", seg: "004.7", snd: "pre", c: T("Preavviso: tre tick.", "Pre-warning: three ticks.") },
+          { n: "pause", seg: "010.0", lcd: [R1.TP, r2("St:2")], r: false, snd: "step", c: T("Step 1 a 5,0 s: la ISR spegne il relè nel tick esatto. Il 7 segmenti mostra 010.0, lo Step successivo.", "Step 1 at 5.0 s: the ISR turns the relay off in the exact tick. The 7-segment shows 010.0, the next step.") },
+          { n: "run", seg: "007.5", r: true, snd: "start", c: T("Sposto la carta e premo: lampada accesa solo per l'incremento, da 5,0 a 10,0 s.", "I move the paper and press: lamp on only for the increment, from 5.0 to 10.0 s.") },
+          { n: "pre", seg: "009.7", snd: "pre", c: T("Preavviso dello Step 2.", "Pre-warning for step 2.") },
+          { n: "pause", seg: "015.0", lcd: [R1.TP, r2("St:3")], r: false, snd: "step", c: T("Step 2 a 10,0 s: di nuovo in pausa, prossimo 015.0.", "Step 2 at 10.0 s: paused again, next 015.0.") },
+          { n: "end", seg: "005.0", lcd: [R1.TP, r2(" 5s")], snd: "end", c: T("D in pausa: prova conclusa, Suono di fine. Conta come una Esposizione.", "D in pause: strip ended, end sound. Counts as one exposure.") },
+          { n: "idle", c: T("La prossima prova riparte dallo Step 1.", "The next strip restarts from step 1.") }
+        ] },
+        { name: T("In pausa: tasto B", "In pause: key B"), steps: [
+          { n: "idle", seg: "005.0", lcd: [R1.TP, r2(" 5s")], r: false, c: T("Passo-passo sul Canale A.", "Step-by-step on channel A.") },
+          { n: "run", seg: "002.5", lcd: [R1.TP, r2("St:1")], r: true, snd: "start", c: T("Pressione: lampada accesa.", "Press: lamp on.") },
+          { n: "pre", seg: "004.7", snd: "pre", c: T("Preavviso.", "Pre-warning.") },
+          { n: "pause", seg: "010.0", lcd: [R1.TP, r2("St:2")], r: false, snd: "step", c: T("Step 1: pausa.", "Step 1: pause.") },
+          { n: "other", seg: "010.0", lcd: [R1.CD, r2(" 1s", "B")], snd: "end", c: T("B in pausa: la prova si conclude con il Suono di fine e si passa al Canale B, con le sue impostazioni.", "B in pause: the strip ends with the end sound and channel B becomes active, with its own settings.") }
+        ] }
+      ]
+    },
+    {
+      id: "keys", tab: T("Tasti e comandi", "Keys and controls"),
+      intro: T("Da fermo ogni comando ha il suo effetto; durante un'Esposizione, Focus acceso compreso, conta solo il pulsante principale. Pressioni lunghe e combinazioni non agiscono al rilascio.",
+        "When idle every control has its effect; during an exposure, Focus on included, only the main button counts. Long presses and chords do not act on release."),
+      lanes: [
+        [540, 20, 560, 168, T("In esposizione", "During exposure")],
+        [540, 222, 560, 520, T("Da fermo", "When idle")]
+      ],
+      nodes: [
+        ["key", 130, 380, "input", T("Tasto o encoder", "Key or encoder"), T("un ingresso", "an input"),
+          T("Tastierino 4×4, due encoder con pulsante, pulsante principale. Il pulsante principale agisce alla pressione dopo 20 ms stabili.",
+            "4×4 keypad, two encoders with push button, main button. The main button acts on press after 20 ms of stable contact.")],
+        ["dec", 380, 380, "ask", T("Esposizione in corso?", "Exposure running?"), T("Focus acceso compreso", "Focus on included"),
+          T("Il Controller prima raccoglie gli eventi della ISR, poi decide: durante un'Esposizione conta solo il pulsante principale.",
+            "The controller first collects the ISR events, then decides: during an exposure only the main button counts.")],
+        ["cancel", 680, 62, "err", T("Pulsante principale", "Main button"), T("annulla · suono di fine", "cancels · end sound"),
+          T("Annulla Countdown, Test strip o Focus: relè spento, Suono di fine.", "Cancels countdown, test strip or Focus: relay off, end sound.")],
+        ["ign", 680, 140, "mute", T("Tutto il resto", "Everything else"), T("ignorato", "ignored"),
+          T("Cifre, * / #, A B C D ed encoder non fanno nulla finché l'Esposizione non finisce.", "Digits, * / #, A B C D and encoders do nothing until the exposure ends.")],
+        ["main", 680, 272, "lamp", T("Pulsante principale", "Main button"), T("avvia alla pressione", "starts on press"),
+          T("Avvia l'Esposizione della Modalità attiva alla pressione, non al rilascio. La pressione lunga non ha funzioni.",
+            "Starts the active mode's exposure on press, not on release. A long press does nothing.")],
+        ["dig", 680, 352, "input", T("Cifre · A B C · D", "Digits · A B C · D"), T("lo 0 entra al rilascio", "0 enters on release"),
+          T("Cifre a calcolatrice; lo 0 entra al rilascio, perché può far parte della combinazione 0 + * / #. A B C attivano il Canale, D azzera il tempo.",
+            "Calculator-style digits; 0 enters on release, because it can be part of the 0 + * / # chord. A B C select the channel, D clears the time.")],
+        ["enc", 680, 432, "input", T("Encoder", "Encoders"), T("Modalità · precisione", "mode · precision"),
+          T("Modalità: rotazione Focus / Countdown / Test strip, pressione CO / PP. Precisione: rotazione fra 11 valori in ciclo, pressione Secondi / F-Stop.",
+            "Mode: turn for Focus / Countdown / Test strip, press for CO / PP. Precision: turn through 11 values in a loop, press for seconds / F-stop.")],
+        ["short", 680, 512, "input", T("* / # brevi", "Short * / #"), T("agiscono al rilascio", "act on release"),
+          T("Al rilascio: tempo − / + secondo la precisione. In Focus abbassano e alzano la luminosità dell'LCD.",
+            "On release: time − / + by the precision. In Focus they lower and raise the LCD brightness.")],
+        ["hold", 680, 592, "warn", T("* / # tenuti 1 s", "* / # held 1 s"), T("mute · Abilitazione relè", "mute · relay enable"),
+          T("Dopo 1 s: * alterna il mute (la conferma suona solo spegnendolo), # l'Abilitazione relè del Canale (icona ⚡) con un beep di conferma, muto se il mute è attivo.",
+            "After 1 s: * toggles mute (the confirm beep plays only when turning it off), # toggles the channel relay enable (⚡ icon) with a confirm beep, silent while muted.")],
+        ["chord", 680, 672, "input", T("0 tenuto + * / #", "0 held + * / #"), T("Focus: luci 7 seg", "Focus: 7-seg lights"),
+          T("Con 0 premuto, * / # regolano al rilascio la luminosità del 7 segmenti (solo in Focus). Lo 0 non entra come cifra e il tenuto di * / # non scatta.",
+            "With 0 held, * / # set the 7-segment brightness on release (Focus only). The 0 is not entered as a digit and the * / # hold does not fire.")],
+        ["rel", 960, 592, "mute", T("Rilascio", "Release"), T("nessuna azione", "no action"),
+          T("Dopo una pressione lunga il rilascio non fa nulla: nessun passo di precisione.", "After a long press the release does nothing: no precision step.")]
+      ],
+      edges: [
+        ["key", "dec", ""],
+        ["dec", "cancel", T("sì", "yes"), { cx: 520 }], ["dec", "ign", "", { cx: 520 }],
+        ["dec", "main", T("no"), { cx: 520 }], ["dec", "dig", "", { cx: 520 }], ["dec", "enc", "", { cx: 520 }], ["dec", "short", "", { cx: 520 }],
+        ["dec", "hold", "", { cx: 520 }], ["dec", "chord", "", { cx: 520 }], ["hold", "rel", T("rilascio", "release")]
+      ],
+      sc: [
+        { name: T("Tenere # e *", "Holding # and *"), steps: [
+          { n: "key", seg: "010.0", lcd: LCD_CD, r: false, c: T("Da fermo tengo premuto #.", "Idle, I hold #.") },
+          { n: "dec", c: T("Nessuna Esposizione: il tasto passa.", "No exposure: the key goes through.") },
+          { n: "hold", lcd: [R1.CD, r2(" 1s", "A", true, false)], snd: "ok", c: T("Dopo 1 s: Abilitazione relè spenta per il Canale A, sparisce ⚡, beep di conferma.", "After 1 s: relay enable off for channel A, ⚡ disappears, confirm beep.") },
+          { n: "rel", c: T("Rilasciando # non succede altro: il tempo resta 10,0 s.", "Releasing # does nothing else: time stays 10.0 s.") },
+          { n: "key", c: T("Ora tengo premuto *.", "Now I hold *.") },
+          { n: "dec" },
+          { n: "hold", lcd: [R1.CD, r2(" 1s", "A", false, false)], c: T("Dopo 1 s: mute attivo, sparisce ♪. Attivarlo è silenzioso.", "After 1 s: mute on, ♪ disappears. Turning it on is silent.") },
+          { n: "rel", c: T("Rilascio: nessuna azione.", "Release: no action.") }
+        ] },
+        { name: T("Durante l'esposizione", "During an exposure"), steps: [
+          { n: "key", seg: "007.3", lcd: LCD_CD, r: true, c: T("Countdown in corso: premo #.", "Countdown running: I press #.") },
+          { n: "dec", c: T("Esposizione in corso.", "Exposure running.") },
+          { n: "ign", c: T("# ignorato: il tempo non cambia.", "# ignored: the time does not change.") },
+          { n: "key", seg: "006.1", c: T("Premo il pulsante principale.", "I press the main button.") },
+          { n: "dec" },
+          { n: "cancel", seg: "010.0", r: false, snd: "end", c: T("Annullamento: relè spento, Suono di fine.", "Cancel: relay off, end sound.") }
+        ] },
+        { name: T("Focus: luci", "Focus: lights"), steps: [
+          { n: "key", seg: "010.0", lcd: LCD_F, r: false, c: T("Focus a lampada spenta: tengo 0 e premo #.", "Focus with lamp off: I hold 0 and press #.") },
+          { n: "dec" },
+          { n: "chord", c: T("Al rilascio di #: 7 segmenti un livello più luminoso. Lo 0 non entra come cifra.", "On releasing #: 7-segment one level brighter. The 0 is not entered as a digit.") },
+          { n: "key", c: T("Ora # da solo.", "Now # alone.") },
+          { n: "dec" },
+          { n: "short", c: T("Al rilascio: LCD un livello più luminoso (8 livelli, più fitti in basso).", "On release: LCD one level brighter (8 levels, denser at the low end).") }
+        ] }
+      ]
+    },
+    {
+      id: "save", tab: T("Memoria", "Memory"),
+      intro: T("Le impostazioni si salvano da sole, senza fermare il loop: 2 s dopo l'ultima modifica o all'avvio di un'Esposizione, un byte per giro, con CRC8.",
+        "Settings save themselves without stalling the loop: 2 s after the last change or at exposure start, one byte per pass, with CRC8."),
+      nodes: [
+        ["change", 130, 100, "input", T("Modifica", "Change"), T("tasto, encoder, Canale", "key, encoder, channel"),
+          T("Ogni comando che cambia un'impostazione la segna da salvare: tempi, precisione, Modalità, Canale, mute, luminosità, voci del Menu di servizio.",
+            "Every command that changes a setting marks it for saving: times, precision, mode, channel, mute, brightness, Service menu items.")],
+        ["pend", 420, 100, "idle", T("In attesa", "Pending"), T("2 s dall'ultima modifica", "2 s after the last change"),
+          T("Il conto dei 2 s riparte a ogni nuova modifica: una raffica di # produce un solo salvataggio.", "The 2 s count restarts at every new change: a burst of # gives a single save.")],
+        ["start", 580, 250, "lamp", T("Avvio Esposizione", "Exposure start"), T("salva subito", "saves at once"),
+          T("All'avvio di ogni Esposizione le modifiche in attesa si salvano subito, senza aspettare i 2 s.", "At every exposure start pending changes are saved at once, without waiting the 2 s.")],
+        ["write", 740, 100, "off", T("Scrittura", "Writing"), T("1 byte per giro di loop", "1 byte per loop pass"),
+          T("A ogni giro il loop scrive solo il primo byte diverso dalla EEPROM (eeprom_update), e solo se la EEPROM è pronta: nessuna attesa. Una modifica durante la scrittura entra nello stesso salvataggio.",
+            "Each pass the loop writes only the first byte that differs from the EEPROM (eeprom_update), and only when the EEPROM is ready: no waiting. A change during the write joins the same save.")],
+        ["saved", 1060, 100, "end", T("Salvato", "Saved"), T("43 byte · CRC8", "43 bytes · CRC8"),
+          T("Blocco di 43 byte: firma R8, versione, lunghezza, tre Canali e impostazioni globali, CRC8. I contatori hanno un blocco a parte (17 byte, indirizzo 0x040).",
+            "A 43-byte block: R8 signature, version, length, three channels and global settings, CRC8. Counters have their own block (17 bytes, address 0x040).")],
+        ["boot", 1060, 400, "input", T("Accensione", "Power-on"), T("lettura del blocco", "block read"),
+          T("All'avvio il blocco viene letto una volta, prima di tutto il resto.", "At start-up the block is read once, before anything else.")],
+        ["check", 740, 400, "ask", T("Blocco valido?", "Block valid?"), T("firma, CRC8, limiti", "signature, CRC8, ranges"),
+          T("Valido solo se firma, versione e lunghezza tornano, il CRC8 coincide e ogni valore è nei limiti (Canale, livelli, indici, tempi, Offset, ppm).",
+            "Valid only if signature, version and length match, the CRC8 agrees and every value is in range (channel, levels, indexes, times, offset, ppm).")],
+        ["load", 420, 330, "end", T("Ultimo stato", "Last state"), T("tutto come prima", "all as before"),
+          T("Canale attivo, i tre Canali, mute, luminosità e impostazioni del menu tornano come allo spegnimento.", "Active channel, the three channels, mute, brightness and menu settings come back as at power-off.")],
+        ["fact", 420, 470, "err", T("Valori di fabbrica", "Factory defaults"), T("log ERROR settings=factory", "log ERROR settings=factory"),
+          T("Dati corrotti o del firmware precedente (0xA5 all'indirizzo 0): Canale A, Countdown, Secondi 1 s, 10,0 s, relè abilitato; LCD 3, 7 seg 3, LCD esposizione 1, Focus 5 min, 0 ppm.",
+            "Corrupted data or the previous firmware's (0xA5 at address 0): channel A, Countdown, seconds 1 s, 10.0 s, relay enabled; LCD 3, 7-seg 3, exposure LCD 1, Focus 5 min, 0 ppm.")]
+      ],
+      edges: [
+        ["change", "pend", ""], ["pend", "pend", T("altra modifica: riparte", "another change: restart"), { loop: "top" }],
+        ["pend", "write", T("2 s di quiete", "2 s quiet")], ["pend", "start", T("pulsante", "button"), { bend: 10 }], ["start", "write", T("subito", "at once"), { bend: 10 }],
+        ["write", "write", T("byte seguente", "next byte"), { loop: "top" }], ["write", "saved", T("blocco uguale", "block matches")],
+        ["saved", "boot", T("riaccensione", "next power-on"), { dash: true }], ["boot", "check", ""],
+        ["check", "load", T("sì", "yes")], ["check", "fact", T("no")]
+      ],
+      sc: [
+        { name: T("Due modifiche, un salvataggio", "Two changes, one save"), steps: [
+          { n: "change", seg: "011.0", lcd: LCD_CD, r: false, c: T("#: il tempo passa a 11,0 s.", "#: the time becomes 11.0 s.") },
+          { n: "pend", c: T("Parte il conto dei 2 s.", "The 2 s count starts.") },
+          { n: "pend", seg: "012.0", c: T("Un altro # dopo 1 s: 12,0 s, il conto riparte.", "Another # after 1 s: 12.0 s, the count restarts.") },
+          { n: "write", c: T("2 s senza modifiche: inizia la scrittura.", "2 s with no changes: the write starts.") },
+          { n: "write", c: T("Un byte cambiato per giro; gli altri non si toccano.", "One changed byte per pass; the others are left alone.") },
+          { n: "saved", c: T("Il blocco coincide con l'immagine: salvataggio finito.", "The block matches the image: save done.") }
+        ] },
+        { name: T("Avvio prima dei 2 s", "Start before 2 s"), steps: [
+          { n: "change", seg: "012.5", lcd: LCD_CD, r: false, c: T("Digito 1 2 5.", "I type 1 2 5.") },
+          { n: "pend", c: T("In attesa.", "Pending.") },
+          { n: "start", r: true, snd: "start", c: T("Pressione subito dopo: il salvataggio parte all'avvio dell'Esposizione.", "Press right away: the save starts with the exposure.") },
+          { n: "write", c: T("Scrittura a byte durante l'Esposizione, senza disturbare il tempo.", "Byte-wise write during the exposure, without disturbing timing.") },
+          { n: "saved", c: T("Salvato.", "Saved.") }
+        ] },
+        { name: T("Riaccensione", "Power-on"), steps: [
+          { n: "boot", seg: "", lcd: ["", ""], r: false, c: T("Accensione: lettura del blocco.", "Power-on: block read.") },
+          { n: "check", c: T("Firma R8, versione 1, 43 byte, CRC8 giusto, valori nei limiti.", "R8 signature, version 1, 43 bytes, CRC8 right, values in range.") },
+          { n: "load", seg: "012.5", lcd: LCD_CD, c: T("Tutto come prima: 12,5 s sul Canale A.", "All as before: 12.5 s on channel A.") }
+        ] },
+        { name: T("Dati non validi", "Invalid data"), steps: [
+          { n: "boot", seg: "", lcd: ["", ""], r: false, c: T("Prima accensione con la v2.0.0, o EEPROM rovinata.", "First power-on with v2.0.0, or damaged EEPROM.") },
+          { n: "check", c: T("Firma o CRC8 non tornano.", "Signature or CRC8 do not match.") },
+          { n: "fact", seg: "010.0", lcd: LCD_CD, c: T("Valori di fabbrica; il log USB scrive ERROR settings=factory.", "Factory defaults; the USB log writes ERROR settings=factory.") }
+        ] }
+      ]
+    },
+    {
+      id: "menu", tab: T("Menu di servizio", "Service menu"),
+      intro: T("Diagnostica, test e calibrazione. Si naviga con l'encoder della Modalità: rotazione per scorrere, pressione per entrare o confermare; D torna all'elenco.",
+        "Diagnostics, tests and calibration. Navigate with the mode encoder: turn to scroll, press to enter or confirm; D goes back to the list."),
+      nodes: [
+        ["boot", 400, 130, "input", T("D all'accensione", "D at power-on"), T("dopo la schermata iniziale", "after the splash"),
+          T("Tenere D mentre si accende il timer. I testi del menu sono in italiano; nel menu non si avviano Esposizioni.",
+            "Hold D while powering on. Menu texts are in Italian; no exposure can start inside the menu.")],
+        ["list", 400, 330, "warn", T("Elenco voci", "Item list"), T("rotazione: voce · clic: entra", "turn: item · click: enter"),
+          T("15 voci in ciclo: Info, Contatori, Salute, sette test, Calibrazione, LCD esposizione, Tempo max Focus, Ripristino fabb, Esci.",
+            "15 items in a loop: Info, Counters, Health, seven tests, Calibration, exposure LCD, Focus max time, factory reset, Exit.")],
+        ["read", 700, 60, "idle", T("Info · Contatori · Salute", "Info · Counters · Health"), T("rotazione: schermata", "turn: page"),
+          T("Sola lettura. Info: versione e data. Contatori: Accensioni, Reset watchdog, Esposizioni, Ore lampada. Salute: Loop max, ISR max, Tick persi.",
+            "Read only. Info: version and date. Counters: power-ons, watchdog resets, exposures, lamp hours. Health: loop max, ISR max, lost ticks.")],
+        ["test", 700, 190, "lamp", T("Test hardware", "Hardware tests"), T("relè, buzzer, display, tasti", "relay, buzzer, displays, keys"),
+          T("Relè, buzzer (8 suoni), 7 segmenti (888.8), LCD (tutte le celle), tastierino, encoder, pulsante. Ogni comando va al componente in prova; D esce e il relè si spegne.",
+            "Relay, buzzer (8 sounds), 7-segment (888.8), LCD (all cells), keypad, encoders, button. Every input goes to the part under test; D exits and the relay goes off.")],
+        ["value", 700, 330, "input", T("Valore", "Value"), T("cifre · * segno · clic", "digits · * sign · click"),
+          T("Calibrazione (ppm o durata di 600 s), LCD esposizione (1–8), Tempo max Focus (3, 5, 10, 15, 20). Cifre a calcolatrice, * cambia segno, D torna senza salvare.",
+            "Calibration (ppm or 600 s duration), exposure LCD (1–8), Focus max time (3, 5, 10, 15, 20). Calculator-style digits, * flips the sign, D goes back without saving.")],
+        ["fact", 700, 480, "warn", T("Ripristino fabb", "Factory reset"), T("prima pressione", "first press"),
+          T("Dentro la voce, la prima pressione non cancella nulla: chiede conferma.", "Inside the item, the first press erases nothing: it asks for confirmation.")],
+        ["refused", 1000, 250, "err", T("Rifiutato", "Refused"), T("beep di errore", "error beep"),
+          T("Valore fuori dai limiti: beep di errore, il valore resta da reinserire.", "Out-of-range value: error beep, the value must be typed again.")],
+        ["saved", 1000, 410, "end", T("Salvato", "Saved"), T("beep di conferma", "confirm beep"),
+          T("Valore accettato: salvato subito, beep di conferma (si sente anche col mute), ritorno all'elenco.", "Value accepted: saved at once, confirm beep (audible even when muted), back to the list.")],
+        ["confirm", 1000, 560, "err", T("Confermi?", "Confirm?"), T("clic = Sì · D = No", "click = yes · D = no"),
+          T("La seconda pressione riporta tutte le impostazioni ai valori di fabbrica, Correzione del clock compresa; i contatori restano. D annulla.",
+            "The second press puts every setting back to factory, clock correction included; counters are kept. D cancels.")],
+        ["exit", 130, 490, "end", T("Uso normale", "Normal use"), T("Esci, senza riavvio", "Exit, no restart"),
+          T("La voce Esci torna all'uso normale senza riavviare la scheda, con le impostazioni già salvate.", "The Exit item returns to normal use without restarting the board, with settings already saved.")]
+      ],
+      edges: [
+        ["boot", "list", ""], ["list", "list", T("rotazione", "turn"), { loop: "left" }],
+        ["list", "read", T("clic", "click"), { bend: 34 }], ["read", "list", T("D"), { bend: 34 }],
+        ["list", "test", T("clic", "click"), { bend: 26 }], ["test", "list", T("D"), { bend: 26 }],
+        ["test", "test", T("clic", "click"), { loop: "right" }],
+        ["read", "read", T("rotazione", "turn"), { loop: "right" }],
+        ["list", "value", T("clic", "click")],
+        ["value", "refused", T("fuori limiti", "out of range"), { bend: 16 }], ["refused", "value", T("reinserisci", "retype"), { bend: 16 }],
+        ["value", "saved", T("valido", "valid")], ["saved", "list", T("elenco", "list"), { c: [700, 418] }],
+        ["list", "fact", T("clic", "click")], ["fact", "confirm", T("clic", "click")],
+        ["confirm", "saved", T("clic", "click")], ["confirm", "list", T("D"), { c: [700, 660] }],
+        ["list", "exit", T("clic su Esci", "click on Exit")]
+      ],
+      sc: [
+        { name: T("Scorrere e leggere", "Browse and read"), steps: [
+          { n: "boot", seg: "010.0", lcd: [" - R080 Timer - ", "     v2.0.0"], r: false, c: T("D tenuto all'accensione: prima la schermata iniziale, 1,5 s.", "D held at power-on: first the splash, 1.5 s.") },
+          { n: "list", lcd: MENU("Info"), c: T("Menu di servizio: la riga 2 mostra la voce.", "Service menu: row 2 shows the item.") },
+          { n: "list", lcd: MENU("Contatori"), c: T("Rotazione: voce successiva.", "Turn: next item.") },
+          { n: "read", lcd: ["Accensioni", "128"], c: T("Clic: prima schermata dei Contatori.", "Click: first Counters page.") },
+          { n: "read", lcd: ["Reset watchdog", "2"], c: T("Rotazione: schermata successiva.", "Turn: next page.") },
+          { n: "list", lcd: MENU("Contatori"), c: T("D: di nuovo all'elenco.", "D: back to the list.") }
+        ] },
+        { name: T("Tempo max Focus", "Focus max time"), steps: [
+          { n: "list", seg: "010.0", lcd: MENU("Tempo max Focus"), r: false, c: T("Voce Tempo max Focus.", "Focus max time item.") },
+          { n: "value", lcd: ["Tempo max Focus", "Minuti: 5"], c: T("Clic: valore attuale, 5 minuti.", "Click: current value, 5 minutes.") },
+          { n: "value", lcd: ["Tempo max Focus", "Minuti: 7"], c: T("Digito 7.", "I type 7.") },
+          { n: "refused", snd: "error", c: T("7 non è fra 3, 5, 10, 15, 20: beep di errore.", "7 is not one of 3, 5, 10, 15, 20: error beep.") },
+          { n: "value", lcd: ["Tempo max Focus", "Minuti: 10"], c: T("Digito 1 0.", "I type 1 0.") },
+          { n: "saved", lcd: MENU("Tempo max Focus"), snd: "ok", c: T("Clic: salvato, beep di conferma, ritorno all'elenco.", "Click: saved, confirm beep, back to the list.") },
+          { n: "list", c: T("Pronto per un'altra voce.", "Ready for another item.") }
+        ] },
+        { name: T("Ripristino di fabbrica", "Factory reset"), steps: [
+          { n: "list", seg: "010.0", lcd: MENU("Ripristino fabb"), r: false, c: T("Voce Ripristino fabb.", "Factory reset item.") },
+          { n: "fact", lcd: ["Ripristino fabb", "Clic: ripristina"], c: T("Clic: si entra nella voce.", "Click: inside the item.") },
+          { n: "confirm", lcd: ["Confermi?", "clic=Si D=No"], c: T("Clic: richiesta di conferma.", "Click: confirmation request.") },
+          { n: "saved", lcd: MENU("Ripristino fabb"), snd: "ok", c: T("Clic: tutto ai valori di fabbrica, ppm compresi; i contatori restano.", "Click: everything to factory, ppm included; counters are kept.") },
+          { n: "list", lcd: MENU("Esci"), c: T("Rotazione fino a Esci.", "Turn to Exit.") },
+          { n: "exit", lcd: LCD_CD, c: T("Clic su Esci: uso normale, senza riavvio.", "Click on Exit: normal use, no restart.") }
+        ] },
+        { name: T("Test relè", "Relay test"), steps: [
+          { n: "list", seg: "010.0", lcd: MENU("Test rele"), r: false, c: T("Voce Test rele.", "Relay test item.") },
+          { n: "test", lcd: ["Test rele", "Clic: spento"], c: T("Clic: si entra nel test.", "Click: into the test.") },
+          { n: "test", lcd: ["Test rele", "Clic: acceso"], r: true, c: T("Clic: relè acceso.", "Click: relay on.") },
+          { n: "list", lcd: MENU("Test rele"), r: false, c: T("D: si esce dal test e il relè si spegne.", "D: out of the test, the relay switches off.") }
+        ] }
+      ]
+    }
+  ];
+
+  /* ------------------------------------------------------------------ state */
+  const $ = (id) => document.getElementById(id);
+  const NS = "http://www.w3.org/2000/svg";
+  const W = 210, H = 60;
+  let fi = 0, si = 0, k = 0, sel = null, timer = null;
+
+  const flow = () => FLOWS[fi];
+  const nodeById = (id) => flow().nodes.find((n) => n[0] === id);
+  const color = (kind) => `var(${KIND[kind]})`;
+
+  // Steps with carried-over display state and the edge each one takes.
+  function resolve(f, s) {
+    let seg = "", lcd = ["", ""], r = false, prev = null;
+    return f.sc[s].steps.map((st) => {
+      if (st.seg !== undefined) seg = st.seg;
+      if (st.lcd) lcd = st.lcd;
+      if (st.r !== undefined) r = st.r;
+      let ei = -1;
+      if (st.via) ei = f.edges.findIndex((e) => e[3] && e[3].id === st.via);
+      else if (prev) ei = f.edges.findIndex((e) => e[0] === prev && e[1] === st.n);
+      prev = st.n;
+      return { n: st.n, seg, lcd, r, snd: st.snd || null, c: st.c || null, ei };
+    });
+  }
+
+  /* ------------------------------------------------------------------ geometry */
+  function boundary(n, tx, ty) {
+    const dx = tx - n[1], dy = ty - n[2];
+    const s = Math.min(Math.abs(dx) > 0.01 ? (W / 2 + 5) / Math.abs(dx) : Infinity, Math.abs(dy) > 0.01 ? (H / 2 + 5) / Math.abs(dy) : Infinity);
+    return [n[1] + dx * s, n[2] + dy * s];
+  }
+  function edgeGeom(e) {
+    const a = nodeById(e[0]), b = nodeById(e[1]), o = e[3] || {};
+    if (a === b) {
+      const side = { top: [0, -1], bottom: [0, 1], left: [-1, 0], right: [1, 0] }[o.loop || "top"];
+      const ext = side[0] ? W / 2 : H / 2;
+      const B = [a[1] + side[0] * (ext + 2), a[2] + side[1] * (ext + 2)];
+      const t = [-side[1], side[0]], sp = side[0] ? 16 : 26, far = side[0] ? 62 : 70, wid = side[0] ? 44 : 70;
+      const p0 = [B[0] - t[0] * sp, B[1] - t[1] * sp], p1 = [B[0] + t[0] * sp, B[1] + t[1] * sp];
+      const c1 = [B[0] + side[0] * far - t[0] * wid, B[1] + side[1] * far - t[1] * wid];
+      const c2 = [B[0] + side[0] * far + t[0] * wid, B[1] + side[1] * far + t[1] * wid];
+      const lab = [B[0] + side[0] * (far * 0.75 + (side[0] ? 30 : 0)), B[1] + side[1] * (far * 0.75 + 0)];
+      return { d: `M${p0}C${c1} ${c2} ${p1}`, lab, tip: p1, from: c2 };
+    }
+    const mx = (a[1] + b[1]) / 2, my = (a[2] + b[2]) / 2, dx = b[1] - a[1], dy = b[2] - a[2], len = Math.hypot(dx, dy) || 1;
+    const bend = o.bend || 0, c = o.c || (o.cx !== undefined ? [o.cx, b[2]] : [mx - (dy / len) * bend, my + (dx / len) * bend]);
+    const p0 = boundary(a, c[0], c[1]), p1 = boundary(b, c[0], c[1]);
+    const lab = [0.25 * p0[0] + 0.5 * c[0] + 0.25 * p1[0], 0.25 * p0[1] + 0.5 * c[1] + 0.25 * p1[1]];
+    return { d: `M${p0}Q${c} ${p1}`, lab, tip: p1, from: c };
+  }
+  function arrow(tip, from) {
+    let ux = tip[0] - from[0], uy = tip[1] - from[1];
+    const l = Math.hypot(ux, uy) || 1; ux /= l; uy /= l;
+    const bx = tip[0] - ux * 10, by = tip[1] - uy * 10;
+    return `M${tip}L${bx - uy * 5},${by + ux * 5}L${bx + uy * 5},${by - ux * 5}Z`;
+  }
+  function el(tag, attrs, parent) {
+    const e = document.createElementNS(NS, tag);
+    for (const a in attrs) e.setAttribute(a, attrs[a]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  // Mono text: 0.6 em per char. Proportional title: about 0.53 em.
+  function fitText(t, max, em, size) { if (t.textContent.length * em * size > max) { t.setAttribute("textLength", max); t.setAttribute("lengthAdjust", "spacingAndGlyphs"); } }
+
+  /* ------------------------------------------------------------------ render */
+  function renderTabs() {
+    const box = $("tabs");
+    box.innerHTML = "";
+    FLOWS.forEach((f, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "tab"; b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", String(i === fi)); b.setAttribute("aria-controls", "flow-panel");
+      b.tabIndex = i === fi ? 0 : -1;
+      b.innerHTML = `<span class="n">${String(i + 1).padStart(2, "0")}</span><span>${L(f.tab)}</span>`;
+      b.addEventListener("click", () => selectFlow(i));
+      b.addEventListener("keydown", (ev) => {
+        const d = ev.key === "ArrowRight" ? 1 : ev.key === "ArrowLeft" ? -1 : 0;
+        if (!d) return;
+        ev.preventDefault();
+        selectFlow((fi + d + FLOWS.length) % FLOWS.length);
+        box.children[fi].focus();
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function renderFlow() {
+    const f = flow();
+    $("intro").innerHTML = `<h2><span class="k">${String(fi + 1).padStart(2, "0")}</span>${L(f.tab)}</h2><p>${L(f.intro)}</p>`;
+    const sc = $("scen");
+    sc.innerHTML = `<span class="lbl">${L(T("Sequenza", "Sequence"))}</span>`;
+    f.sc.forEach((s, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip"; b.textContent = L(s.name);
+      b.setAttribute("aria-pressed", String(i === si));
+      b.addEventListener("click", () => { stop(); si = i; k = 0; sel = null; renderFlow(); });
+      sc.appendChild(b);
+    });
+    renderSvg();
+    update(false);
+  }
+
+  function renderSvg() {
+    const f = flow();
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    const grow = (a, b, c, d) => { x0 = Math.min(x0, a); y0 = Math.min(y0, b); x1 = Math.max(x1, c); y1 = Math.max(y1, d); };
+    f.nodes.forEach((n) => grow(n[1] - W / 2, n[2] - H / 2, n[1] + W / 2, n[2] + H / 2));
+    f.edges.forEach((e) => {
+      const g = edgeGeom(e);
+      const pts = g.d.match(/-?[\d.]+,-?[\d.]+/g).map((p) => p.split(",").map(Number));
+      pts.forEach((p) => grow(p[0] - 50, p[1] - 14, p[0] + 50, p[1] + 14));
+    });
+    (f.lanes || []).forEach((l) => grow(l[0], l[1], l[0] + l[2], l[1] + l[3]));
+    x0 -= 16; y0 -= 16; x1 += 16; y1 += 16;
+    const vw = x1 - x0, vh = y1 - y0;
+    const svg = el("svg", { viewBox: `${x0} ${y0} ${vw} ${vh}`, role: "group", "aria-label": L(f.tab) });
+    svg.style.minWidth = Math.round(vw * 0.8) + "px";
+    svg.style.maxWidth = Math.round(vw * 1.05) + "px";
+    const defs = el("defs", {}, svg);
+    const gl = el("filter", { id: "glow", x: "-50%", y: "-50%", width: "200%", height: "200%" }, defs);
+    el("feGaussianBlur", { stdDeviation: "3", result: "b" }, gl);
+    const m = el("feMerge", {}, gl); el("feMergeNode", { in: "b" }, m); el("feMergeNode", { in: "SourceGraphic" }, m);
+    const bl = el("filter", { id: "blur", x: "-30%", y: "-60%", width: "160%", height: "220%" }, defs);
+    el("feGaussianBlur", { stdDeviation: "7" }, bl);
+
+    (f.lanes || []).forEach((l) => {
+      const g = el("g", { class: "lane" }, svg);
+      el("rect", { x: l[0], y: l[1], width: l[2], height: l[3], rx: 18 }, g);
+      el("text", { x: l[0] + l[2] - 16, y: l[1] + 22 }, g).textContent = L(l[4]);
+    });
+
+    const edgeLayer = el("g", {}, svg), labelLayer = el("g", {}, svg);
+    f.edges.forEach((e, i) => {
+      const g = edgeGeom(e), o = e[3] || {};
+      const grp = el("g", { class: "edge" + (o.dash ? " dash" : ""), "data-i": i }, edgeLayer);
+      grp.style.setProperty("--k", color(nodeById(e[1])[3]));
+      el("path", { class: "wire", d: g.d }, grp);
+      el("path", { class: "flow", d: g.d }, grp);
+      el("path", { class: "head", d: arrow(g.tip, g.from) }, grp);
+      const txt = L(e[2]);
+      if (txt) {
+        const lg = el("g", { class: "edge", "data-li": i }, labelLayer);
+        lg.style.setProperty("--k", color(nodeById(e[1])[3]));
+        const w = txt.length * 6.3 + 14;
+        el("rect", { class: "lbg", x: g.lab[0] - w / 2, y: g.lab[1] - 10, width: w, height: 20, rx: 10 }, lg);
+        el("text", { class: "lt", x: g.lab[0], y: g.lab[1] + 0.5 }, lg).textContent = txt;
+      }
+    });
+
+    const nodeLayer = el("g", {}, svg);
+    f.nodes.forEach((n) => {
+      const [id, x, y, kind, title, sub] = n;
+      const g = el("g", { class: "node" + (kind === "ask" ? " ask" : "") + (kind === "mute" ? " dim" : ""), transform: `translate(${x} ${y})`, tabindex: "0", role: "button", "data-id": id, "aria-label": `${L(title)}: ${L(sub)}` }, nodeLayer);
+      g.style.setProperty("--k", color(kind));
+      el("rect", { class: "halo", x: -W / 2 - 3, y: -H / 2 - 3, width: W + 6, height: H + 6, rx: kind === "ask" ? H / 2 + 3 : 17, filter: "url(#blur)" }, g);
+      el("rect", { class: "shape", x: -W / 2, y: -H / 2, width: W, height: H, rx: kind === "ask" ? H / 2 : 14 }, g);
+      el("circle", { class: "kdot", cx: -W / 2 + (kind === "ask" ? 22 : 13), cy: -H / 2 + 13, r: 3.2 }, g);
+      const t = el("text", { class: "nt", y: sub ? -3 : 5 }, g); t.textContent = L(title); fitText(t, W - 40, 0.56, 14);
+      if (sub) { const s = el("text", { class: "ns", y: 15 }, g); s.textContent = L(sub); fitText(s, W - 22, 0.6, 10.5); }
+      const pick = () => { stop(); sel = sel === id ? null : id; update(false); };
+      g.addEventListener("click", pick);
+      g.addEventListener("keydown", (ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); pick(); } });
+    });
+    el("circle", { class: "token", r: 5, cx: -999, cy: -999 }, svg);
+    const box = $("dscroll");
+    box.innerHTML = "";
+    box.appendChild(svg);
+  }
+
+  /* ------------------------------------------------------------------ highlight + panel */
+  let tokenRaf = 0;
+  function runToken(path) {
+    cancelAnimationFrame(tokenRaf);
+    const tok = $("dscroll").querySelector(".token");
+    if (!tok || !path || reduced) { if (tok) tok.setAttribute("cx", -999); return; }
+    const len = path.getTotalLength(), t0 = performance.now();
+    tok.style.fill = getComputedStyle(path).stroke;
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / 750), pt = path.getPointAtLength(len * (1 - Math.pow(1 - p, 2)));
+      tok.setAttribute("cx", pt.x); tok.setAttribute("cy", pt.y);
+      if (p < 1) tokenRaf = requestAnimationFrame(step); else tok.setAttribute("cx", -999);
+    };
+    tokenRaf = requestAnimationFrame(step);
+  }
+
+  function update(animate) {
+    const f = flow(), st = resolve(f, si), box = $("dscroll");
+    box.querySelectorAll(".node, .edge").forEach((e) => e.classList.remove("on", "seen"));
+    let cur, showNode, ei = -1;
+    if (sel) {
+      showNode = sel;
+      cur = st.find((s) => s.n === sel);
+      if (!cur) for (let i = 0; i < f.sc.length && !cur; i++) cur = resolve(f, i).find((s) => s.n === sel);
+    } else {
+      cur = st[k]; showNode = cur.n; ei = cur.ei;
+      for (let i = 0; i < k; i++) {
+        box.querySelector(`.node[data-id="${st[i].n}"]`).classList.add("seen");
+        if (st[i].ei >= 0) box.querySelectorAll(`[data-i="${st[i].ei}"], [data-li="${st[i].ei}"]`).forEach((e) => e.classList.add("seen"));
+      }
+    }
+    const nodeEl = box.querySelector(`.node[data-id="${showNode}"]`);
+    nodeEl.classList.add("on");
+    if (ei >= 0) {
+      box.querySelectorAll(`[data-i="${ei}"], [data-li="${ei}"]`).forEach((e) => { e.classList.remove("seen"); e.classList.add("on"); });
+      if (animate) runToken(box.querySelector(`[data-i="${ei}"] .wire`));
+    }
+    if (animate && !reduced) scrollIntoBox(nodeEl);
+    renderCard(f, st, showNode, cur);
+    renderDevices(cur, animate);
+    renderControls(st);
+  }
+
+  function scrollIntoBox(nodeEl) {
+    const box = $("dscroll");
+    if (box.scrollWidth <= box.clientWidth) return;
+    const r = nodeEl.getBoundingClientRect(), b = box.getBoundingClientRect();
+    if (r.left < b.left || r.right > b.right) box.scrollBy({ left: r.left - b.left - b.width / 2 + r.width / 2, behavior: "smooth" });
+  }
+
+  function renderCard(f, st, id, cur) {
+    const n = nodeById(id), card = $("card");
+    card.style.setProperty("--k", color(n[3]));
+    const meta = sel
+      ? `<span>${L(T("Stato", "State"))}</span><span>${L(T("tocca di nuovo per la sequenza", "tap again for the sequence"))}</span>`
+      : `<span>${L(T("Passo", "Step"))} ${k + 1} / ${st.length}</span><span>${L(f.sc[si].name)}</span>`;
+    const body = sel || !cur.c ? `<p>${L(n[6])}</p>` : `<p class="cap">${L(cur.c)}</p><p>${L(n[6])}</p>`;
+    card.innerHTML = `<div class="meta">${meta}</div><h3>${L(n[4])}</h3>${body}`;
+  }
+
+  /* ---- devices: 7-segment, LCD, relay, sound */
+  const SEGS = { "0": "abcdef", "1": "bc", "2": "abged", "3": "abgcd", "4": "fgbc", "5": "afgcd", "6": "afgedc", "7": "abc", "8": "abcdefg", "9": "abcdfg", "-": "g", " ": "" };
+  function seg7(str) {
+    const cells = [];
+    for (const ch of str) { if (ch === "." && cells.length) cells[cells.length - 1].dp = true; else cells.push({ ch, dp: false }); }
+    while (cells.length < 4) cells.unshift({ ch: " ", dp: false });
+    const hseg = (x1, x2, y) => `${x1},${y} ${x1 + 3},${y - 3} ${x2 - 3},${y - 3} ${x2},${y} ${x2 - 3},${y + 3} ${x1 + 3},${y + 3}`;
+    const vseg = (x, y1, y2) => `${x},${y1} ${x + 3},${y1 + 3} ${x + 3},${y2 - 3} ${x},${y2} ${x - 3},${y2 - 3} ${x - 3},${y1 + 3}`;
+    const P = { a: hseg(5, 29, 4), g: hseg(5, 29, 30), d: hseg(5, 29, 56), f: vseg(3, 6, 28), b: vseg(31, 6, 28), e: vseg(3, 32, 54), c: vseg(31, 32, 54) };
+    let out = `<svg class="seg7" viewBox="-4 -2 196 64" role="img" aria-label="${str || "—"}"><g transform="skewX(-6) translate(8 0)">`;
+    cells.slice(0, 4).forEach((c, i) => {
+      const on = SEGS[c.ch] || "";
+      out += `<g transform="translate(${i * 46} 0)">`;
+      for (const s of "abcdefg") out += `<polygon class="s${on.includes(s) ? " lit" : ""}" points="${P[s]}"/>`;
+      out += `<circle class="s${c.dp ? " lit" : ""}" cx="38" cy="56" r="3"/></g>`;
+    });
+    return out + "</g></svg>";
+  }
+  const ICON = {
+    "♪": '<svg viewBox="0 0 10 16"><path d="M6 1h3v3H7v8.2A2.6 2.6 0 1 1 5 9.6z"/></svg>',
+    "⚡": '<svg viewBox="0 0 10 16"><path d="M6 0 1 9h3.2L3 16l6-10H5.6z"/></svg>'
+  };
+  function lcd(rows, dim) {
+    const r = rows.map((row) => {
+      const s = [...pad(row)].slice(0, 16);
+      return `<div class="row">${s.map((ch) => `<span class="c${ch === "█" ? " full" : ""}">${ICON[ch] || (ch === " " ? "" : ch.replace("<", "&lt;").replace(">", "&gt;"))}</span>`).join("")}</div>`;
+    }).join("");
+    return `<div class="lcd${dim ? " dim" : ""}" role="img" aria-label="LCD: ${rows.map((x) => x.trim()).join(" / ")}">${r}</div>`;
+  }
+  function sound(key, go) {
+    if (!key) return `<div class="sound off"><svg viewBox="0 0 96 34"><rect x="0" y="16" width="96" height="2" rx="1"/></svg><b>${L(T("Silenzio", "Silence"))}</b><small>—</small></div>`;
+    const [name, spec, notes] = SND[key];
+    const total = notes.reduce((a, n) => a + n[1], 0), sx = 96 / Math.max(total, 300);
+    let x = 0, bars = "";
+    notes.forEach(([hz, ms]) => {
+      if (hz) { const h = 6 + 26 * Math.log2(hz / 100) / Math.log2(14); bars += `<rect x="${x.toFixed(1)}" y="${(34 - h).toFixed(1)}" width="${Math.max(2, ms * sx - 1).toFixed(1)}" height="${h.toFixed(1)}" rx="1.5"/>`; }
+      x += ms * sx;
+    });
+    return `<div class="sound${go ? " go" : ""}"><svg viewBox="0 0 96 34" aria-hidden="true">${bars}</svg><b>${L(name)}</b><small>${spec}</small></div>`;
+  }
+  function renderDevices(cur, go) {
+    const on = cur && cur.r;
+    $("dev").innerHTML = !cur ? "" :
+      `<h4><span>${L(T("7 segmenti", "7-segment"))}</span></h4><div class="seg7box">${seg7(cur.seg)}</div>` +
+      `<h4><span>LCD 16×2</span><span>${on ? L(T("livello esposizione", "exposure level")) : ""}</span></h4>${lcd(cur.lcd, on)}` +
+      `<h4><span>${L(T("Relè e suono", "Relay and sound"))}</span></h4>` +
+      `<div class="lamp"><span class="pill" style="--c:${on ? "var(--amber)" : "var(--cyan)"}"><i></i>${on ? L(T("Relè acceso · lampada", "Relay on · lamp")) : L(T("Relè spento", "Relay off"))}</span></div>` +
+      sound(cur.snd, go);
+  }
+
+  const ICONS = { play: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>', pause: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h3v10H4zM9 3h3v10H9z"/></svg>' };
+  function renderControls(st) {
+    const p = $("b-play");
+    p.innerHTML = (timer ? ICONS.pause : ICONS.play) + `<span>${timer ? L(T("Pausa", "Pause")) : L(T("Riproduci", "Play"))}</span>`;
+    p.setAttribute("aria-label", timer ? L(T("Pausa", "Pause")) : L(T("Riproduci la sequenza", "Play the sequence")));
+    $("b-prev").setAttribute("aria-label", L(T("Passo precedente", "Previous step")));
+    $("b-next").setAttribute("aria-label", L(T("Passo successivo", "Next step")));
+    $("b-reset").setAttribute("aria-label", L(T("Ricomincia", "Restart")));
+    $("b-prev").disabled = !sel && k === 0;
+    $("b-next").disabled = !sel && k === st.length - 1;
+    let dots = $("card").querySelector(".dots");
+    if (!dots) { dots = document.createElement("div"); dots.className = "dots"; $("card").appendChild(dots); }
+    dots.innerHTML = "";
+    st.forEach((s, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "dot" + (!sel && i === k ? " on" : !sel && i < k ? " seen" : "");
+      b.setAttribute("aria-label", `${L(T("Passo", "Step"))} ${i + 1}: ${L(nodeById(s.n)[4])}`);
+      b.addEventListener("click", () => { stop(); sel = null; k = i; update(true); });
+      dots.appendChild(b);
+    });
+  }
+
+  /* ------------------------------------------------------------------ playback */
+  function go(d) {
+    const n = resolve(flow(), si).length;
+    if (sel) { sel = null; update(false); return; }
+    const nk = Math.max(0, Math.min(n - 1, k + d));
+    if (nk === k) return false;
+    k = nk; update(true); return true;
+  }
+  function stop() { if (timer) { clearInterval(timer); timer = null; renderControls(resolve(flow(), si)); } }
+  function play() {
+    if (timer) { stop(); return; }
+    const n = resolve(flow(), si).length;
+    if (sel || k >= n - 1) { sel = null; k = 0; update(true); }
+    timer = setInterval(() => { if (!go(1) || k >= n - 1) stop(); }, 2400);
+    renderControls(resolve(flow(), si));
+  }
+  function selectFlow(i) {
+    stop(); fi = i; si = 0; k = 0; sel = null;
+    [...$("tabs").children].forEach((b, j) => { b.setAttribute("aria-selected", String(j === fi)); b.tabIndex = j === fi ? 0 : -1; });
+    renderFlow();
+  }
+
+  $("b-play").addEventListener("click", play);
+  $("b-prev").addEventListener("click", () => { stop(); go(-1); });
+  $("b-next").addEventListener("click", () => { stop(); go(1); });
+  $("b-reset").addEventListener("click", () => { stop(); sel = null; k = 0; update(true); });
+  document.addEventListener("r080:lang", () => { renderTabs(); renderFlow(); });
+
+  const fromHash = FLOWS.findIndex((f) => "#" + f.id === location.hash);
+  if (fromHash >= 0) fi = fromHash;
+  renderTabs();
+  renderFlow();
+})();
+</script>
+</body>
+</html>

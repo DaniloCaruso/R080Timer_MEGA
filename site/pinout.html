@@ -1,0 +1,1011 @@
+<!doctype html>
+<html lang="it" data-lang="it" data-title-it="Pinout · R080 Timer" data-title-en="Pinout · R080 Timer">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pinout · R080 Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+/* Pinout page: one interactive board stage (the Mega and its parts, wired), then connector cards and reference notes.
+   Tokens, column, headings, .panel and .warn come from site.css. */
+.stage {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background:
+    linear-gradient(var(--panel), var(--bg-2));
+  overflow: hidden;
+}
+.stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(169, 133, 255, .07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(169, 133, 255, .07) 1px, transparent 1px);
+  background-size: 24px 24px;
+  mask-image: radial-gradient(ellipse at center, #000 40%, transparent 85%);
+  pointer-events: none;
+}
+.stage-bar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  font: 500 12px/1.3 var(--mono);
+  color: var(--muted);
+}
+.stage-bar .live { color: var(--green); }
+.svg-scroll { position: relative; overflow-x: auto; }
+svg.board { display: block; width: 100%; min-width: 1000px; height: auto; }
+.frame { fill: rgba(169, 133, 255, .035); stroke: var(--line-2); stroke-width: 1.2; stroke-dasharray: 3 9; }
+.rail-lbl { font: 600 11px var(--mono); letter-spacing: .3em; fill: var(--faint); text-transform: uppercase; }
+
+/* SVG parts */
+.comp { cursor: pointer; transition: opacity .25s ease, filter .25s ease; outline: none; }
+.comp:focus-visible .hit { stroke: var(--fg); stroke-width: 2; stroke-dasharray: 5 4; }
+.hit { fill: transparent; stroke: none; }
+.has-active .comp { opacity: .38; }
+.has-active .comp.on { opacity: 1; filter: drop-shadow(0 0 14px var(--glow, rgba(169, 133, 255, .55))); }
+.lbl { font: 600 10px var(--mono); letter-spacing: .12em; fill: var(--muted); text-transform: uppercase; }
+.pinlbl { font: 600 8.5px var(--mono); fill: #c9d5ff; }
+.tiny { font: 600 7px var(--mono); fill: #d9cfff; }
+
+.wire { fill: none; stroke-linecap: round; transition: opacity .25s ease, stroke .25s ease; }
+.wire.base { stroke: var(--line-2); stroke-width: 2.4; opacity: .85; }
+.wire.flow { stroke: var(--c); stroke-width: 2.6; stroke-dasharray: 3 15; opacity: 0; }
+.has-active .wire.base { opacity: .18; }
+.wire.base.on { stroke: var(--c); opacity: 1; filter: url(#glow); }
+.wire.flow.on { opacity: 1; animation: flow 1.1s linear infinite; }
+.wire.pwr.base { opacity: 0; }
+.wire.pwr.base.on { opacity: .95; }
+@keyframes flow { to { stroke-dashoffset: -36; } }
+.pin { fill: #e9c56a; }
+.pin.used { fill: #ffe08a; }
+.pin.on, .pad.on { fill: #fff; filter: url(#glow); }
+.part { transition: opacity .25s ease, filter .25s ease; }
+.has-active .part.dimmable { opacity: .45; }
+.has-active .part.dimmable.on { opacity: 1; filter: drop-shadow(0 0 10px var(--glow, rgba(255, 198, 92, .6))); }
+.beam { opacity: .18; transition: opacity .4s ease; }
+.lamp-on .beam { opacity: .75; }
+.lamp-on .bulb { filter: url(#glowBig); }
+
+/* Bubble */
+.bubble {
+  position: absolute;
+  z-index: 4;
+  width: min(340px, calc(100% - 24px));
+  padding: 14px 16px 15px;
+  border-radius: 16px;
+  background: rgba(31, 18, 57, .92);
+  border: 1px solid var(--bc, var(--violet));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .45), 0 0 0 1px rgba(255, 255, 255, .03) inset, 0 0 30px -6px var(--bc, var(--violet));
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  transition: left .28s cubic-bezier(.2, .8, .2, 1), top .28s cubic-bezier(.2, .8, .2, 1), opacity .2s ease;
+}
+.bubble .b-kind { font: 600 10.5px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--bc, var(--violet)); }
+.bubble .b-name { margin: 6px 0 2px; font: 700 15px/1.25 var(--display); letter-spacing: -.01em; }
+.bubble .b-pins { font: 600 12px/1.4 var(--mono); color: var(--fg); opacity: .9; }
+.bubble p { margin: 8px 0 0; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+.bubble::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  border: inherit;
+  transform: rotate(45deg);
+}
+.bubble::after { display: none; }
+.leader { fill: none; stroke: var(--lc, var(--violet)); stroke-width: 1.6; stroke-dasharray: 2 5; stroke-linecap: round; opacity: 0; transition: opacity .2s ease; pointer-events: none; }
+.leader-dot { fill: var(--lc, var(--violet)); opacity: 0; pointer-events: none; filter: url(#glow); }
+.has-active .leader, .has-active .leader-dot { opacity: 1; }
+.legend { position: relative; display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 12px 18px 14px; border-top: 1px solid var(--line); font: 600 11px/1 var(--mono); color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend i { width: 22px; height: 3px; border-radius: 2px; background: var(--c); box-shadow: 0 0 8px var(--c); }
+
+/* Chips */
+.chips { display: grid; gap: 14px; }
+.chip-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chip-group h3 {
+  margin: 0 6px 0 0;
+  min-width: 110px;
+  font: 600 11px/1 var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--fg);
+  font: 500 13px/1 var(--body);
+  cursor: pointer;
+  transition: border-color .2s ease, background .2s ease, transform .2s ease;
+}
+.chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+.chip:hover { border-color: var(--line-2); transform: translateY(-1px); }
+.chip:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+.chip[aria-pressed="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, var(--panel)); }
+
+section > .sub { margin-top: -8px; }
+.conns { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.conn {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 16px 16px 17px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, var(--panel-2), var(--panel) 70%);
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color .2s ease, transform .2s ease;
+}
+.conn:hover { border-color: var(--line-2); transform: translateY(-2px); }
+.conn:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.conn[aria-pressed="true"] { border-color: var(--c); box-shadow: 0 0 0 1px var(--c) inset, 0 10px 30px -12px var(--c); }
+.conn .k { font: 700 18px/1.1 var(--display); color: var(--c); }
+.conn .v { font: 600 11px/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+.conn p { margin: 0; color: var(--muted); font-size: 13.5px; }
+.conn .use { color: var(--fg); }
+
+.duo { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.change { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; align-items: baseline; }
+.change .tag {
+  font: 700 12px/1 var(--mono);
+  color: var(--bg);
+  background: var(--amber);
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+.change .tag.red { background: var(--red); }
+.change b { font-weight: 600; }
+.change p { margin: 0; grid-column: 2; color: var(--muted); font-size: 13.5px; }
+.res { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; margin: 0; font-size: 13.5px; }
+.res dt { font: 600 12px/1.5 var(--mono); color: var(--cyan); }
+.res dd { margin: 0; color: var(--muted); }
+.free { display: flex; flex-wrap: wrap; gap: 6px; }
+.free span {
+  font: 600 11.5px/1 var(--mono);
+  padding: 6px 8px;
+  border-radius: 7px;
+  border: 1px dashed var(--line-2);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .chip-group h3 { min-width: 100%; }
+  .stage-bar { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wire.flow.on { animation: none; stroke-dasharray: none; opacity: .5; }
+  .bubble, .comp, .chip, .conn { transition: none; }
+}
+</style>
+</head>
+<body data-page="pinout.html">
+<main class="page">
+  <header class="page-head">
+    <div class="eyebrow">Arduino Mega 2560 · firmware v2.0.0</div>
+    <h1>R080 Pinout</h1>
+    <p class="lede" lang="it">Ogni filo del timer da camera oscura, dal pulsante al relè della lampada. <b>Clicca un componente</b> (o un connettore della scheda) per accendere la sua pista e leggere cosa fa; cliccalo di nuovo per spegnerla.</p>
+    <p class="lede" lang="en">Every wire of the darkroom timer, from the button to the lamp relay. <b>Click a component</b> (or a board connector) to light up its trace and read what it does; click it again to switch it off.</p>
+  </header>
+
+  <div class="stage wide" id="stage">
+    <div class="stage-bar">
+      <span>MEGA 2560 · ATmega2560 @ 16 MHz · <span lang="it">logica 5 V</span><span lang="en">5 V logic</span></span>
+      <span class="live" id="status"></span>
+    </div>
+    <div class="svg-scroll" id="scroller">
+      <svg class="board" id="svg" viewBox="-350 -210 1900 1400" role="img" aria-label="Schema dei collegamenti del timer R080 sull'Arduino Mega 2560">
+        <defs>
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2.4" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <filter id="glowBig" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="7" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <linearGradient id="pcb" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#2346a6"/>
+            <stop offset=".55" stop-color="#1a3482"/>
+            <stop offset="1" stop-color="#14265e"/>
+          </linearGradient>
+          <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#e9ecf5"/>
+            <stop offset=".5" stop-color="#a7aec2"/>
+            <stop offset="1" stop-color="#7b8399"/>
+          </linearGradient>
+          <radialGradient id="knob" cx=".38" cy=".32" r=".75">
+            <stop offset="0" stop-color="#ffffff"/>
+            <stop offset=".35" stop-color="#cfd4e2"/>
+            <stop offset="1" stop-color="#6c7389"/>
+          </radialGradient>
+          <radialGradient id="cap" cx=".4" cy=".3" r=".8">
+            <stop offset="0" stop-color="#ffb3ea"/>
+            <stop offset=".45" stop-color="#ff5cc8"/>
+            <stop offset="1" stop-color="#8a1f78"/>
+          </radialGradient>
+          <linearGradient id="lcdScreen" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ff4766"/>
+            <stop offset="1" stop-color="#c3133a"/>
+          </linearGradient>
+          <linearGradient id="segPcb" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#e11d3f"/>
+            <stop offset="1" stop-color="#a50f2c"/>
+          </linearGradient>
+          <linearGradient id="relayBox" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#4c8dff"/>
+            <stop offset="1" stop-color="#2557d6"/>
+          </linearGradient>
+          <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffd27a" stop-opacity=".95"/>
+            <stop offset="1" stop-color="#ffc65c" stop-opacity="0"/>
+          </linearGradient>
+          <linearGradient id="brick" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#34245e"/>
+            <stop offset="1" stop-color="#21163f"/>
+          </linearGradient>
+        </defs>
+
+        <rect class="frame" x="-14" y="-14" width="1228" height="1008" rx="26"/>
+        <text lang="it" class="rail-lbl" x="600" y="1024" text-anchor="middle">schema · tocca un componente</text><text lang="en" class="rail-lbl" x="600" y="1024" text-anchor="middle">schematic · tap a component</text>
+        <g id="wires"></g>
+
+        <g id="lower" transform="translate(0 130)">
+        <!-- ================= ARDUINO MEGA 2560 ================= -->
+        <g id="board">
+          <rect x="360" y="250" width="500" height="290" rx="16" fill="url(#pcb)" stroke="#3a5cc4" stroke-width="1.5"/>
+          <g fill="none" stroke="#5f7fe0" stroke-opacity=".28" stroke-width="1.2">
+            <path d="M470 330 H560 V360"/><path d="M470 345 H545 V390"/>
+            <path d="M520 470 H600 V440"/><path d="M700 470 H760 V430"/>
+            <path d="M610 290 V340"/><path d="M640 290 V335"/>
+          </g>
+          <circle cx="376" cy="524" r="7" fill="#0f1a44" stroke="#9fb3f5" stroke-opacity=".5"/>
+          <circle cx="842" cy="524" r="7" fill="#0f1a44" stroke="#9fb3f5" stroke-opacity=".5"/>
+          <text x="712" y="332" font-family="Unbounded, sans-serif" font-weight="700" font-size="20" fill="#dfe7ff" fill-opacity=".85" letter-spacing="1" text-anchor="middle">MEGA 2560</text>
+          <text x="712" y="348" font-family="JetBrains Mono, monospace" font-size="8" fill="#b9c6f5" fill-opacity=".7" letter-spacing="2" text-anchor="middle">R080 TIMER · V2.0.0</text>
+
+          <!-- top headers -->
+          <rect x="398" y="256" width="211" height="16" rx="3" fill="#0b0816"/>
+          <rect x="625" y="256" width="105" height="16" rx="3" fill="#0b0816"/>
+          <g id="pinsTop"></g>
+          <text x="405" y="292" class="tiny" text-anchor="middle">AR</text>
+          <text x="418" y="292" class="tiny" text-anchor="middle">GN</text>
+
+          <!-- right double header -->
+          <rect x="823" y="261" width="27" height="237" rx="3" fill="#0b0816"/>
+          <g id="pinsRight"></g>
+          <text x="815" y="273" class="tiny" text-anchor="end">5V</text>
+          <text x="815" y="494" class="tiny" text-anchor="end">GND</text>
+
+          <!-- bottom headers -->
+          <rect x="441" y="518" width="92" height="16" rx="3" fill="#0b0816"/>
+          <rect x="553" y="518" width="105" height="16" rx="3" fill="#0b0816"/>
+          <rect x="673" y="518" width="105" height="16" rx="3" fill="#0b0816"/>
+          <g id="pinsBottom"></g>
+          <text x="605" y="512" class="tiny" text-anchor="middle" letter-spacing="2">ANALOG IN A0–A15</text>
+
+          <!-- USB-B -->
+          <g class="comp board-part" data-id="usb" tabindex="0" role="button" aria-label="Connettore USB-B">
+            <rect class="hit" x="316" y="266" width="82" height="66"/>
+            <rect x="322" y="272" width="70" height="54" rx="5" fill="url(#metal)" stroke="#5d647a"/>
+            <rect x="330" y="284" width="30" height="30" rx="3" fill="#2b2f3d"/>
+            <rect x="337" y="292" width="16" height="14" rx="2" fill="#e9ecf5"/>
+          </g>
+          <!-- DC jack -->
+          <g class="comp board-part" data-id="dc" tabindex="0" role="button" aria-label="Jack di alimentazione DC">
+            <rect class="hit" x="320" y="446" width="72" height="62"/>
+            <rect x="326" y="452" width="60" height="50" rx="7" fill="#0d0b14" stroke="#3a3550"/>
+            <circle cx="346" cy="477" r="13" fill="#1d1a28" stroke="#4a4560"/>
+            <circle cx="346" cy="477" r="4" fill="#c9cfdc"/>
+          </g>
+          <!-- reset button -->
+          <g class="comp board-part" data-id="reset" tabindex="0" role="button" aria-label="Pulsante di reset">
+            <rect class="hit" x="400" y="294" width="32" height="32"/>
+            <rect x="404" y="298" width="24" height="24" rx="4" fill="#d9dce6"/>
+            <circle cx="416" cy="310" r="7" fill="#e02d4f"/>
+          </g>
+          <!-- USB-serial chip, crystal, regulator -->
+          <rect x="425" y="350" width="34" height="34" rx="3" fill="#0d0b14"/>
+          <text x="442" y="370" class="tiny" text-anchor="middle">16U2</text>
+          <rect x="505" y="338" width="34" height="14" rx="7" fill="url(#metal)"/>
+          <text x="522" y="364" class="tiny" text-anchor="middle">16 MHz</text>
+          <rect x="400" y="462" width="30" height="24" rx="2" fill="#0d0b14"/>
+          <rect x="404" y="456" width="22" height="8" fill="url(#metal)"/>
+          <text x="415" y="499" class="tiny" text-anchor="middle">REG 5V</text>
+
+          <!-- ATmega2560 -->
+          <g class="comp board-part" data-id="chip" tabindex="0" role="button" aria-label="Microcontrollore ATmega2560">
+            <rect class="hit" x="555" y="340" width="120" height="120"/>
+            <g transform="rotate(45 615 400)">
+              <rect x="573" y="358" width="84" height="84" rx="4" fill="#0d0b14" stroke="#2e2a3e"/>
+              <g fill="#b9bfd0">
+                <rect x="579" y="352" width="72" height="5" rx="1"/><rect x="579" y="443" width="72" height="5" rx="1"/>
+                <rect x="567" y="364" width="5" height="72" rx="1"/><rect x="658" y="364" width="5" height="72" rx="1"/>
+              </g>
+              <circle cx="583" cy="368" r="3" fill="#2e2a3e"/>
+            </g>
+            <text x="615" y="397" font-family="JetBrains Mono, monospace" font-weight="700" font-size="8.5" fill="#d9d4ea" text-anchor="middle">ATMEGA</text>
+            <text x="615" y="408" font-family="JetBrains Mono, monospace" font-weight="700" font-size="8.5" fill="#d9d4ea" text-anchor="middle">2560</text>
+          </g>
+          <!-- ICSP -->
+          <g class="comp board-part" data-id="icsp" tabindex="0" role="button" aria-label="Connettore ICSP">
+            <rect class="hit" x="736" y="372" width="42" height="56"/>
+            <rect x="742" y="378" width="30" height="44" rx="3" fill="#0b0816"/>
+            <g class="pin" data-for="icsp">
+              <circle cx="750" cy="387" r="3"/><circle cx="764" cy="387" r="3"/>
+              <circle cx="750" cy="400" r="3"/><circle cx="764" cy="400" r="3"/>
+              <circle cx="750" cy="413" r="3"/><circle cx="764" cy="413" r="3"/>
+            </g>
+            <text x="757" y="437" class="tiny" text-anchor="middle">ICSP</text>
+          </g>
+          <!-- 10k pull-down on D47 -->
+          <g class="part dimmable" data-for="relay">
+            <path d="M843 438 H868 V446" stroke="#ff9ab0" stroke-width="1.6" fill="none"/>
+            <rect x="863" y="446" width="10" height="30" rx="4" fill="#e8d3a8" stroke="#8a6f3d"/>
+            <rect x="863" y="452" width="10" height="3" fill="#7a4b2a"/><rect x="863" y="458" width="10" height="3" fill="#111"/><rect x="863" y="464" width="10" height="3" fill="#e0662a"/>
+            <path d="M868 476 V488 M860 488 H876 M863 492 H873 M866 496 H870" stroke="#ff9ab0" stroke-width="1.6" fill="none"/>
+            <text x="880" y="466" class="pinlbl" fill="#ffc7d3">10k</text>
+          </g>
+        </g>
+
+        <!-- Relay -->
+        <g class="comp" data-id="relay" tabindex="0" role="button" aria-label="Modulo relè">
+          <rect class="hit" x="925" y="245" width="240" height="135"/>
+          <rect x="930" y="252" width="228" height="120" rx="8" fill="#13307e" stroke="#4c8dff" stroke-opacity=".5"/>
+          <rect x="992" y="262" width="104" height="78" rx="6" fill="url(#relayBox)"/>
+          <text x="1044" y="296" font-family="Unbounded, sans-serif" font-weight="700" font-size="11" fill="#eaf1ff" text-anchor="middle">RELAY</text>
+          <text x="1044" y="312" font-family="JetBrains Mono, monospace" font-size="8" fill="#dbe6ff" text-anchor="middle">5VDC · 10A 250VAC</text>
+          <rect x="1104" y="268" width="46" height="66" rx="4" fill="#2b6af0"/>
+          <g fill="#c9d3e6"><circle cx="1127" cy="282" r="7"/><circle cx="1127" cy="301" r="7"/><circle cx="1127" cy="320" r="7"/></g>
+          <g stroke="#59627a" stroke-width="2"><line x1="1122" y1="282" x2="1132" y2="282"/><line x1="1122" y1="301" x2="1132" y2="301"/><line x1="1122" y1="320" x2="1132" y2="320"/></g>
+          <g class="tiny" fill="#dbe6ff"><text x="1140" y="285">NC</text><text x="1140" y="304">COM</text><text x="1140" y="323">NO</text></g>
+          <circle cx="972" cy="352" r="4" fill="#ff4d6d" filter="url(#glow)"/>
+          <g class="tiny" fill="#dbe6ff"><text x="944" y="283">IN</text><text x="944" y="303">VCC</text><text x="944" y="323">GND</text></g>
+          <g fill="#e9c56a"><circle cx="936" cy="280" r="3"/><circle cx="936" cy="300" r="3" class="pad" data-for="h5v"/><circle cx="936" cy="320" r="3"/></g>
+        </g>
+        <!-- Enlarger lamp -->
+        <g class="comp" data-id="lamp" tabindex="0" role="button" aria-label="Lampada dell'ingranditore" id="lampG">
+          <rect class="hit" x="1000" y="400" width="190" height="200"/>
+          <rect x="1150" y="402" width="11" height="186" rx="3" fill="#2a2148"/>
+          <rect x="1004" y="584" width="182" height="12" rx="3" fill="#2a2148"/>
+          <rect x="1030" y="420" width="122" height="62" rx="10" fill="#2f2256" stroke="#5a44a0"/>
+          <rect x="1134" y="438" width="24" height="10" fill="#2a2148"/>
+          <path class="beam" d="M1074 500 L1108 500 L1150 584 L1032 584 Z" fill="url(#beam)"/>
+          <path d="M1070 482 H1112 L1104 502 H1078 Z" fill="#1a1333" stroke="#5a44a0"/>
+          <circle class="bulb" cx="1091" cy="451" r="14" fill="#ffc65c"/>
+          <text lang="it" x="1091" y="404" class="lbl" text-anchor="middle" fill="#ffd9a3">Ingranditore · 230 V</text><text lang="en" x="1091" y="404" class="lbl" text-anchor="middle" fill="#ffd9a3">Enlarger · 230 V</text>
+        </g>
+        <!-- Keypad -->
+        <g class="comp" data-id="keypad" tabindex="0" role="button" aria-label="Tastierino 4x4" transform="translate(0 30)">
+          <rect class="hit" x="870" y="560" width="250" height="250"/>
+          <rect x="890" y="574" width="104" height="14" rx="3" fill="#0b0816"/>
+          <rect x="878" y="590" width="232" height="212" rx="14" fill="#0e0b18" stroke="#3b2a66"/>
+          <g id="keys"></g>
+        </g>
+        <!-- Buzzer -->
+        <g class="comp" data-id="buzzer" tabindex="0" role="button" aria-label="Buzzer">
+          <rect class="hit" x="560" y="640" width="130" height="130"/>
+          <line x1="642" y1="664" x2="642" y2="690" stroke="#c9cfdc" stroke-width="2"/>
+          <line x1="600" y1="664" x2="600" y2="690" stroke="#c9cfdc" stroke-width="2"/>
+          <circle cx="621" cy="712" r="44" fill="#0d0b14" stroke="#3a3550" stroke-width="2"/>
+          <circle cx="621" cy="712" r="34" fill="#16121f"/>
+          <circle cx="621" cy="712" r="7" fill="#050308"/>
+          <text x="650" y="690" font-family="JetBrains Mono, monospace" font-weight="700" font-size="13" fill="#d9d4ea">+</text>
+          <text x="621" y="780" class="lbl" text-anchor="middle">Buzzer</text>
+        </g>
+        <!-- USB power -->
+        <g class="comp" data-id="usbsrc" tabindex="0" role="button" aria-label="Alimentatore USB">
+          <rect class="hit" x="34" y="250" width="176" height="96"/>
+          <rect x="40" y="258" width="150" height="80" rx="14" fill="url(#brick)" stroke="#4b3580"/>
+          <text x="115" y="292" font-family="Unbounded, sans-serif" font-weight="700" font-size="16" fill="#f2edff" text-anchor="middle">5 V</text>
+          <text x="115" y="312" class="lbl" text-anchor="middle">USB · PC</text>
+          <rect x="190" y="290" width="16" height="18" rx="3" fill="url(#metal)"/>
+        </g>
+        <!-- DC adapter -->
+        <g class="comp" data-id="dcsrc" tabindex="0" role="button" aria-label="Alimentatore DC">
+          <rect class="hit" x="34" y="434" width="176" height="96"/>
+          <rect x="40" y="442" width="150" height="80" rx="14" fill="url(#brick)" stroke="#4b3580"/>
+          <text x="115" y="476" font-family="Unbounded, sans-serif" font-weight="700" font-size="15" fill="#f2edff" text-anchor="middle">7–12 V</text>
+          <text lang="it" x="115" y="496" class="lbl" text-anchor="middle">DC · opzionale</text><text lang="en" x="115" y="496" class="lbl" text-anchor="middle">DC · optional</text>
+          <rect x="190" y="470" width="14" height="14" rx="7" fill="#0d0b14" stroke="#4a4560"/>
+        </g>
+        </g>
+        <!-- ================= COMPONENTS ================= -->
+        <!-- Main button -->
+        <g class="comp" data-id="main" tabindex="0" role="button" aria-label="Pulsante principale">
+          <rect class="hit" x="35" y="30" width="140" height="160"/>
+          <rect x="40" y="36" width="130" height="134" rx="8" fill="#140d24" stroke="#3b2a66"/>
+          <circle cx="105" cy="94" r="40" fill="#0b0715"/>
+          <circle cx="105" cy="91" r="31" fill="url(#cap)"/>
+          <ellipse cx="95" cy="78" rx="12" ry="6" fill="#fff" fill-opacity=".35"/>
+          <text x="105" y="148" class="lbl" text-anchor="middle">Start</text>
+          <g class="tiny" text-anchor="middle"><text x="95" y="163">SIG</text><text x="115" y="163">GND</text></g>
+          <g fill="#e9c56a"><circle cx="95" cy="174" r="3"/><circle cx="115" cy="174" r="3"/></g>
+        </g>
+        <!-- Encoder: mode -->
+        <g class="comp" data-id="encMode" tabindex="0" role="button" aria-label="Encoder della modalità">
+          <rect class="hit" x="195" y="30" width="140" height="160"/>
+          <rect x="200" y="36" width="130" height="134" rx="8" fill="#101015" stroke="#2b2840"/>
+          <circle cx="265" cy="94" r="38" fill="#2b2f3d"/>
+          <circle cx="265" cy="94" r="30" fill="url(#knob)"/>
+          <g stroke="#7d8499" stroke-width="1.2"><line x1="265" y1="66" x2="265" y2="76"/><line x1="293" y1="94" x2="283" y2="94"/><line x1="265" y1="122" x2="265" y2="112"/><line x1="237" y1="94" x2="247" y2="94"/></g>
+          <rect x="261" y="74" width="8" height="18" rx="2" fill="#3a3f52"/>
+          <text lang="it" x="265" y="148" class="lbl" text-anchor="middle">Modalità</text><text lang="en" x="265" y="148" class="lbl" text-anchor="middle">Mode</text>
+          <g class="tiny" text-anchor="middle"><text x="220" y="163">CLK</text><text x="240" y="163">DT</text><text x="260" y="163">SW</text><text x="280" y="163">+</text><text x="300" y="163">GND</text></g>
+          <g fill="#e9c56a"><circle cx="220" cy="174" r="3"/><circle cx="240" cy="174" r="3"/><circle cx="260" cy="174" r="3"/><circle cx="280" cy="174" r="3" class="pad" data-for="h5v"/><circle cx="300" cy="174" r="3"/></g>
+        </g>
+        <!-- Encoder: precision -->
+        <g class="comp" data-id="encPrec" tabindex="0" role="button" aria-label="Encoder della precisione">
+          <rect class="hit" x="355" y="30" width="140" height="160"/>
+          <rect x="360" y="36" width="130" height="134" rx="8" fill="#101015" stroke="#2b2840"/>
+          <circle cx="425" cy="94" r="38" fill="#2b2f3d"/>
+          <circle cx="425" cy="94" r="30" fill="url(#knob)"/>
+          <g stroke="#7d8499" stroke-width="1.2"><line x1="425" y1="66" x2="425" y2="76"/><line x1="453" y1="94" x2="443" y2="94"/><line x1="425" y1="122" x2="425" y2="112"/><line x1="397" y1="94" x2="407" y2="94"/></g>
+          <rect x="421" y="74" width="8" height="18" rx="2" fill="#3a3f52"/>
+          <text lang="it" x="425" y="148" class="lbl" text-anchor="middle">Precisione</text><text lang="en" x="425" y="148" class="lbl" text-anchor="middle">Precision</text>
+          <g class="tiny" text-anchor="middle"><text x="380" y="163">CLK</text><text x="400" y="163">DT</text><text x="420" y="163">SW</text><text x="440" y="163">+</text><text x="460" y="163">GND</text></g>
+          <g fill="#e9c56a"><circle cx="380" cy="174" r="3"/><circle cx="400" cy="174" r="3"/><circle cx="420" cy="174" r="3"/><circle cx="440" cy="174" r="3" class="pad" data-for="h5v"/><circle cx="460" cy="174" r="3"/></g>
+        </g>
+        <!-- 7-segment -->
+        <g class="comp" data-id="seg7" tabindex="0" role="button" aria-label="Display a 7 segmenti">
+          <rect class="hit" x="525" y="30" width="300" height="160"/>
+          <rect x="530" y="36" width="290" height="134" rx="8" fill="url(#segPcb)" stroke="#ff8aa0" stroke-opacity=".4"/>
+          <rect x="548" y="52" width="254" height="82" rx="6" fill="#0c0508"/>
+          <text x="675" y="113" font-family="JetBrains Mono, monospace" font-weight="700" font-size="58" fill="#ff2e4c" text-anchor="middle" filter="url(#glow)" letter-spacing="4">010.0</text>
+          <text x="675" y="152" class="lbl" text-anchor="middle" fill="#ffd6de">Serial 7-segment</text>
+          <g class="tiny" text-anchor="middle" fill="#ffe6eb"><text x="560" y="163">RX</text><text x="580" y="163">VCC</text><text x="600" y="163">GND</text></g>
+          <g fill="#e9c56a"><circle cx="560" cy="174" r="3"/><circle cx="580" cy="174" r="3" class="pad" data-for="h5v"/><circle cx="600" cy="174" r="3"/></g>
+        </g>
+        <!-- LCD -->
+        <g class="comp" data-id="lcd" tabindex="0" role="button" aria-label="LCD Waveshare 1602 RGB">
+          <rect class="hit" x="845" y="30" width="330" height="160"/>
+          <rect x="850" y="36" width="320" height="134" rx="8" fill="#101015" stroke="#2b2840"/>
+          <rect x="862" y="50" width="296" height="90" rx="5" fill="#2a0c16"/>
+          <rect x="868" y="56" width="284" height="78" rx="3" fill="url(#lcdScreen)"/>
+          <text x="878" y="88" font-family="JetBrains Mono, monospace" font-weight="700" font-size="21" fill="#3d0414" xml:space="preserve">COUNTDOWN  [S]</text>
+          <text x="878" y="120" font-family="JetBrains Mono, monospace" font-weight="700" font-size="21" fill="#3d0414" xml:space="preserve"> 5s      Ch:A♪</text>
+          <text x="1060" y="157" class="lbl" text-anchor="middle">LCD 1602 RGB · I²C</text>
+          <g class="tiny" text-anchor="middle"><text x="880" y="163">GND</text><text x="900" y="163">VCC</text><text x="920" y="163">SDA</text><text x="940" y="163">SCL</text></g>
+          <g fill="#e9c56a"><circle cx="880" cy="174" r="3"/><circle cx="900" cy="174" r="3" class="pad" data-for="h5v"/><circle cx="920" cy="174" r="3"/><circle cx="940" cy="174" r="3"/></g>
+        </g>
+
+        <g id="wiresTop"></g>
+        <path id="leader" class="leader" d=""/>
+        <circle id="leaderDot" class="leader-dot" r="4" cx="-20" cy="-20"/>
+      </svg>
+      <div class="bubble" id="bubble" role="status" aria-live="polite" hidden>
+        <div class="b-kind" id="bKind"></div>
+        <div class="b-name" id="bName"></div>
+        <div class="b-pins" id="bPins"></div>
+        <p id="bText"></p>
+      </div>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <nav class="chips" id="chips"></nav>
+
+  <section aria-labelledby="pw">
+    <h2 id="pw"><span lang="it">Alimentazione e connettori</span><span lang="en">Power and connectors</span></h2>
+    <p class="sub" lang="it">Cosa entra nella scheda, cosa esce e cosa serve davvero al timer. Tocca una scheda per vederla sul disegno.</p>
+    <p class="sub" lang="en">What goes into the board, what comes out, and what the timer actually needs. Tap a card to see it on the drawing.</p>
+    <div class="conns" id="cards"></div>
+    <div class="warn">
+      <strong><span lang="it">RETE</span><span lang="en">MAINS</span></strong>
+      <span lang="it">Il lato contatti del relè (COM/NO) porta i 230 V della lampada. È isolato dalla logica: cablalo con l'ingranditore staccato dalla presa, con morsetti chiusi e nessun conduttore scoperto.</span>
+      <span lang="en">The relay's contact side (COM/NO) carries the lamp's 230 V. It is isolated from the logic: wire it with the enlarger unplugged, with enclosed terminals and no exposed conductors.</span>
+    </div>
+  </section>
+
+  <div class="duo">
+    <section class="panel" aria-labelledby="chg">
+      <h3 id="chg"><span lang="it">Cosa cambia nel cablaggio con la v2.0.0</span><span lang="en">What changes in the wiring with v2.0.0</span></h3>
+      <div class="change">
+        <span class="tag">D14</span>
+        <b lang="it">7 segmenti spostato da A2 a D14 (TX3)</b>
+        <b lang="en">7-segment display moved from A2 to D14 (TX3)</b>
+        <p lang="it">Serial3 è una seriale hardware: niente più interrupt disattivati per circa 1 ms a ogni byte come con SoftwareSerial. A2 resta libero.</p>
+        <p lang="en">Serial3 is a hardware UART: interrupts are no longer disabled for about 1 ms per byte as they were with SoftwareSerial. A2 stays free.</p>
+      </div>
+      <div class="change">
+        <span class="tag red">10 kΩ</span>
+        <b lang="it">Resistenza tra D47 e GND</b>
+        <b lang="en">Resistor between D47 and GND</b>
+        <p lang="it">Durante il bootloader D47 è un ingresso flottante: la pull-down tiene il relè spento finché il firmware non lo comanda.</p>
+        <p lang="en">While the bootloader runs, D47 is a floating input: the pull-down keeps the relay off until the firmware drives it.</p>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="mcu">
+      <h3 id="mcu"><span lang="it">Risorse del microcontrollore</span><span lang="en">Microcontroller resources</span></h3>
+      <dl class="res">
+        <dt>Timer1</dt><dd><span lang="it">CTC a 1 kHz: unica sorgente del tempo di esposizione, spegne il relè nella ISR.</span><span lang="en">CTC at 1 kHz: the only source of exposure time, switches the relay off inside the ISR.</span></dd>
+        <dt>Timer2</dt><dd><code>tone()</code> <span lang="it">per il buzzer.</span><span lang="en">for the buzzer.</span></dd>
+        <dt>Timer4</dt><dd><span lang="it">Conteggio libero, verifica che Timer1 non perda tick.</span><span lang="en">Free-running count, checks that Timer1 never misses a tick.</span></dd>
+        <dt>Watchdog</dt><dd><span lang="it">250 ms: relè spento; altri 250 ms: reset della scheda.</span><span lang="en">250 ms: relay off; another 250 ms: board reset.</span></dd>
+        <dt>USART0 · 3</dt><dd><span lang="it">Log USB a 115200 · 7 segmenti a 9600.</span><span lang="en">USB log at 115200 · 7-segment display at 9600.</span></dd>
+        <dt>TWI</dt><dd><span lang="it">LCD a 100 kHz con timeout di 3 ms.</span><span lang="en">LCD at 100 kHz with a 3 ms timeout.</span></dd>
+        <dt>EEPROM</dt><dd><span lang="it">Impostazioni a 0x000, contatori a 0x040, entrambi con CRC8.</span><span lang="en">Settings at 0x000, counters at 0x040, both with CRC8.</span></dd>
+      </dl>
+    </section>
+  </div>
+
+  <section class="panel" aria-labelledby="free">
+    <h3 id="free"><span lang="it">Pin liberi</span><span lang="en">Free pins</span></h3>
+    <div class="free">
+      <span>D5–D13</span><span>D22–D26</span><span>D28</span><span>D30</span><span>D32</span><span>D34</span><span>D36</span><span>D38</span><span>D40</span><span>D42–D46</span><span>D48</span><span>D50–D53</span><span>A0–A15</span>
+    </div>
+  </section>
+</main>
+<footer class="site">
+  <span lang="it">Fonte: src/drivers/Pins.h e PINOUT.md del branch feature/arduino-mega-firmware · disegni illustrativi, posizioni dei pin semplificate.</span>
+  <span lang="en">Source: src/drivers/Pins.h and PINOUT.md on the feature/arduino-mega-firmware branch · illustrative drawings, simplified pin positions.</span>
+</footer>
+<script src="assets/site.js"></script>
+<script>
+(function () {
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("svg");
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, attrs, parent) => {
+    const n = document.createElementNS(NS, tag);
+    for (const k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  };
+  // Texts are {it, en}; language-neutral values (pin names, numbers) stay plain strings.
+  const lang = () => (document.documentElement.dataset.lang === "en" ? "en" : "it");
+  const tr = (v) => (typeof v === "string" ? v : v[lang()]);
+
+  const COLORS = {
+    in: "var(--violet)", key: "var(--indigo)", uart: "var(--magenta)", i2c: "var(--cyan)",
+    relay: "var(--red)", mains: "var(--red)", buzz: "var(--green)", pwr: "var(--amber)"
+  };
+  const GLOW = {
+    in: "rgba(169,133,255,.6)", key: "rgba(127,140,255,.6)", uart: "rgba(255,92,200,.6)", i2c: "rgba(69,224,255,.55)",
+    relay: "rgba(255,84,114,.6)", mains: "rgba(255,84,114,.6)", buzz: "rgba(92,242,168,.55)", pwr: "rgba(255,198,92,.6)"
+  };
+  const KIND_NAME = {
+    in: { it: "Ingresso", en: "Input" }, key: { it: "Tastierino", en: "Keypad" }, uart: { it: "Seriale", en: "Serial" },
+    i2c: "I²C", relay: { it: "Uscita di potenza", en: "Power output" }, mains: { it: "Rete 230 V", en: "Mains 230 V" },
+    buzz: { it: "Uscita audio", en: "Audio output" }, pwr: { it: "Alimentazione", en: "Power" }
+  };
+  const GROUP_NAME = {
+    cmd: { it: "Comandi", en: "Controls" }, disp: { it: "Display", en: "Displays" }, out: { it: "Uscite", en: "Outputs" },
+    supply: { it: "Alimentazione", en: "Power supply" }, board: { it: "Scheda", en: "Board" }, pins: { it: "Pin di alimentazione", en: "Power pins" }
+  };
+  const UI = {
+    idle: { it: "Tocca un componente", en: "Tap a component" },
+    svg: { it: "Schema dei collegamenti del timer R080 sull'Arduino Mega 2560", en: "Wiring diagram of the R080 timer on the Arduino Mega 2560" },
+    legend: { it: "Colori dei segnali", en: "Signal colours" },
+    chips: { it: "Componenti e connettori", en: "Components and connectors" }
+  };
+
+  // Board pin coordinates (illustrative layout of the Mega headers).
+  const P = {};
+  for (let k = 0; k <= 13; k++) P["D" + k] = [600 - k * 13, 264];
+  for (let k = 14; k <= 21; k++) P["D" + k] = [632 + (k - 14) * 13, 264];
+  for (let p = 22; p <= 53; p++) P["D" + p] = [p % 2 ? 843 : 830, 282 + ((p - 22) >> 1) * 13];
+  const POWER = ["IOREF", "RST", "3V3", "5V", "GND", "GND2", "VIN"];
+  POWER.forEach((n, i) => (P[n] = [448 + i * 13, 526]));
+
+  const USED = { D2: "main", D3: "encMode", D4: "encMode", D17: "encMode", D16: "encPrec", D18: "encPrec", D19: "encPrec",
+    D14: "seg7", D20: "lcd", D21: "lcd", D47: "relay", D49: "buzzer",
+    D27: "keypad", D29: "keypad", D31: "keypad", D33: "keypad", D35: "keypad", D37: "keypad", D39: "keypad", D41: "keypad" };
+  const POWER_FOR = { IOREF: "", RST: "reset", "3V3": "h33", "5V": "h5v", GND: "gnd", GND2: "gnd", VIN: "vin" };
+
+  // Header pins
+  const top = $("pinsTop"), right = $("pinsRight"), bottom = $("pinsBottom");
+  [405, 418].forEach((x) => el("circle", { cx: x, cy: 264, r: 3, class: "pin" }, top));
+  for (let k = 0; k <= 21; k++) {
+    const [x, y] = P["D" + k];
+    const owner = USED["D" + k];
+    el("circle", { cx: x, cy: y, r: owner ? 3.6 : 3, class: "pin" + (owner ? " used" : ""), "data-for": owner || "" }, top);
+    if (owner || k === 0 || k === 13) {
+      const t = el("text", { x: x, y: 284, class: "pinlbl", "text-anchor": "middle" }, top);
+      t.textContent = k;
+    }
+  }
+  [[830, 269], [843, 269], [830, 490], [843, 490]].forEach(([x, y], i) =>
+    el("circle", { cx: x, cy: y, r: 3, class: "pin", "data-for": i < 2 ? "h5v" : "gnd" }, right));
+  for (let p = 22; p <= 53; p++) {
+    const [x, y] = P["D" + p];
+    const owner = USED["D" + p];
+    el("circle", { cx: x, cy: y, r: owner ? 3.6 : 3, class: "pin" + (owner ? " used" : ""), "data-for": owner || "" }, right);
+    if (owner) {
+      const t = el("text", { x: 818, y: y + 3, class: "pinlbl", "text-anchor": "end" }, right);
+      t.textContent = p;
+    }
+  }
+  POWER.forEach((n) => {
+    const [x, y] = P[n];
+    el("circle", { cx: x, cy: y, r: 3.4, class: "pin used", "data-for": POWER_FOR[n] }, bottom);
+    const t = el("text", { x: x, y: 546, class: "tiny", transform: `rotate(90 ${x} 546)` }, bottom);
+    t.textContent = n === "GND2" ? "GND" : n;
+  });
+  for (let i = 0; i < 16; i++) {
+    const x = i < 8 ? 560 + i * 13 : 680 + (i - 8) * 13;
+    el("circle", { cx: x, cy: 526, r: 3, class: "pin" }, bottom);
+  }
+
+  // Keypad keys
+  const KEYS = ["1", "2", "3", "A", "4", "5", "6", "B", "7", "8", "9", "C", "*", "0", "#", "D"];
+  const keys = $("keys");
+  KEYS.forEach((k, i) => {
+    const c = i % 4, r = Math.floor(i / 4);
+    const x = 892 + c * 53, y = 602 + r * 49;
+    const letter = /[A-D]/.test(k);
+    el("rect", { x, y, width: 44, height: 40, rx: 8, fill: letter ? "#2a1a4d" : "#1b1430", stroke: "#3b2a66" }, keys);
+    const t = el("text", { x: x + 22, y: y + 26, "text-anchor": "middle", "font-family": "JetBrains Mono, monospace", "font-weight": 700, "font-size": 16, fill: letter ? "#ff8fd9" : "#e9e3ff" }, keys);
+    t.textContent = k;
+  });
+  for (let i = 0; i < 8; i++) el("circle", { cx: 897 + i * 13, cy: 581, r: 3, class: "pin" }, keys);
+
+  // Wires
+  const wires = $("wires");
+  const v = (a, b) => { const dy = Math.max(40, Math.abs(b[1] - a[1]) * 0.55); return `M${a} C${a[0]},${a[1] + dy} ${b[0]},${b[1] - dy} ${b}`; };
+  const h = (a, b, c1, c2) => `M${a} C${c1} ${c2} ${b}`;
+  const W = [];
+  const DY = 130, KDY = 30; // lower half and keypad offsets in the drawing
+  const S = (p) => [p[0], p[1] + DY];
+  const K = (p) => [p[0], p[1] + DY + KDY];
+  const add = (ids, kind, d, extra) => W.push({ ids, kind, d, extra: extra || "" });
+
+  add("main", "in", v([95, 174], S(P.D2)));
+  add("encMode", "in", v([220, 174], S(P.D4)));
+  add("encMode", "in", v([240, 174], S(P.D3)));
+  add("encMode", "in", v([260, 174], S(P.D17)));
+  add("encPrec", "in", v([380, 174], S(P.D19)));
+  add("encPrec", "in", v([400, 174], S(P.D18)));
+  add("encPrec", "in", v([420, 174], S(P.D16)));
+  add("seg7", "uart", v([560, 174], S(P.D14)));
+  add("lcd", "i2c", v([920, 174], S(P.D20)));
+  add("lcd", "i2c", v([940, 174], S(P.D21)));
+  add("relay", "relay", h(S([936, 280]), S(P.D47), S([880, 280]), S([905, 438])));
+  add("buzzer", "buzz", h(S([642, 664]), S(P.D49), S([642, 560]), S([930, 451])));
+  const KP = ["D33", "D31", "D29", "D27", "D41", "D39", "D37", "D35"];
+  KP.forEach((pin, i) => {
+    const a = K([897 + i * 13, 581]), b = S(P[pin]);
+    add("keypad", "key", h(a, b, [a[0], a[1] - 90 - i * 6], [880 + i * 4, b[1]]));
+  });
+  add("relay lamp", "mains", h(S([1127, 301]), S([1062, 432]), S([1180, 360]), S([1062, 380])));
+  add("relay lamp", "mains", h(S([1127, 320]), S([1120, 432]), S([1170, 380]), S([1120, 400])));
+  add("usb usbsrc", "pwr", h(S([206, 299]), S([322, 299]), S([260, 299]), S([280, 299])));
+  add("dc dcsrc", "pwr", h(S([204, 477]), S([326, 477]), S([260, 477]), S([290, 477])));
+  // 5 V distribution (shown only when a power item is selected)
+  const V5 = S(P["5V"]);
+  [[280, 174], [440, 174], [580, 174], [900, 174]].forEach((b) =>
+    add("h5v", "pwr", h(V5, b, [V5[0], V5[1] + 90], [b[0], 300]), " pwr"));
+  add("h5v", "pwr", h(V5, S([936, 300]), [V5[0], V5[1] + 90], [880, 600]), " pwr");
+
+  W.forEach((w) => {
+    // mains wires run on top of the relay, from its screw terminals to the lamp
+    const g = el("g", { "data-for": w.ids }, w.kind === "mains" ? $("wiresTop") : wires);
+    g.style.setProperty("--c", COLORS[w.kind]);
+    el("path", { d: w.d, class: "wire base" + w.extra, "data-for": w.ids }, g).style.setProperty("--c", COLORS[w.kind]);
+    el("path", { d: w.d, class: "wire flow", "data-for": w.ids }, g).style.setProperty("--c", COLORS[w.kind]);
+  });
+
+  // Legend inside the drawing
+  const LEG = [
+    ["in", { it: "Ingressi", en: "Inputs" }], ["key", { it: "Tastierino", en: "Keypad" }], ["uart", { it: "Seriale", en: "Serial" }],
+    ["i2c", "I²C"], ["relay", { it: "Relè", en: "Relay" }], ["mains", { it: "Rete", en: "Mains" }], ["buzz", "Buzzer"],
+    ["pwr", { it: "Alimentazione", en: "Power" }]
+  ];
+
+  // Items: kind, name, pins, text, chip group, bubble anchor (svg coords)
+  const ITEMS = {
+    main: { kind: "in", group: "cmd", at: [106, 178],
+      name: { it: "Pulsante principale", en: "Main button" }, pins: "D2 · GND",
+      text: { it: "Ingresso con pull-up interno, chiude verso GND. Antirimbalzo 20 ms: avvia o annulla l'esposizione appena lo premi.",
+        en: "Input with internal pull-up, closes to GND. 20 ms debounce: starts or cancels the exposure the moment you press it." } },
+    encMode: { kind: "in", group: "cmd", at: [265, 178],
+      name: { it: "Encoder della modalità", en: "Mode encoder" }, pins: "DT D3 (INT5) · CLK D4 · SW D17",
+      text: { it: "Una tacca vale 4 conteggi letti dall'interrupt di D3. Ruotando cambi modalità; premendo alterni continuo e passo-passo.",
+        en: "One detent is 4 counts, read by the D3 interrupt. Turn it to change mode; press it to toggle between continuous and step-by-step." } },
+    encPrec: { kind: "in", group: "cmd", at: [425, 178],
+      name: { it: "Encoder della precisione", en: "Precision encoder" }, pins: "DT D18 (INT3) · CLK D19 (INT2) · SW D16",
+      text: { it: "Sceglie il passo in secondi o in frazioni di stop. La pressione alterna Secondi e F-Stop.",
+        en: "Sets the step size in seconds or in fractions of a stop. Pressing it toggles between Seconds and F-Stop." } },
+    keypad: { kind: "key", group: "cmd", at: [990, 576],
+      name: { it: "Tastierino 4×4", en: "4×4 keypad" }, pins: { it: "Righe D27–D33 · Colonne D35–D41", en: "Rows D27–D33 · Columns D35–D41" },
+      text: { it: "Scansione delle colonne con pull-up sulle righe. Pressione lunga di 1 s: * per il mute, # per l'abilitazione del relè.",
+        en: "Columns are scanned with pull-ups on the rows. 1 s long press: * for mute, # for relay enable." } },
+    seg7: { kind: "uart", group: "disp", at: [675, 178],
+      name: { it: "Display a 7 segmenti", en: "7-segment display" }, pins: "D14 (TX3) → RX · 9600 baud",
+      text: { it: "Serial3 hardware con buffer da 64 byte: nessun interrupt bloccato. Comandi 0x76 reset, 0x77 punto, 0x7A luminosità.",
+        en: "Hardware Serial3 with a 64-byte buffer: no interrupts blocked. Commands 0x76 reset, 0x77 decimal point, 0x7A brightness." } },
+    lcd: { kind: "i2c", group: "disp", at: [1010, 178],
+      name: { it: "LCD Waveshare 1602 RGB", en: "Waveshare 1602 RGB LCD" }, pins: "SDA D20 · SCL D21 · 0x3E / 0x60",
+      text: { it: "I²C a 100 kHz con timeout di 3 ms: un LCD scollegato non blocca mai il timer. Retroilluminazione solo sul canale rosso.",
+        en: "I²C at 100 kHz with a 3 ms timeout: a disconnected LCD never stalls the timer. Backlight on the red channel only." } },
+    relay: { kind: "relay", group: "out", at: [936, 252],
+      name: { it: "Modulo relè", en: "Relay module" }, pins: { it: "IN ← D47 (PL2) · 10 kΩ a GND", en: "IN ← D47 (PL2) · 10 kΩ to GND" },
+      text: { it: "Lo spegne la ISR di Timer1 al millisecondo esatto, a fine Countdown o a ogni Step passo-passo. La 10 kΩ lo tiene spento all'avvio.",
+        en: "The Timer1 ISR switches it off to the exact millisecond, at the end of a Countdown or of each step-by-step Step. The 10 kΩ keeps it off at power-up." } },
+    lamp: { kind: "mains", group: "out", at: [1091, 420],
+      name: { it: "Lampada dell'ingranditore", en: "Enlarger lamp" }, pins: { it: "Relè COM / NO · 230 V AC", en: "Relay COM / NO · 230 V AC" },
+      text: { it: "Il relè chiude il circuito di rete della lampada. Il lato 230 V è isolato dalla logica: si cabla sempre a spina staccata.",
+        en: "The relay closes the lamp's mains circuit. The 230 V side is isolated from the logic: always wire it with the plug pulled." } },
+    buzzer: { kind: "buzz", group: "out", at: [621, 668],
+      name: "Buzzer", pins: { it: "D49 (PL0) · tone() su Timer2", en: "D49 (PL0) · tone() on Timer2" },
+      text: { it: "Suoni da 150 a 1200 Hz senza bloccare il loop. Condivide PORTL con il relè, per questo le scritture del relè sono atomiche.",
+        en: "Tones from 150 to 1200 Hz without blocking the loop. It shares PORTL with the relay, which is why relay writes are atomic." } },
+    usbsrc: { kind: "pwr", group: "supply", at: [115, 258],
+      name: "USB · 5 V", pins: { it: "Cavo USB-B dal PC o da un caricatore", en: "USB-B cable from a PC or a charger" },
+      text: { it: "Il modo più semplice di alimentare il timer: 5 V puliti e, dal PC, anche il log degli eventi.",
+        en: "The simplest way to power the timer: clean 5 V and, from a PC, the event log as well." } },
+    dcsrc: { kind: "pwr", group: "supply", at: [115, 442],
+      name: { it: "Alimentatore DC", en: "DC power supply" }, pins: { it: "Jack 5,5 × 2,1 mm · 7–12 V", en: "5.5 × 2.1 mm jack · 7–12 V" },
+      text: { it: "Alternativa all'USB. Passa dal regolatore di bordo: oltre 12 V scalda, sotto 7 V il 5 V non è stabile.",
+        en: "Alternative to USB. It goes through the on-board regulator: above 12 V it runs hot, below 7 V the 5 V rail is not stable." } },
+    usb: { kind: "pwr", group: "board", at: [357, 272],
+      name: { it: "Connettore USB-B", en: "USB-B connector" }, pins: { it: "5 V + dati · USART0", en: "5 V + data · USART0" },
+      text: { it: "Alimenta la scheda e carica il firmware con pio run -t upload. Il log eventi esce qui a 115200 baud.",
+        en: "Powers the board and uploads the firmware with pio run -t upload. The event log comes out here at 115200 baud." } },
+    dc: { kind: "pwr", group: "board", at: [356, 452],
+      name: { it: "Jack DC", en: "DC jack" }, pins: { it: "7–12 V → regolatore 5 V", en: "7–12 V → 5 V regulator" },
+      text: { it: "Ingresso per un alimentatore esterno. Se sono collegati sia USB sia jack, la scheda sceglie da sola il jack.",
+        en: "Input for an external power supply. With both USB and the jack connected, the board picks the jack on its own." } },
+    chip: { kind: "in", group: "board", at: [615, 345],
+      name: "ATmega2560", pins: "16 MHz · 8 KB RAM · 256 KB flash",
+      text: { it: "Timer1 a 1 kHz è l'unico orologio dell'esposizione. Il watchdog spegne il relè dopo 250 ms di blocco e resetta dopo 500.",
+        en: "Timer1 at 1 kHz is the only exposure clock. The watchdog switches the relay off after a 250 ms hang and resets after 500." } },
+    icsp: { kind: "pwr", group: "board", at: [797, 378],
+      name: { it: "Connettore ICSP", en: "ICSP header" }, pins: "MISO · SCK · MOSI · RST · 5V · GND",
+      text: { it: "Serve solo con un programmatore esterno, per esempio per alzare la soglia di brown-out a 4,3 V (fuse esteso 0xFC).",
+        en: "Only needed with an external programmer, for example to raise the brown-out threshold to 4.3 V (extended fuse 0xFC)." } },
+    reset: { kind: "in", group: "board", at: [416, 298],
+      name: "Reset", pins: { it: "Pulsante e pin RST", en: "Button and RST pin" },
+      text: { it: "Riavvia la scheda. Durante il riavvio D47 è flottante: è la 10 kΩ a tenere spento il relè.",
+        en: "Restarts the board. During the restart D47 floats: the 10 kΩ is what keeps the relay off." } },
+    h5v: { kind: "pwr", group: "pins", at: [487, 526],
+      name: { it: "Pin 5V", en: "5V pin" }, pins: { it: "Uscita del regolatore · max ~500 mA da USB", en: "Regulator output · max ~500 mA from USB" },
+      text: { it: "Alimenta LCD, 7 segmenti, relè ed encoder. Tutto il timer lavora a logica 5 V, senza convertitori di livello.",
+        en: "Powers the LCD, 7-segment display, relay and encoders. The whole timer runs on 5 V logic, with no level shifters." } },
+    h33: { kind: "pwr", group: "pins", at: [474, 526],
+      name: { it: "Pin 3V3", en: "3V3 pin" }, pins: "Max 50 mA",
+      text: { it: "Non usato dal timer. Utile solo per moduli a 3,3 V, che sul Mega richiederebbero anche segnali adattati.",
+        en: "Not used by the timer. Only useful for 3.3 V modules, which on the Mega would also need level-shifted signals." } },
+    gnd: { kind: "pwr", group: "pins", at: [500, 526],
+      name: "GND", pins: { it: "Massa comune", en: "Common ground" },
+      text: { it: "Riferimento comune di tutti i moduli. Qui chiudono pulsanti, encoder e la resistenza da 10 kΩ del relè.",
+        en: "Common reference for every module. Buttons, encoders and the relay's 10 kΩ resistor all return here." } },
+    vin: { kind: "pwr", group: "pins", at: [526, 526],
+      name: "VIN", pins: { it: "Tensione del jack DC, prima del regolatore", en: "DC jack voltage, before the regulator" },
+      text: { it: "Ingresso alternativo 7–12 V, oppure uscita della tensione del jack. Non collegarci moduli a 5 V.",
+        en: "Alternative 7–12 V input, or an output of the jack voltage. Do not connect 5 V modules to it." } }
+  };
+  const NO_CHIP = ["usb", "dc", "icsp", "reset", "h5v", "h33", "gnd", "vin", "chip"];
+
+  // Connector cards: id, title, subtitle, description, usage
+  const CARDS = [
+    ["usb", "USB-B", { it: "5 V + dati", en: "5 V + data" },
+      { it: "Alimentazione principale e caricamento del firmware.", en: "Main power and firmware upload." },
+      { it: "Usato: sì, per alimentare e per il log a 115200 baud.", en: "Used: yes, for power and for the log at 115200 baud." }],
+    ["dc", { it: "Jack DC", en: "DC jack" }, "7–12 V",
+      { it: "Alimentatore esterno attraverso il regolatore.", en: "External power supply through the regulator." },
+      { it: "Usato: facoltativo, al posto dell'USB.", en: "Used: optional, instead of USB." }],
+    ["h5v", "5V", { it: "uscita regolata", en: "regulated output" },
+      { it: "La linea che alimenta tutti i moduli del timer.", en: "The rail that powers every module of the timer." },
+      { it: "Usato: LCD, 7 segmenti, relè, encoder.", en: "Used: LCD, 7-segment display, relay, encoders." }],
+    ["gnd", "GND", { it: "massa", en: "ground" },
+      { it: "Riferimento comune, più pin sulla scheda.", en: "Common reference, several pins on the board." },
+      { it: "Usato: tutti i moduli, pulsanti, pull-down del relè.", en: "Used: every module, buttons, relay pull-down." }],
+    ["vin", "VIN", { it: "prima del regolatore", en: "before the regulator" },
+      { it: "Stessa tensione del jack DC.", en: "Same voltage as the DC jack." },
+      { it: "Usato: no.", en: "Used: no." }],
+    ["h33", "3V3", "max 50 mA",
+      { it: "Piccolo regolatore a 3,3 V.", en: "Small 3.3 V regulator." },
+      { it: "Usato: no.", en: "Used: no." }],
+    ["reset", "RESET", { it: "riavvio", en: "restart" },
+      { it: "Pulsante e pin che riavviano il microcontrollore.", en: "Button and pin that restart the microcontroller." },
+      { it: "Usato: solo manuale.", en: "Used: manual only." }],
+    ["icsp", "ICSP", { it: "6 pin", en: "6 pins" },
+      { it: "Programmazione diretta del chip.", en: "Direct programming of the chip." },
+      { it: "Usato: solo per cambiare i fuse.", en: "Used: only to change the fuses." }]
+  ];
+
+  // Selection
+  const bubble = $("bubble"), scroller = $("scroller"), status = $("status");
+  const leg = $("legend"), chipsBox = $("chips"), cards = $("cards"), lower = $("lampG").parentNode;
+  let pinned = null;
+  let current = null;
+
+  // Bubbles live in the rails around the schema (top, bottom, left, right),
+  // in the one nearest to the selected part, linked to it by a dashed leader line.
+  const ZONES = [[-340, -200, 1880, 176], [-340, 1040, 1880, 150], [-340, -14, 316, 1008], [1224, -14, 316, 1008]];
+  const leader = $("leader"), leaderDot = $("leaderDot");
+  function place(id) {
+    const m = svg.getScreenCTM();
+    if (!m) return;
+    const box = scroller.getBoundingClientRect();
+    const sx = (x, y) => { const p = svg.createSVGPoint(); p.x = x; p.y = y; const q = p.matrixTransform(m); return [q.x - box.left + scroller.scrollLeft, q.y - box.top + scroller.scrollTop]; };
+    const inv = m.inverse();
+    const toSvg = (x, y) => { const p = svg.createSVGPoint(); p.x = x + box.left - scroller.scrollLeft; p.y = y + box.top - scroller.scrollTop; const q = p.matrixTransform(inv); return [q.x, q.y]; };
+    const it = ITEMS[id];
+    const hit = svg.querySelector(`.comp[data-id="${id}"] > .hit`);
+    let A;
+    if (hit) {
+      const r = hit.getBoundingClientRect();
+      A = { l: r.left - box.left + scroller.scrollLeft, t: r.top - box.top + scroller.scrollTop, r: r.right - box.left + scroller.scrollLeft, b: r.bottom - box.top + scroller.scrollTop };
+    } else {
+      const [x, y] = sx(it.at[0], it.at[1] + 130);
+      A = { l: x - 8, t: y - 8, r: x + 8, b: y + 8 };
+    }
+    const cx = (A.l + A.r) / 2, cy = (A.t + A.b) / 2;
+    // Bubbles sit in the rails around the schema, never on top of it.
+    let best = null;
+    ZONES.forEach(([zx, zy, zw, zh]) => {
+      const [l, t] = sx(zx, zy), [r, b] = sx(zx + zw, zy + zh);
+      const w = Math.min(340, r - l - 16);
+      bubble.style.width = w + "px";
+      const bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+      const x = Math.min(Math.max(l + 8, cx - bw / 2), r - bw - 8);
+      const y = Math.min(Math.max(t + 8, cy - bh / 2), Math.max(t + 8, b - bh - 8));
+      const over = Math.max(0, bh - (b - t - 16));
+      const gx = Math.max(0, A.l - (x + bw), x - A.r), gy = Math.max(0, A.t - (y + bh), y - A.b);
+      const d = Math.hypot(gx, gy) + over * 20 + (w < 200 ? 3000 : 0);
+      if (!best || d < best.d) best = { d, x, y, w, bw, bh };
+    });
+    bubble.style.width = best.w + "px";
+    const bw = best.bw, bh = best.bh;
+    bubble.style.left = best.x + "px";
+    bubble.style.top = best.y + "px";
+    // leader: from the bubble edge nearest to the part, to the part edge nearest to the bubble
+    const bx = Math.min(Math.max(cx, best.x), best.x + bw), by = Math.min(Math.max(cy, best.y), best.y + bh);
+    const mx = best.x + bw / 2, my = best.y + bh / 2;
+    const ex = Math.min(Math.max(mx, A.l), A.r), ey = Math.min(Math.max(my, A.t), A.b);
+    const [x1, y1] = toSvg(bx, by), [x2, y2] = toSvg(ex, ey);
+    const qx = (x1 + x2) / 2, qy = Math.min(y1, y2) - 20;
+    leader.setAttribute("d", `M${x1},${y1} Q${qx},${qy} ${x2},${y2}`);
+    leaderDot.setAttribute("cx", x2);
+    leaderDot.setAttribute("cy", y2);
+  }
+
+  function activate(id) {
+    current = id;
+    const it = ITEMS[id];
+    svg.classList.add("has-active");
+    svg.querySelectorAll("[data-for], .comp").forEach((n) => n.classList.remove("on"));
+    svg.querySelectorAll(".comp").forEach((n) => { if (n.dataset.id === id) n.classList.add("on"); });
+    svg.querySelectorAll("[data-for]").forEach((n) => {
+      if (n.getAttribute("data-for").split(" ").includes(id)) n.classList.add("on");
+    });
+    // a power source lights its board connector and vice versa
+    const pairs = { usbsrc: "usb", usb: "usbsrc", dcsrc: "dc", dc: "dcsrc", lamp: "relay" };
+    if (pairs[id]) svg.querySelectorAll(`.comp[data-id="${pairs[id]}"]`).forEach((n) => n.classList.add("on"));
+    svg.style.setProperty("--glow", GLOW[it.kind]);
+    svg.querySelectorAll(".comp.on").forEach((n) => n.style.setProperty("--glow", GLOW[it.kind]));
+    lower.classList.toggle("lamp-on", id === "relay" || id === "lamp");
+    bubble.hidden = false;
+    bubble.style.setProperty("--bc", COLORS[it.kind]);
+    svg.style.setProperty("--lc", COLORS[it.kind]);
+    $("bKind").textContent = tr(KIND_NAME[it.kind]);
+    $("bName").textContent = tr(it.name);
+    $("bPins").textContent = tr(it.pins);
+    $("bText").textContent = tr(it.text);
+    status.textContent = "● " + tr(it.name).toLowerCase();
+    status.style.color = COLORS[it.kind];
+    document.querySelectorAll(".chip, .conn").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === id)));
+    requestAnimationFrame(() => place(id));
+  }
+
+  function deactivate() {
+    current = null;
+    pinned = null;
+    svg.classList.remove("has-active");
+    lower.classList.remove("lamp-on");
+    svg.querySelectorAll("[data-for], .comp").forEach((n) => n.classList.remove("on"));
+    bubble.hidden = true;
+    status.textContent = tr(UI.idle);
+    status.style.color = "";
+    document.querySelectorAll(".chip, .conn").forEach((b) => b.setAttribute("aria-pressed", "false"));
+  }
+
+  // Click toggles: the first click lights a part, a second click on the same part turns it off.
+  function toggle(id) {
+    if (pinned === id) { deactivate(); return; }
+    pinned = id;
+    activate(id);
+  }
+
+  // Everything that carries words, rebuilt on every language change.
+  function render() {
+    svg.setAttribute("aria-label", tr(UI.svg));
+    svg.querySelectorAll(".comp").forEach((n) => n.setAttribute("aria-label", tr(ITEMS[n.dataset.id].name)));
+    leg.setAttribute("aria-label", tr(UI.legend));
+    chipsBox.setAttribute("aria-label", tr(UI.chips));
+
+    leg.textContent = "";
+    LEG.forEach(([k, n]) => {
+      const sp = document.createElement("span");
+      sp.innerHTML = `<i></i>${tr(n)}`;
+      sp.querySelector("i").style.setProperty("--c", COLORS[k]);
+      leg.appendChild(sp);
+    });
+
+    chipsBox.textContent = "";
+    const groups = {};
+    Object.entries(ITEMS).forEach(([id, it]) => {
+      if (NO_CHIP.includes(id)) return;
+      if (!groups[it.group]) {
+        const g = document.createElement("div");
+        g.className = "chip-group";
+        g.innerHTML = `<h3>${tr(GROUP_NAME[it.group])}</h3>`;
+        chipsBox.appendChild(g);
+        groups[it.group] = g;
+      }
+      const b = document.createElement("button");
+      b.className = "chip";
+      b.type = "button";
+      b.dataset.id = id;
+      b.setAttribute("aria-pressed", "false");
+      b.style.setProperty("--c", COLORS[it.kind]);
+      b.innerHTML = `<i></i>${tr(it.name)}`;
+      groups[it.group].appendChild(b);
+    });
+
+    cards.textContent = "";
+    CARDS.forEach(([id, k, v, p, use]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "conn";
+      b.dataset.id = id;
+      b.setAttribute("aria-pressed", "false");
+      b.style.setProperty("--c", COLORS[ITEMS[id].kind] === COLORS.in ? "var(--violet)" : "var(--amber)");
+      b.innerHTML = `<span class="v">${tr(v)}</span><span class="k">${tr(k)}</span><p>${tr(p)}</p><p class="use">${tr(use)}</p>`;
+      cards.appendChild(b);
+    });
+
+    if (current) activate(current); else deactivate();
+  }
+
+  function bind(node, id) {
+    node.addEventListener("click", () => toggle(id));
+    node.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(id); }
+    });
+  }
+  svg.querySelectorAll(".comp").forEach((n) => bind(n, n.dataset.id));
+  svg.querySelectorAll("circle[data-for]").forEach((n) => {
+    const id = n.getAttribute("data-for");
+    if (ITEMS[id] && !n.closest(".comp")) { n.style.cursor = "pointer"; bind(n, id); }
+  });
+  // chips and cards are rebuilt on language change, so their clicks are delegated
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest(".chip, .conn");
+    if (!b) return;
+    toggle(b.dataset.id);
+    if (pinned && b.classList.contains("conn")) $("stage").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+  });
+
+  window.addEventListener("resize", () => current && place(current));
+  scroller.addEventListener("scroll", () => current && place(current));
+  document.addEventListener("r080:lang", render);
+  render();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => current && place(current));
+})();
+</script>
+</body>
+</html>

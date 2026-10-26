@@ -1,0 +1,1274 @@
+<!doctype html>
+<html lang="it" data-lang="it" data-title-it="Funzioni e comandi · R080 Timer" data-title-en="Features and controls · R080 Timer">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Funzioni e comandi · R080 Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+/* ---------- shared bits ---------- */
+.hl { color: var(--fg); font-weight: 600; }
+.mono { font-family: var(--mono); }
+ul.dots { margin: 0; padding-left: 18px; display: grid; gap: 6px; color: var(--muted); font-size: 14px; }
+ul.dots li::marker { color: var(--c, var(--violet)); }
+dl.kv { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; font-size: 14px; }
+dl.kv dt { font: 600 11px/1.9 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--faint); }
+dl.kv dd { margin: 0; color: var(--muted); }
+.glyph { font-family: var(--mono); color: var(--fg); }
+
+/* ---------- LCD 16x2 (backlight always red) ---------- */
+.lcd {
+  --b: 1;
+  container-type: inline-size;
+  padding: 9px;
+  border-radius: 12px;
+  background: #07040c;
+  border: 1px solid #000;
+  box-shadow: inset 0 0 0 3px #1d1430, 0 14px 30px -18px #000;
+  min-width: 0;
+}
+.lcd-glass {
+  display: grid;
+  gap: 1.4cqi;
+  padding: 3cqi 3.2cqi;
+  border-radius: 6px;
+  background: radial-gradient(130% 160% at 50% -10%, #ff6a78, #d8162f 55%, #8d0b1f);
+  filter: brightness(var(--b)) saturate(1.1);
+  box-shadow: 0 0 calc(34px * var(--b)) rgba(255, 40, 70, .45), inset 0 0 18px rgba(80, 0, 10, .55);
+  transition: filter .45s ease, box-shadow .45s ease;
+}
+.lcd-row { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: .7cqi; }
+.lcd-row span {
+  aspect-ratio: 5 / 8;
+  display: grid;
+  place-items: center;
+  font: 700 5.2cqi/1 var(--mono);
+  color: #2b000b;
+  background: rgba(255, 255, 255, .07);
+  border-radius: 1px;
+  text-shadow: 0 0 1px rgba(43, 0, 11, .6);
+}
+.lcd.sm { padding: 6px; border-radius: 9px; }
+
+/* ---------- 7 segment (red LED) ---------- */
+.seg7 {
+  --sb: 1;
+  display: block;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: radial-gradient(120% 120% at 50% 0%, #170a14, #07040a);
+  border: 1px solid #000;
+  box-shadow: inset 0 0 0 3px #1d1430, 0 14px 30px -18px #000;
+  min-width: 0;
+}
+.seg7 svg { display: block; width: 100%; height: auto; }
+.seg7 .on { fill: #ff3150; opacity: var(--sb); filter: drop-shadow(0 0 3px rgba(255, 49, 80, .85)); transition: opacity .4s ease; }
+.seg7 .off { fill: #ff3150; opacity: .06; }
+.seg7.mini { display: inline-block; width: 112px; padding: 6px 8px; border-radius: 9px; vertical-align: middle; }
+dd .seg7.mini { display: block; margin: 6px 0 2px; }
+
+/* ---------- interactive console ---------- */
+.console {
+  width: 100%;
+  max-width: 1560px;
+  justify-self: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr);
+  gap: 22px;
+  align-items: start;
+}
+@media (max-width: 1020px) { .console { grid-template-columns: minmax(0, 1fr); } }
+.device {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 30px;
+  border: 1px solid var(--line-2);
+  background:
+    radial-gradient(600px 280px at 20% 0%, rgba(169, 133, 255, .14), transparent 70%),
+    linear-gradient(165deg, #241640, #130a25);
+  box-shadow: 0 40px 90px -40px rgba(0, 0, 0, .9), inset 0 1px 0 rgba(255, 255, 255, .07);
+  min-width: 0;
+}
+.device-label { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font: 600 11px/1 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--faint); }
+.screens { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 14px; align-items: center; }
+@media (max-width: 640px) { .screens { grid-template-columns: minmax(0, 1fr); } .screens .seg7 { max-width: 280px; } }
+.screen-cap { font: 600 10px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--faint); margin-top: 7px; text-align: center; }
+.controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: center; }
+@media (max-width: 600px) { .controls { grid-template-columns: minmax(0, 1fr); } }
+.pad {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+  max-width: 380px;
+  width: 100%;
+  border-radius: 20px;
+  background: #0d0719;
+  border: 1px solid var(--line);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, .6);
+  justify-self: center;
+}
+.key {
+  aspect-ratio: 1;
+  min-width: 0;
+  border-radius: 14px;
+  border: 1px solid var(--line-2);
+  border-bottom-width: 4px;
+  background: linear-gradient(180deg, #2e1f55, #1b1135);
+  color: var(--fg);
+  font: 700 clamp(17px, 2.2vw, 24px)/1 var(--mono);
+  cursor: pointer;
+  transition: transform .1s ease, box-shadow .25s ease, border-color .25s ease, background .25s ease;
+}
+.key.letter { color: #ff8fd9; background: linear-gradient(180deg, #3b2266, #241341); }
+.key.sym { color: var(--amber); }
+.key:hover { border-color: var(--violet); }
+.key:active { transform: translateY(2px); border-bottom-width: 2px; }
+.key[aria-pressed="true"], .turn[aria-pressed="true"] {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 1px var(--cyan), 0 0 24px rgba(69, 224, 255, .5);
+  background: linear-gradient(180deg, #23426a, #172447);
+}
+.key:focus-visible, .knob:focus-visible, .turn:focus-visible, .main-btn:focus-visible, .try:focus-visible, .play:focus-visible, .reset:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 3px;
+}
+.side { display: grid; gap: 22px; justify-items: center; }
+.knobs { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; }
+.knob-wrap { display: grid; justify-items: center; gap: 9px; }
+.knob-row { display: flex; align-items: center; gap: 8px; }
+.knob {
+  --kc: var(--violet);
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 1px solid #000;
+  cursor: pointer;
+  background:
+    repeating-conic-gradient(from 0deg, rgba(255, 255, 255, .07) 0 3deg, transparent 3deg 9deg),
+    radial-gradient(circle at 36% 30%, #5f4c98, #2b1e50 55%, #120a24);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, .6), inset 0 2px 2px rgba(255, 255, 255, .16), 0 0 0 6px #180e2e, 0 0 0 7px var(--line-2);
+  transform: rotate(var(--rot, 0deg));
+  transition: transform .35s cubic-bezier(.3, 1.4, .5, 1), box-shadow .25s ease;
+}
+.knob::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  width: 4px;
+  height: 18px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--kc);
+  box-shadow: 0 0 10px var(--kc);
+}
+.knob[aria-pressed="true"] { box-shadow: 0 10px 20px rgba(0, 0, 0, .6), inset 0 2px 2px rgba(255, 255, 255, .16), 0 0 0 6px #180e2e, 0 0 0 7px var(--kc), 0 0 30px var(--kc); }
+.knob.prec { --kc: var(--cyan); }
+.turn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  background: var(--panel-2);
+  color: var(--muted);
+  font: 700 13px/1 var(--mono);
+  cursor: pointer;
+}
+.turn:hover { color: var(--fg); }
+.ctl-name { font: 600 10.5px/1.3 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); text-align: center; }
+.main-btn {
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  border: 0;
+  cursor: pointer;
+  background: radial-gradient(circle at 38% 32%, #ffd6f2, #ff5cc8 38%, #a31b80 76%, #5e0e4b);
+  box-shadow: 0 0 0 8px #180e2e, 0 0 0 9px var(--line-2), 0 0 42px rgba(255, 92, 200, .55), inset 0 -8px 14px rgba(0, 0, 0, .35);
+  animation: breathe 3.4s ease-in-out infinite;
+  transition: transform .12s ease;
+  color: rgba(40, 0, 30, .75);
+  font: 700 11px/1.2 var(--display);
+  letter-spacing: .06em;
+}
+.main-btn:active { transform: scale(.96); }
+.main-btn[aria-pressed="true"] { box-shadow: 0 0 0 8px #180e2e, 0 0 0 9px var(--cyan), 0 0 64px rgba(255, 92, 200, .85), inset 0 -8px 14px rgba(0, 0, 0, .35); }
+@keyframes breathe {
+  50% { box-shadow: 0 0 0 8px #180e2e, 0 0 0 9px var(--line-2), 0 0 70px rgba(255, 92, 200, .8), inset 0 -8px 14px rgba(0, 0, 0, .35); }
+}
+.sim-state { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sim-state .pill { --c: var(--line-2); color: var(--muted); }
+.sim-state .pill b { color: var(--fg); font-weight: 700; }
+.reset {
+  margin-left: auto;
+  border: 1px solid var(--line-2);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: 600 11.5px/1.2 var(--mono);
+  cursor: pointer;
+}
+.reset:hover { color: var(--fg); border-color: var(--violet); }
+
+/* inspector */
+.inspector {
+  position: sticky;
+  top: 86px;
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid var(--line-2);
+  background: linear-gradient(170deg, var(--panel-2), var(--panel) 60%);
+  box-shadow: 0 30px 70px -40px rgba(0, 0, 0, .9);
+  min-width: 0;
+}
+@media (max-width: 1020px) { .inspector { position: static; } }
+.insp-head { display: flex; gap: 14px; align-items: center; }
+.insp-glyph {
+  flex: none;
+  min-width: 58px;
+  height: 58px;
+  padding: 0 10px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  border: 1px solid var(--cyan);
+  background: rgba(69, 224, 255, .08);
+  box-shadow: 0 0 26px rgba(69, 224, 255, .3);
+  font: 700 20px/1 var(--mono);
+  color: var(--cyan);
+  animation: pop .35s ease;
+}
+@keyframes pop { from { transform: scale(.85); opacity: .4; } }
+.insp-head .tag { font: 600 10.5px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--magenta); }
+.insp-head h3 { font-size: 19px; margin-top: 6px; }
+.insp-rows { display: grid; gap: 10px; }
+.insp-row { display: grid; gap: 4px; padding: 12px 14px; border-radius: 14px; background: rgba(12, 7, 24, .55); border: 1px solid var(--line); }
+.insp-row > span:first-child, .insp-row .lbl { font: 600 10.5px/1.3 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
+.insp-row p { color: var(--muted); font-size: 14px; }
+.insp-row.lock { border-color: color-mix(in srgb, var(--red) 45%, transparent); }
+.insp-row.lock .lbl { color: var(--red); }
+.insp-row.pause { border-color: color-mix(in srgb, var(--amber) 40%, transparent); }
+.insp-row.pause .lbl { color: var(--amber); }
+.by-mode { display: grid; gap: 6px; }
+.by-mode div { display: grid; grid-template-columns: 92px 1fr; gap: 10px; padding: 8px 10px; border-radius: 10px; border: 1px solid transparent; font-size: 14px; color: var(--muted); }
+.by-mode b { font: 600 11px/1.6 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--c); }
+.by-mode div.now { border-color: var(--c); background: color-mix(in srgb, var(--c) 9%, transparent); color: var(--fg); }
+.tries { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.try {
+  border: 1px solid var(--violet);
+  background: rgba(169, 133, 255, .12);
+  color: var(--fg);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font: 600 12px/1 var(--mono);
+  cursor: pointer;
+}
+.try:hover { background: rgba(169, 133, 255, .25); }
+
+/* ---------- modes ---------- */
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.mode { gap: 12px; padding: 22px; border-top: 3px solid var(--c); }
+.mode-ico {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+  box-shadow: 0 0 28px color-mix(in srgb, var(--c) 35%, transparent);
+}
+.mode-ico i { display: block; width: 18px; height: 18px; border-radius: 50%; background: var(--c); box-shadow: 0 0 14px var(--c); }
+.mode-ico.cd i { border-radius: 50%; background: conic-gradient(var(--c) 0 70%, transparent 70%); box-shadow: none; outline: 2px solid var(--c); outline-offset: 2px; }
+.mode-ico.ts i { width: 22px; border-radius: 3px; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 30%, transparent) 0 25%, color-mix(in srgb, var(--c) 55%, transparent) 25% 50%, color-mix(in srgb, var(--c) 80%, transparent) 50% 75%, var(--c) 75%); }
+.mode h3 { font-size: 21px; }
+.mode .lcd { max-width: 300px; }
+
+/* test strip timeline */
+.tl-wrap { overflow-x: auto; padding-bottom: 4px; }
+.tl-grid { display: grid; gap: 14px; min-width: 600px; }
+.tl-line { display: grid; grid-template-columns: 120px 1fr; gap: 14px; align-items: center; }
+.tl-line > span { font: 600 11px/1.3 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.tl { display: flex; align-items: center; height: 44px; }
+.tl-seg {
+  position: relative;
+  flex: 1;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: linear-gradient(90deg, rgba(255, 198, 92, .2), rgba(255, 198, 92, .5));
+  border: 1px solid rgba(255, 198, 92, .65);
+  font: 600 11.5px/1 var(--mono);
+  color: #ffe6b5;
+  box-shadow: 0 0 18px rgba(255, 198, 92, .2);
+}
+.tl-seg::after { /* pre-warning ticks at -0.3/-0.2/-0.1 s */
+  content: "";
+  position: absolute;
+  right: 6px;
+  top: -9px;
+  width: 16px;
+  height: 4px;
+  background: radial-gradient(circle, var(--cyan) 1.6px, transparent 2px) 0 0 / 5.33px 4px repeat-x;
+}
+.tl-step { flex: none; width: 3px; height: 44px; margin: 0 -1px; border-radius: 2px; background: var(--magenta); box-shadow: 0 0 10px var(--magenta); z-index: 1; }
+.tl-pause {
+  flex: none;
+  margin: 0 8px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  border: 1px dashed var(--line-2);
+  color: var(--muted);
+  font: 600 10.5px/1 var(--mono);
+  white-space: nowrap;
+}
+.tl.pp .tl-step { margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13px; color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 10px; border-radius: 3px; margin-right: 7px; vertical-align: middle; }
+
+/* ---------- time entry ---------- */
+.calc { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.calc .card { justify-items: start; gap: 12px; }
+.calc .keys { display: flex; gap: 5px; flex-wrap: wrap; }
+.calc .arrow { color: var(--faint); font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+
+/* ---------- precision ---------- */
+.vals { display: flex; flex-wrap: wrap; gap: 6px; }
+.formula {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  text-align: center;
+  padding: 26px 18px;
+  border-radius: 20px;
+  border: 1px solid var(--line-2);
+  background: radial-gradient(400px 160px at 50% 0%, rgba(255, 92, 200, .14), transparent 70%), var(--panel);
+}
+.formula .f { font: 700 clamp(20px, 3.4vw, 34px)/1.3 var(--display); letter-spacing: -.01em; }
+.formula .f sup { font-size: .55em; color: var(--magenta); }
+.formula .f em { font-style: normal; color: var(--cyan); }
+.chain { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; font: 600 13px/1 var(--mono); }
+.chain span { padding: 7px 11px; border-radius: 10px; border: 1px solid var(--line-2); background: #150c2a; }
+.chain span.base { border-color: var(--cyan); color: var(--cyan); }
+.chain i { color: var(--faint); font-style: normal; }
+
+/* ---------- display anatomy ---------- */
+.anat-wrap { overflow-x: auto; }
+.anat { container-type: inline-size; min-width: 560px; max-width: 860px; margin: 0 auto; display: grid; gap: 4px; }
+.anat-idx, .anat-chars, .anat-zones { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 3px; }
+.anat-idx span { text-align: center; font: 600 10px/1 var(--mono); color: var(--faint); }
+.anat-chars span {
+  aspect-ratio: 5 / 7;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  background: radial-gradient(140% 140% at 50% 0%, #ff5a6a, #c3122b 70%);
+  color: #2b000b;
+  font: 700 3.6cqi/1 var(--mono);
+  box-shadow: 0 0 14px rgba(255, 40, 70, .25);
+}
+.anat-zones { margin-bottom: 12px; }
+.anat-zones span {
+  border-top: 3px solid var(--c);
+  padding-top: 5px;
+  font: 600 10.5px/1.25 var(--mono);
+  color: var(--c);
+  letter-spacing: .02em;
+  min-width: 0;
+}
+.lcd-examples { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.lcd-examples figure { margin: 0; display: grid; gap: 8px; }
+.lcd-examples figcaption { font-size: 13px; color: var(--muted); }
+.levels { display: grid; gap: 30px; }
+.lv-row { display: grid; grid-template-columns: 130px 1fr; gap: 14px; align-items: end; }
+.lv-row > span { font: 600 11px/1.3 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.lv-bars { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; align-items: end; height: 92px; }
+.lv-bars div { position: relative; border-radius: 5px 5px 2px 2px; background: linear-gradient(180deg, #ff6a78, #b5122a); box-shadow: 0 0 12px rgba(255, 49, 80, .35); min-height: 4px; }
+.lv-bars div b { position: absolute; bottom: -18px; left: 0; right: 0; text-align: center; font: 600 10px/1 var(--mono); color: var(--faint); }
+.lv-bars div.def { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.lv-bars div.exp { outline: 2px dashed var(--amber); outline-offset: 2px; }
+
+/* ---------- sounds ---------- */
+.play {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--c, var(--violet));
+  background: color-mix(in srgb, var(--c, var(--violet)) 14%, transparent);
+  color: var(--c, var(--violet));
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.play svg { width: 13px; height: 13px; fill: currentColor; margin-left: 2px; }
+.play.on { box-shadow: 0 0 18px var(--c, var(--violet)); }
+.yes { color: var(--green); font-family: var(--mono); font-weight: 600; }
+.no { color: var(--faint); font-family: var(--mono); }
+
+/* ---------- safety ---------- */
+.safe .card { border-left: 3px solid var(--c, var(--green)); }
+.safe .num { font: 700 26px/1 var(--display); color: var(--c, var(--green)); }
+
+@media (max-width: 480px) {
+  .device, .inspector { padding: 14px; border-radius: 22px; }
+  .pad { gap: 7px; padding: 10px; }
+  .knob { width: 70px; height: 70px; }
+  .main-btn { width: 100px; height: 100px; }
+  dl.kv { grid-template-columns: 1fr; gap: 2px 0; }
+  dl.kv dd { margin-bottom: 8px; }
+  .by-mode div { grid-template-columns: 1fr; gap: 2px; }
+  .lv-row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body data-page="funzioni.html">
+<main class="page">
+  <header class="page-head">
+    <span class="eyebrow"><span lang="it">Manuale d'uso · firmware v2.0.0</span><span lang="en">User manual · firmware v2.0.0</span></span>
+    <h1><span lang="it">Funzioni e comandi</span><span lang="en">Features and controls</span></h1>
+    <p class="lede" lang="it">Tutto quello che serve in camera oscura: le tre <b>Modalità</b>, la precisione in <b>Secondi</b> o <b>F-Stop</b>, i tre <b>Canali</b> con memoria, cosa mostrano i display e cosa fa ogni tasto. I tempi si leggono e si inseriscono in decimi di secondo, da 0,1 a 999,9 s.</p>
+    <p class="lede" lang="en">Everything you need in the darkroom: the three <b>modes</b>, precision in <b>Seconds</b> or <b>F-Stop</b>, the three <b>Channels</b> with memory, what the displays show and what every key does. Times are read and entered in tenths of a second, from 0.1 to 999.9 s.</p>
+    <nav class="toc" aria-label="Indice / Contents">
+      <a href="#pannello"><span lang="it">Pannello interattivo</span><span lang="en">Interactive panel</span></a>
+      <a href="#modalita"><span lang="it">Modalità</span><span lang="en">Modes</span></a>
+      <a href="#tempo"><span lang="it">Inserire il tempo</span><span lang="en">Entering time</span></a>
+      <a href="#precisione"><span lang="it">Precisione</span><span lang="en">Precision</span></a>
+      <a href="#canali"><span lang="it">Canali e memoria</span><span lang="en">Channels and memory</span></a>
+      <a href="#display"><span lang="it">Display e luci</span><span lang="en">Displays and lights</span></a>
+      <a href="#suoni"><span lang="it">Suoni</span><span lang="en">Sounds</span></a>
+      <a href="#sicurezza"><span lang="it">Sicurezza</span><span lang="en">Safety</span></a>
+    </nav>
+  </header>
+
+  <!-- ======================= interactive panel ======================= -->
+  <section id="pannello" class="wide">
+    <div style="max-width: var(--col); width: 100%; justify-self: center; display: grid; gap: 8px;">
+      <h2><span lang="it">Il pannello, comando per comando</span><span lang="en">The panel, control by control</span></h2>
+      <p class="sub" lang="it">Tocca un tasto, un encoder o il pulsante principale: a destra trovi cosa fa con pressione breve, tenuto 1 s, in combinazione e in ogni Modalità. Il simulatore applica i comandi a timer fermo, partendo dai valori di fabbrica; le Esposizioni non sono simulate.</p>
+      <p class="sub" lang="en">Tap a key, an encoder or the main button: on the right you see what it does on a short press, held for 1 s, in a chord and in each mode. The simulator applies the controls with the timer idle, starting from the factory values; exposures are not simulated.</p>
+    </div>
+    <div class="console">
+      <div class="device">
+        <div class="device-label"><span>R080 Timer</span><span>Arduino Mega 2560</span></div>
+        <div class="screens">
+          <div>
+            <div class="lcd" id="simLcd" role="img"><div class="lcd-glass"></div></div>
+            <div class="screen-cap">LCD 16×2</div>
+          </div>
+          <div>
+            <div class="seg7" id="simSeg" role="img"></div>
+            <div class="screen-cap"><span lang="it">7 segmenti</span><span lang="en">7-segment</span></div>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="pad" role="group" aria-label="Tastierino 4×4 / 4×4 keypad">
+            <button type="button" class="key" data-ctl="digits" data-in="digit" data-arg="1" aria-pressed="false">1</button>
+            <button type="button" class="key" data-ctl="digits" data-in="digit" data-arg="2" aria-pressed="false">2</button>
+            <button type="button" class="key" data-ctl="digits" data-in="digit" data-arg="3" aria-pressed="false">3</button>
+            <button type="button" class="key letter" data-ctl="channel" data-in="ch" data-arg="0" aria-pressed="false">A</button>
+            <button type="button" class="key" data-ctl="digits" data-in="digit" data-arg="4" aria-pressed="false">4</button>
+            <button type="button" class="key" data-ctl="digits" data-in="digit" data-arg="5" aria-pressed="false">5</button>
+            <button type="button" class="key" data-ctl="digits" data-in="digit" data-arg="6" aria-pressed="false">6</button>
+            <button type="button" class="key letter" data-ctl="channel" data-in="ch" data-arg="1" aria-pressed="false">B</button>
+            <button type="button" class="key" data-ctl="digits" data-in="digit" data-arg="7" aria-pressed="false">7</button>
+            <button type="button" class="key" data-ctl="digits" data-in="digit" data-arg="8" aria-pressed="false">8</button>
+            <button type="button" class="key" data-ctl="digits" data-in="digit" data-arg="9" aria-pressed="false">9</button>
+            <button type="button" class="key letter" data-ctl="channel" data-in="ch" data-arg="2" aria-pressed="false">C</button>
+            <button type="button" class="key sym" data-ctl="star" data-in="star" aria-pressed="false">*</button>
+            <button type="button" class="key" data-ctl="zero" data-in="digit" data-arg="0" aria-pressed="false">0</button>
+            <button type="button" class="key sym" data-ctl="hash" data-in="hash" aria-pressed="false">#</button>
+            <button type="button" class="key letter" data-ctl="d" data-in="D" aria-pressed="false">D</button>
+          </div>
+          <div class="side">
+            <div class="knobs">
+              <div class="knob-wrap">
+                <div class="knob-row">
+                  <button type="button" class="turn" data-ctl="modeEnc" data-in="modeTurn" data-arg="-1" aria-pressed="false" data-aria-it="Encoder della Modalità: ruota indietro" data-aria-en="Mode encoder: turn back">◀</button>
+                  <button type="button" class="knob" id="knobMode" data-ctl="modeEnc" data-in="modeClick" aria-pressed="false" data-aria-it="Encoder della Modalità: pressione" data-aria-en="Mode encoder: press"></button>
+                  <button type="button" class="turn" data-ctl="modeEnc" data-in="modeTurn" data-arg="1" aria-pressed="false" data-aria-it="Encoder della Modalità: ruota avanti" data-aria-en="Mode encoder: turn forward">▶</button>
+                </div>
+                <span class="ctl-name"><span lang="it">Encoder Modalità</span><span lang="en">Mode encoder</span></span>
+              </div>
+              <div class="knob-wrap">
+                <div class="knob-row">
+                  <button type="button" class="turn" data-ctl="precEnc" data-in="precTurn" data-arg="-1" aria-pressed="false" data-aria-it="Encoder della precisione: ruota indietro" data-aria-en="Precision encoder: turn back">◀</button>
+                  <button type="button" class="knob prec" id="knobPrec" data-ctl="precEnc" data-in="precClick" aria-pressed="false" data-aria-it="Encoder della precisione: pressione" data-aria-en="Precision encoder: press"></button>
+                  <button type="button" class="turn" data-ctl="precEnc" data-in="precTurn" data-arg="1" aria-pressed="false" data-aria-it="Encoder della precisione: ruota avanti" data-aria-en="Precision encoder: turn forward">▶</button>
+                </div>
+                <span class="ctl-name"><span lang="it">Encoder precisione</span><span lang="en">Precision encoder</span></span>
+              </div>
+            </div>
+            <div class="knob-wrap">
+              <button type="button" class="main-btn" data-ctl="main" aria-pressed="false" data-aria-it="Pulsante principale" data-aria-en="Main button">START<br>STOP</button>
+              <span class="ctl-name"><span lang="it">Pulsante principale</span><span lang="en">Main button</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="sim-state" id="simState" aria-live="polite"></div>
+      </div>
+      <aside class="inspector" id="inspector" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <div class="warn"><strong><span lang="it">Durante l'Esposizione</span><span lang="en">During an exposure</span></strong><p lang="it">Mentre un'Esposizione è in corso (Focus acceso compreso) tastierino ed encoder sono ignorati: conta solo il <span class="hl">pulsante principale</span>, che la annulla.</p><p lang="en">While an exposure is running (Focus on included) keypad and encoders are ignored: only the <span class="hl">main button</span> counts, and it cancels the exposure.</p></div>
+
+  <!-- ======================= modes ======================= -->
+  <section id="modalita">
+    <h2><span lang="it">Le tre Modalità</span><span lang="en">The three modes</span></h2>
+    <p class="sub" lang="it">L'encoder della Modalità le scorre in ciclo. La Modalità fa parte del Canale: ogni Canale ricorda la sua. Cambiare Modalità non cambia il tempo impostato.</p>
+    <p class="sub" lang="en">The mode encoder cycles through them. The mode belongs to the Channel: each Channel remembers its own. Changing mode does not change the set time.</p>
+    <div class="modes">
+      <article class="card mode" style="--c: var(--amber)">
+        <div class="mode-ico"><i></i></div>
+        <span class="tag">Focus</span>
+        <h3>Focus</h3>
+        <p lang="it">Lampada accesa a tempo libero, per comporre e mettere a fuoco.</p>
+        <p lang="en">Lamp on for as long as you like, to compose and focus.</p>
+        <div class="lcd sm" data-lcd="FOCUS|         Ch:A ♪ϟ"></div>
+        <dl class="kv">
+          <dt><span lang="it">Pulsante</span><span lang="en">Button</span></dt>
+          <dd lang="it">Accende la lampada (se l'Abilitazione relè del Canale è attiva); la seconda pressione la spegne, con il Suono di fine.</dd>
+          <dd lang="en">Turns the lamp on (if the Channel's relay enable is on); a second press turns it off, with the end sound.</dd>
+          <dt><span lang="it">7 segmenti</span><span lang="en">7-segment</span></dt>
+          <dd lang="it">Tempo trascorso; oltre 999,9 s in minuti.secondi: <span class="seg7 mini" data-seg="1705" data-dp="1"></span> = 17 min 05 s.</dd>
+          <dd lang="en">Elapsed time; beyond 999.9 s in minutes.seconds: <span class="seg7 mini" data-seg="1705" data-dp="1"></span> = 17 min 05 s.</dd>
+          <dt><span lang="it">Spegnimento</span><span lang="en">Auto-off</span></dt>
+          <dd lang="it">Automatico dopo 3, 5, 10, 15 o 20 minuti (Menu di servizio, di fabbrica 5), con il Suono di fine. 10 s prima suona l'Avviso Focus (due toni).</dd>
+          <dd lang="en">Automatic after 3, 5, 10, 15 or 20 minutes (service menu, factory 5), with the end sound. 10 s before, the Focus warning plays (two tones).</dd>
+        </dl>
+        <ul class="dots" lang="it">
+          <li>Nessun Metronomo.</li>
+          <li>Il tempo impostato non viene usato ma resta nel Canale: cifre ed encoder della precisione non hanno effetto.</li>
+          <li>A lampada spenta <kbd>*</kbd> / <kbd>#</kbd> regolano la luce dell'LCD, <kbd>0</kbd> + <kbd>*</kbd> / <kbd>#</kbd> quella del 7 segmenti.</li>
+          <li>Non conta come Esposizione nei contatori; il tempo a lampada accesa conta nelle ore di lampada.</li>
+        </ul>
+        <ul class="dots" lang="en">
+          <li>No metronome.</li>
+          <li>The set time is not used but stays in the Channel: digits and the precision encoder have no effect.</li>
+          <li>With the lamp off <kbd>*</kbd> / <kbd>#</kbd> set the LCD light, <kbd>0</kbd> + <kbd>*</kbd> / <kbd>#</kbd> the 7-segment light.</li>
+          <li>It does not count as an exposure in the counters; lamp-on time counts in the lamp hours.</li>
+        </ul>
+      </article>
+
+      <article class="card mode" style="--c: var(--cyan)">
+        <div class="mode-ico cd"><i></i></div>
+        <span class="tag">Countdown</span>
+        <h3>Countdown</h3>
+        <p lang="it">Una singola Esposizione lunga quanto il tempo impostato.</p>
+        <p lang="en">A single exposure as long as the set time.</p>
+        <div class="lcd sm" data-lcd="COUNTDOWN  [S]  | 5s      Ch:A ♪ϟ"></div>
+        <dl class="kv">
+          <dt><span lang="it">Pulsante</span><span lang="en">Button</span></dt>
+          <dd lang="it">Accende la lampada e parte il conto alla rovescia, con il Metronomo a ogni secondo. Durante l'Esposizione: Annullamento. Con tempo zero: beep di errore.</dd>
+          <dd lang="en">Turns the lamp on and starts the countdown, with the metronome every second. During the exposure: cancel. With time zero: error beep.</dd>
+          <dt><span lang="it">7 segmenti</span><span lang="en">7-segment</span></dt>
+          <dd lang="it">Tempo residuo, arrotondato per eccesso: <span class="seg7 mini" data-seg="0073"></span></dd>
+          <dd lang="en">Remaining time, rounded up: <span class="seg7 mini" data-seg="0073"></span></dd>
+          <dt><span lang="it">A zero</span><span lang="en">At zero</span></dt>
+          <dd lang="it">La lampada si spegne dal timer hardware, al millisecondo, e suona il Suono di fine. Il 7 segmenti torna al tempo impostato: un'altra pressione ripete la stessa Esposizione.</dd>
+          <dd lang="en">The lamp goes off from the hardware timer, to the millisecond, and the end sound plays. The 7-segment returns to the set time: another press repeats the same exposure.</dd>
+        </dl>
+        <ul class="dots" lang="it">
+          <li>Dopo un Annullamento la pressione successiva riparte dal tempo pieno.</li>
+          <li>Un Countdown annullato conta comunque come Esposizione.</li>
+        </ul>
+        <ul class="dots" lang="en">
+          <li>After a cancel the next press starts again from the full time.</li>
+          <li>A cancelled countdown still counts as an exposure.</li>
+        </ul>
+      </article>
+
+      <article class="card mode" style="--c: var(--magenta)">
+        <div class="mode-ico ts"><i></i></div>
+        <span class="tag">Test strip</span>
+        <h3>Test strip</h3>
+        <p lang="it">Una serie di Step cumulativi per confrontare più tempi su una sola striscia. Il primo Step è il tempo impostato.</p>
+        <p lang="en">A series of cumulative Steps to compare several times on one strip. The first Step is the set time.</p>
+        <div class="lcd sm" data-lcd="TEST STRIP [S]CO|St:3     Ch:A ♪ϟ"></div>
+        <dl class="kv">
+          <dt><span lang="it">Pulsante</span><span lang="en">Button</span></dt>
+          <dd lang="it">Avvia la prova dal primo Step; con la lampada accesa la annulla. In passo-passo, in pausa, riaccende la lampada fino allo Step successivo.</dd>
+          <dd lang="en">Starts the strip from the first Step; with the lamp on it cancels it. In step-by-step, while paused, turns the lamp back on up to the next Step.</dd>
+          <dt><span lang="it">7 segmenti</span><span lang="en">7-segment</span></dt>
+          <dd lang="it">Tempo cumulativo dall'inizio della prova; in pausa quello dello Step successivo.</dd>
+          <dd lang="en">Cumulative time since the strip started; while paused, that of the next Step.</dd>
+          <dt>LCD</dt>
+          <dd lang="it">La riga 2 mostra lo Step in corso (<code>St:n</code>) al posto della precisione.</dd>
+          <dd lang="en">Row 2 shows the current Step (<code>St:n</code>) instead of the precision.</dd>
+        </dl>
+        <ul class="dots" lang="it">
+          <li>Prima di ogni Step il Preavviso (tre tick a −0,3, −0,2, −0,1 s), allo Step il beep di step. Nessun Metronomo.</li>
+          <li>Ogni Step è calcolato dal Tempo base: gli arrotondamenti non si accumulano. Se due Step arrotondati coincidono (1/64 con tempi brevi) il successivo cade 0,1 s dopo.</li>
+          <li>A 999,9 s cumulativi la prova si conclude da sola. Ogni nuova prova riparte dal primo Step; una prova intera conta come una sola Esposizione.</li>
+        </ul>
+        <ul class="dots" lang="en">
+          <li>Before each Step the pre-warning (three ticks at −0.3, −0.2, −0.1 s), at the Step the step beep. No metronome.</li>
+          <li>Every Step is computed from the Base time: rounding does not accumulate. If two rounded Steps coincide (1/64 with short times) the next one lands 0.1 s later.</li>
+          <li>At 999.9 s cumulative the strip ends by itself. Each new strip restarts from the first Step; a whole strip counts as one exposure.</li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="panel">
+      <h3><span lang="it">Test strip: Avanzamento continuo e passo-passo</span><span lang="en">Test strip: continuous and step-by-step advance</span></h3>
+      <p class="muted" lang="it">Si sceglie premendo l'encoder della Modalità in Test strip; la riga 1 dell'LCD mostra <code>CO</code> o <code>PP</code>. Esempio in Secondi: tempo impostato 5,0 s, precisione 5 s → Step a 5, 10, 15, 20 s.</p>
+      <p class="muted" lang="en">Chosen by pressing the mode encoder in Test strip; LCD row 1 shows <code>CO</code> or <code>PP</code>. Example in Seconds: set time 5.0 s, precision 5 s → Steps at 5, 10, 15, 20 s.</p>
+      <div class="tl-wrap">
+        <div class="tl-grid">
+          <div class="tl-line">
+            <span><span lang="it">Continuo</span><span lang="en">Continuous</span> · CO</span>
+            <div class="tl">
+              <div class="tl-seg">St:1 · 0 → 5,0</div><div class="tl-step"></div>
+              <div class="tl-seg">St:2 · → 10,0</div><div class="tl-step"></div>
+              <div class="tl-seg">St:3 · → 15,0</div><div class="tl-step"></div>
+              <div class="tl-seg">St:4 · → 20,0</div><div class="tl-step"></div>
+            </div>
+          </div>
+          <div class="tl-line">
+            <span><span lang="it">Passo-passo</span><span lang="en">Step-by-step</span> · PP</span>
+            <div class="tl pp">
+              <div class="tl-seg">St:1 · 0 → 5,0</div><div class="tl-step"></div>
+              <span class="tl-pause"><span lang="it">pausa</span><span lang="en">pause</span></span>
+              <div class="tl-seg">St:2 · +5,0</div><div class="tl-step"></div>
+              <span class="tl-pause"><span lang="it">pausa</span><span lang="en">pause</span></span>
+              <div class="tl-seg">St:3 · +5,0</div><div class="tl-step"></div>
+              <span class="tl-pause"><span lang="it">pausa</span><span lang="en">pause</span></span>
+              <div class="tl-seg">St:4 · +5,0</div><div class="tl-step"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i style="background: rgba(255,198,92,.55); border: 1px solid #ffc65c"></i><span lang="it">lampada accesa</span><span lang="en">lamp on</span></span>
+        <span><i style="background: var(--magenta); width: 4px"></i><span lang="it">Step: beep di step</span><span lang="en">Step: step beep</span></span>
+        <span><i style="background: radial-gradient(circle, var(--cyan) 1.6px, transparent 2px) 0 0 / 6px 10px repeat-x"></i><span lang="it">Preavviso, tre tick</span><span lang="en">pre-warning, three ticks</span></span>
+      </div>
+      <div class="grid two">
+        <div class="card" style="--c: var(--amber)">
+          <span class="tag">CO</span>
+          <p lang="it">La lampada resta accesa da uno Step all'altro: a ogni beep di step si copre una striscia. Il pulsante principale annulla la prova.</p>
+          <p lang="en">The lamp stays on from one Step to the next: at each step beep you cover one more strip. The main button cancels the strip.</p>
+        </div>
+        <div class="card" style="--c: var(--amber)">
+          <span class="tag">PP</span>
+          <p lang="it">A ogni Step la lampada si spegne (al millisecondo) e il timer attende, mostrando il tempo cumulativo dello Step successivo. Sposti la carta, premi il pulsante: la lampada si riaccende solo per l'incremento. In pausa <kbd class="letter">D</kbd> conclude la prova (Suono di fine); <kbd class="letter">A</kbd> <kbd class="letter">B</kbd> <kbd class="letter">C</kbd> la concludono e passano a quel Canale; ruotare l'encoder della Modalità la conclude e cambia Modalità. Gli altri comandi sono ignorati.</p>
+          <p lang="en">At each Step the lamp goes off (to the millisecond) and the timer waits, showing the cumulative time of the next Step. Move the paper, press the button: the lamp comes back on only for the increment. While paused <kbd class="letter">D</kbd> ends the strip (end sound); <kbd class="letter">A</kbd> <kbd class="letter">B</kbd> <kbd class="letter">C</kbd> end it and switch to that Channel; turning the mode encoder ends it and changes mode. Other controls are ignored.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table class="spec">
+        <thead><tr><th><span lang="it">Stato</span><span lang="en">State</span></th><th><span lang="it">Il 7 segmenti mostra</span><span lang="en">The 7-segment shows</span></th><th><span lang="it">Esempio</span><span lang="en">Example</span></th></tr></thead>
+        <tbody>
+          <tr><td><span lang="it">Fermo</span><span lang="en">Idle</span></td><td><span lang="it">Il tempo impostato del Canale attivo</span><span lang="en">The set time of the active Channel</span></td><td><span class="seg7 mini" data-seg="0100"></span></td></tr>
+          <tr><td><span lang="it">Countdown in corso</span><span lang="en">Countdown running</span></td><td><span lang="it">Il tempo residuo, arrotondato per eccesso</span><span lang="en">Remaining time, rounded up</span></td><td><span class="seg7 mini" data-seg="0073"></span></td></tr>
+          <tr><td><span lang="it">Focus acceso</span><span lang="en">Focus on</span></td><td><span lang="it">Il tempo trascorso; oltre 999,9 s in minuti.secondi</span><span lang="en">Elapsed time; beyond 999.9 s in minutes.seconds</span></td><td><span class="seg7 mini" data-seg="1705" data-dp="1"></span></td></tr>
+          <tr><td><span lang="it">Test strip in corso</span><span lang="en">Test strip running</span></td><td><span lang="it">Il tempo cumulativo dall'inizio della prova</span><span lang="en">Cumulative time since the strip started</span></td><td><span class="seg7 mini" data-seg="0123"></span></td></tr>
+          <tr><td><span lang="it">Passo-passo in pausa</span><span lang="en">Step-by-step paused</span></td><td><span lang="it">Il tempo cumulativo dello Step successivo</span><span lang="en">Cumulative time of the next Step</span></td><td><span class="seg7 mini" data-seg="0150"></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ======================= time entry ======================= -->
+  <section id="tempo">
+    <h2><span lang="it">Inserire il tempo, a calcolatrice</span><span lang="en">Entering time, calculator-style</span></h2>
+    <p class="sub" lang="it">Le cifre entrano da destra in decimi di secondo, fino a quattro; con la quinta esce la più vecchia.</p>
+    <p class="sub" lang="en">Digits come in from the right in tenths of a second, up to four; the fifth pushes the oldest out.</p>
+    <div class="calc">
+      <div class="card"><div class="keys"><kbd>5</kbd></div><span class="arrow">→ 0,5 s</span><span class="seg7 mini" data-seg="0005"></span></div>
+      <div class="card"><div class="keys"><kbd>5</kbd><kbd>0</kbd></div><span class="arrow">→ 5,0 s</span><span class="seg7 mini" data-seg="0050"></span></div>
+      <div class="card"><div class="keys"><kbd>1</kbd><kbd>2</kbd><kbd>5</kbd></div><span class="arrow">→ 12,5 s</span><span class="seg7 mini" data-seg="0125"></span></div>
+      <div class="card"><div class="keys"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd><kbd>4</kbd><kbd>5</kbd></div><span class="arrow">→ 234,5 s</span><span class="seg7 mini" data-seg="2345"></span></div>
+    </div>
+    <ul class="dots" lang="it">
+      <li>La prima cifra dopo qualsiasi altra azione (Esposizione, cambio Canale, <kbd>*</kbd>/<kbd>#</kbd>, encoder…) inizia un tempo nuovo.</li>
+      <li>Il tempo inserito diventa anche il <span class="hl">Tempo base</span>, con Offset zero.</li>
+      <li>Lo <kbd>0</kbd> entra al rilascio del tasto, perché può far parte di una combinazione.</li>
+      <li><kbd class="letter">D</kbd> azzera il tempo. Avviare un Countdown o un Test strip con tempo zero dà il beep di errore.</li>
+      <li>In Focus le cifre non hanno effetto.</li>
+    </ul>
+    <ul class="dots" lang="en">
+      <li>The first digit after any other action (exposure, Channel change, <kbd>*</kbd>/<kbd>#</kbd>, encoder…) starts a new time.</li>
+      <li>The entered time also becomes the <span class="hl">Base time</span>, with Offset zero.</li>
+      <li><kbd>0</kbd> goes in when the key is released, because it can be part of a chord.</li>
+      <li><kbd class="letter">D</kbd> clears the time. Starting a countdown or a test strip with time zero gives the error beep.</li>
+      <li>In Focus digits have no effect.</li>
+    </ul>
+  </section>
+
+  <!-- ======================= precision ======================= -->
+  <section id="precisione">
+    <h2><span lang="it">Precisione: Secondi e F-Stop</span><span lang="en">Precision: Seconds and F-Stop</span></h2>
+    <p class="sub" lang="it">La precisione è il passo con cui <kbd>*</kbd>/<kbd>#</kbd> e il Test strip spostano il tempo. Ha un tipo (pressione dell'encoder della precisione) e un valore (rotazione, 11 valori in ciclo). Sull'LCD: <code>[S]</code> o <code>[F]</code> in riga 1, il valore in riga 2.</p>
+    <p class="sub" lang="en">Precision is the step by which <kbd>*</kbd>/<kbd>#</kbd> and the test strip move the time. It has a type (press the precision encoder) and a value (turn it, 11 values cycling). On the LCD: <code>[S]</code> or <code>[F]</code> on row 1, the value on row 2.</p>
+    <div class="grid two">
+      <div class="card" style="--c: var(--cyan)">
+        <span class="tag"><span lang="it">Secondi</span><span lang="en">Seconds</span> · [S]</span>
+        <div class="vals"><span class="pill">1 s</span><span class="pill">2 s</span><span class="pill">3 s</span><span class="pill">4 s</span><span class="pill">5 s</span><span class="pill">6 s</span><span class="pill">7 s</span><span class="pill">8 s</span><span class="pill">10 s</span><span class="pill">15 s</span><span class="pill">20 s</span></div>
+        <p lang="it"><kbd>#</kbd> aggiunge il valore al tempo, <kbd>*</kbd> lo toglie, entro 0,1–999,9 s.</p>
+        <p lang="en"><kbd>#</kbd> adds the value to the time, <kbd>*</kbd> subtracts it, within 0.1–999.9 s.</p>
+        <div class="lcd sm" data-lcd="COUNTDOWN  [S]  | 5s      Ch:A ♪ϟ" style="max-width: 300px"></div>
+      </div>
+      <div class="card" style="--c: var(--magenta)">
+        <span class="tag">F-Stop · [F]</span>
+        <div class="vals"><span class="pill">1/1</span><span class="pill">1/2</span><span class="pill">1/3</span><span class="pill">1/4</span><span class="pill">1/6</span><span class="pill">1/8</span><span class="pill">1/12</span><span class="pill">1/16</span><span class="pill">1/24</span><span class="pill">1/32</span><span class="pill">1/64</span></div>
+        <p lang="it"><kbd>#</kbd> e <kbd>*</kbd> spostano l'Offset di uno (fino a ±99), sempre visibile in riga 2 (<code>+02</code>, <code>-01</code>, <code> 00</code>).</p>
+        <p lang="en"><kbd>#</kbd> and <kbd>*</kbd> move the Offset by one (up to ±99), always visible on row 2 (<code>+02</code>, <code>-01</code>, <code> 00</code>).</p>
+        <div class="lcd sm" data-lcd="COUNTDOWN  [F]  |1/3 +02  Ch:A ♪ϟ" style="max-width: 300px"></div>
+      </div>
+    </div>
+    <div class="formula">
+      <span class="eyebrow"><span lang="it">Tempo in F-Stop</span><span lang="en">F-Stop time</span></span>
+      <div class="f"><span lang="it">tempo</span><span lang="en">time</span> = <em><span lang="it">Tempo base</span><span lang="en">Base time</span></em> × 2<sup>Offset / p</sup></div>
+      <p class="muted" lang="it">dove 1/p è il valore di precisione; risultato arrotondato al decimo. Il passo non avviene se il tempo uscirebbe da 0,1–999,9 s o se il Tempo base è zero.</p>
+      <p class="muted" lang="en">where 1/p is the precision value; result rounded to the tenth. The step is refused if the time would leave 0.1–999.9 s or if the Base time is zero.</p>
+      <div class="chain" aria-label="Esempio / Example">
+        <span>* → 7,9 s</span><i>←</i><span class="base">10,0 s</span><i>→</i><span># 12,6</span><i>→</i><span># 15,9</span><i>→</i><span># 20,0 s</span>
+      </div>
+      <p class="muted" lang="it">Esempio: Tempo base 10,0 s, F-Stop 1/3. Tre volte <kbd>#</kbd> = un stop, il doppio del tempo.</p>
+      <p class="muted" lang="en">Example: Base time 10.0 s, F-Stop 1/3. Three presses of <kbd>#</kbd> = one stop, twice the time.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="spec">
+        <thead><tr><th><span lang="it">Comando</span><span lang="en">Control</span></th><th><span lang="it">In Secondi (valore P)</span><span lang="en">In Seconds (value P)</span></th><th><span lang="it">In F-Stop (valore 1/p)</span><span lang="en">In F-Stop (value 1/p)</span></th></tr></thead>
+        <tbody>
+          <tr><td><kbd>#</kbd></td><td><span lang="it">tempo + P, fino a 999,9 s</span><span lang="en">time + P, up to 999.9 s</span></td><td><span lang="it">Offset + 1, tempo ricalcolato</span><span lang="en">Offset + 1, time recomputed</span></td></tr>
+          <tr><td><kbd>*</kbd></td><td><span lang="it">tempo − P, fino a 0,1 s</span><span lang="en">time − P, down to 0.1 s</span></td><td><span lang="it">Offset − 1, tempo ricalcolato</span><span lang="en">Offset − 1, time recomputed</span></td></tr>
+          <tr><td><span lang="it">Encoder precisione, rotazione</span><span lang="en">Precision encoder, turn</span></td><td><span lang="it">cambia P, il tempo resta</span><span lang="en">changes P, the time stays</span></td><td><span lang="it">ricalcola dal Tempo base con lo stesso Offset e il nuovo p (Offset +2 a 1/3 → +2 a 1/2)</span><span lang="en">recomputes from the Base time with the same Offset and the new p (Offset +2 at 1/3 → +2 at 1/2)</span></td></tr>
+          <tr><td><span lang="it">Encoder precisione, pressione</span><span lang="en">Precision encoder, press</span></td><td colspan="2"><span lang="it">cambia tipo; il tempo attuale diventa il Tempo base, Offset zero</span><span lang="en">switches type; the current time becomes the Base time, Offset zero</span></td></tr>
+          <tr><td><span lang="it">Step k del Test strip (k = 0, 1, 2…)</span><span lang="en">Test strip Step k (k = 0, 1, 2…)</span></td><td class="mono">T + k·P</td><td class="mono"><span lang="it">Tempo base</span><span lang="en">Base time</span> × 2<sup>(Offset + k) / p</sup></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted" lang="it">Esempio di Test strip in F-Stop 1/2 con Tempo base 8,0 s: 8,0 → 11,3 → 16,0 → 22,6 s… In Focus la precisione non c'è: l'encoder della precisione non ha effetto e <kbd>*</kbd>/<kbd>#</kbd> regolano la luce.</p>
+    <p class="muted" lang="en">Test strip example in F-Stop 1/2 with Base time 8.0 s: 8.0 → 11.3 → 16.0 → 22.6 s… In Focus there is no precision: the precision encoder has no effect and <kbd>*</kbd>/<kbd>#</kbd> set the light.</p>
+  </section>
+
+  <!-- ======================= channels ======================= -->
+  <section id="canali">
+    <h2><span lang="it">Canali e memoria</span><span lang="en">Channels and memory</span></h2>
+    <p class="sub" lang="it"><kbd class="letter">A</kbd> <kbd class="letter">B</kbd> <kbd class="letter">C</kbd> richiamano tre Canali. Ogni Canale è un'impostazione di stampa completa: cambiare Canale la ripristina tutta.</p>
+    <p class="sub" lang="en"><kbd class="letter">A</kbd> <kbd class="letter">B</kbd> <kbd class="letter">C</kbd> recall three Channels. Each Channel is a complete print setting: switching Channel restores all of it.</p>
+    <div class="grid">
+      <div class="card" style="--c: var(--violet)">
+        <span class="tag"><span lang="it">Ogni Canale contiene</span><span lang="en">Each Channel stores</span></span>
+        <div class="vals">
+          <span class="pill"><span lang="it">Modalità</span><span lang="en">Mode</span></span>
+          <span class="pill"><span lang="it">Tipo di precisione</span><span lang="en">Precision type</span></span>
+          <span class="pill"><span lang="it">Valore di precisione</span><span lang="en">Precision value</span></span>
+          <span class="pill"><span lang="it">Avanzamento CO/PP</span><span lang="en">Advance CO/PP</span></span>
+          <span class="pill"><span lang="it">Tempo impostato</span><span lang="en">Set time</span></span>
+          <span class="pill"><span lang="it">Tempo base</span><span lang="en">Base time</span></span>
+          <span class="pill">Offset</span>
+          <span class="pill"><span lang="it">Abilitazione relè ⚡&#xFE0E;</span><span lang="en">Relay enable ⚡&#xFE0E;</span></span>
+        </div>
+      </div>
+      <div class="card" style="--c: var(--amber)">
+        <span class="tag"><span lang="it">Abilitazione relè</span><span lang="en">Relay enable</span></span>
+        <p lang="it"><kbd>#</kbd> tenuto 1 s alterna, per il Canale attivo, se l'Esposizione accende davvero la lampada (icona ⚡&#xFE0E;) o fa solo girare il tempo: utile per provare un ciclo a lampada spenta.</p>
+        <p lang="en"><kbd>#</kbd> held for 1 s toggles, for the active Channel, whether the exposure really turns the lamp on (⚡&#xFE0E; icon) or only runs the time: handy to rehearse a cycle with the lamp off.</p>
+      </div>
+      <div class="card" style="--c: var(--red)">
+        <span class="tag"><kbd class="letter">D</kbd> <span lang="it">azzera</span><span lang="en">clear</span></span>
+        <p lang="it">Azzera tempo impostato, Tempo base e Offset del Canale attivo. Tenuto all'accensione apre il Menu di servizio.</p>
+        <p lang="en">Clears set time, Base time and Offset of the active Channel. Held at power-on it opens the service menu.</p>
+      </div>
+      <div class="card" style="--c: var(--green)">
+        <span class="tag"><span lang="it">Memoria</span><span lang="en">Memory</span></span>
+        <p lang="it">Tutto si salva da solo 2 s dopo l'ultima modifica e all'avvio di ogni Esposizione: Canale attivo, i tre Canali, mute, luminosità e impostazioni del Menu di servizio. All'accensione si ritrova tutto com'era.</p>
+        <p lang="en">Everything saves itself 2 s after the last change and at the start of every exposure: active Channel, the three Channels, mute, brightness and service-menu settings. At power-on everything is as you left it.</p>
+      </div>
+    </div>
+    <div class="note"><strong><span lang="it">Fabbrica</span><span lang="en">Factory</span></strong><p lang="it">Ogni Canale: Countdown, Secondi 1 s, Avanzamento continuo, 10,0 s, Abilitazione relè attiva. Globali: Canale A, mute spento, LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus massimo 5 minuti. Alla prima accensione con la v2.0.0 le impostazioni della versione precedente non vengono lette.</p><p lang="en">Each Channel: Countdown, Seconds 1 s, continuous advance, 10.0 s, relay enable on. Global: Channel A, mute off, LCD level 3, 7-segment level 3, LCD during exposure level 1, Focus maximum 5 minutes. At the first power-on with v2.0.0 the settings of the previous version are not read.</p></div>
+  </section>
+
+  <!-- ======================= displays ======================= -->
+  <section id="display">
+    <h2><span lang="it">Display e luci in camera oscura</span><span lang="en">Displays and darkroom lights</span></h2>
+    <p class="sub" lang="it">LCD a due righe da 16 caratteri, retroilluminazione sempre e solo rossa. Ecco cosa c'è in ogni colonna.</p>
+    <p class="sub" lang="en">Two-row, 16-character LCD with an always-red backlight. Here is what each column holds.</p>
+    <div class="panel">
+      <div class="anat-wrap"><div class="anat" id="anat"></div></div>
+      <p class="muted" lang="it">Riga 1: Modalità, tipo di precisione (<code>[S]</code> Secondi, <code>[F]</code> F-Stop, assente in Focus), Avanzamento (<code>CO</code>/<code>PP</code>, solo Test strip). Riga 2: precisione senza prefisso (<code> 5s</code>, <code>20s</code>, <code>1/3 +02</code>, <code>1/12-01</code>) oppure <code>St:n</code> durante il Test strip, Canale, ♪ suoni attivi (sparisce col mute), ⚡&#xFE0E; Abilitazione relè.</p>
+      <p class="muted" lang="en">Row 1: mode, precision type (<code>[S]</code> Seconds, <code>[F]</code> F-Stop, absent in Focus), advance (<code>CO</code>/<code>PP</code>, test strip only). Row 2: precision with no prefix (<code> 5s</code>, <code>20s</code>, <code>1/3 +02</code>, <code>1/12-01</code>) or <code>St:n</code> during a test strip, Channel, ♪ sounds on (gone when muted), ⚡&#xFE0E; relay enable.</p>
+    </div>
+    <div class="lcd-examples">
+      <figure><div class="lcd sm" data-lcd="COUNTDOWN  [S]  |20s      Ch:A ♪ϟ"></div><figcaption><span lang="it">Secondi, precisione 20 s</span><span lang="en">Seconds, precision 20 s</span></figcaption></figure>
+      <figure><div class="lcd sm" data-lcd="COUNTDOWN  [F]  |1/12-01  Ch:B  ϟ"></div><figcaption><span lang="it">F-Stop 1/12, Offset −1, mute attivo</span><span lang="en">F-Stop 1/12, Offset −1, mute on</span></figcaption></figure>
+      <figure><div class="lcd sm" data-lcd="TEST STRIP [F]PP|St:3     Ch:C ♪ϟ"></div><figcaption><span lang="it">Test strip passo-passo, Step 3</span><span lang="en">Step-by-step test strip, Step 3</span></figcaption></figure>
+      <figure><div class="lcd sm" data-lcd="FOCUS           |         Ch:A ♪ "></div><figcaption><span lang="it">Focus, Abilitazione relè spenta</span><span lang="en">Focus, relay enable off</span></figcaption></figure>
+      <figure><div class="lcd sm" data-lcd=" - R080 Timer - |     v2.0.0"></div><figcaption><span lang="it">All'accensione, per 1,5 s</span><span lang="en">At power-on, for 1.5 s</span></figcaption></figure>
+      <figure><div class="lcd sm" data-lcd="RESET: WDT|"></div><figcaption><span lang="it">Dopo un reset da watchdog, per 3 s</span><span lang="en">After a watchdog reset, for 3 s</span></figcaption></figure>
+    </div>
+
+    <div class="panel">
+      <h3><span lang="it">Luminosità: 8 livelli, più fitti in basso</span><span lang="en">Brightness: 8 levels, denser at the low end</span></h3>
+      <div class="levels">
+        <div class="lv-row"><span>LCD</span><div class="lv-bars" data-levels="4,8,16,28,48,80,140,255" data-def="3" data-exp="1"></div></div>
+        <div class="lv-row"><span><span lang="it">7 segmenti</span><span lang="en">7-segment</span></span><div class="lv-bars" data-levels="2,5,10,20,40,80,150,255" data-def="3"></div></div>
+      </div>
+      <div class="legend" style="margin-top: 10px">
+        <span><i style="outline: 2px solid var(--cyan)"></i><span lang="it">livello di fabbrica (3)</span><span lang="en">factory level (3)</span></span>
+        <span><i style="outline: 2px dashed var(--amber)"></i><span lang="it">LCD durante l'Esposizione, di fabbrica (1)</span><span lang="en">LCD during an exposure, factory (1)</span></span>
+      </div>
+      <ul class="dots" lang="it">
+        <li>In Focus, a lampada spenta: <kbd>*</kbd>/<kbd>#</kbd> abbassano/alzano l'LCD; tenendo <kbd>0</kbd>, <kbd>*</kbd>/<kbd>#</kbd> abbassano/alzano il 7 segmenti.</li>
+        <li>Durante ogni Esposizione (Focus acceso compreso) l'LCD scende al livello "LCD esposizione" del Menu di servizio e torna al suo livello alla fine; nelle pause del passo-passo è già al livello normale. Il 7 segmenti resta al livello scelto.</li>
+      </ul>
+      <ul class="dots" lang="en">
+        <li>In Focus, lamp off: <kbd>*</kbd>/<kbd>#</kbd> dim/brighten the LCD; holding <kbd>0</kbd>, <kbd>*</kbd>/<kbd>#</kbd> dim/brighten the 7-segment.</li>
+        <li>During every exposure (Focus on included) the LCD drops to the service-menu "LCD exposure" level and returns to its own level at the end; in step-by-step pauses it is already back to normal. The 7-segment stays at the chosen level.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ======================= sounds ======================= -->
+  <section id="suoni">
+    <h2><span lang="it">Suoni e mute</span><span lang="en">Sounds and mute</span></h2>
+    <p class="sub" lang="it">Ogni evento ha un suono diverso, suonato senza fermare il timer. La tabella è in ordine di priorità: un suono nuovo interrompe solo quelli di priorità uguale o minore. Premi ▶ per ascoltarli (approssimati con un'onda quadra).</p>
+    <p class="sub" lang="en">Every event has its own sound, played without stalling the timer. The table is in priority order: a new sound only interrupts those of equal or lower priority. Press ▶ to listen (approximated with a square wave).</p>
+    <div class="table-wrap">
+      <table class="spec">
+        <thead><tr><th></th><th><span lang="it">Suono</span><span lang="en">Sound</span></th><th><span lang="it">Quando</span><span lang="en">When</span></th><th><span lang="it">Come suona</span><span lang="en">How it sounds</span></th><th><span lang="it">Col mute</span><span lang="en">When muted</span></th></tr></thead>
+        <tbody>
+          <tr style="--c: var(--magenta)"><td><button type="button" class="play" data-snd="end" data-aria-it="Ascolta: Suono di fine" data-aria-en="Listen: end sound"></button></td><td><span lang="it">Fine</span><span lang="en">End</span></td><td><span lang="it">Fine o Annullamento di un'Esposizione, Focus spento, prova conclusa</span><span lang="en">End or cancel of an exposure, Focus off, strip ended</span></td><td class="mono">600 → 450 → 300 Hz</td><td><span class="yes"><span lang="it">suona</span><span lang="en">plays</span></span></td></tr>
+          <tr style="--c: var(--red)"><td><button type="button" class="play" data-snd="error" data-aria-it="Ascolta: Errore" data-aria-en="Listen: error"></button></td><td><span lang="it">Errore</span><span lang="en">Error</span></td><td><span lang="it">Avvio con tempo zero; valore rifiutato nel Menu di servizio</span><span lang="en">Start with time zero; value rejected in the service menu</span></td><td class="mono">150 Hz · 300 ms</td><td><span class="no"><span lang="it">muto*</span><span lang="en">silent*</span></span></td></tr>
+          <tr style="--c: var(--amber)"><td><button type="button" class="play" data-snd="focusWarn" data-aria-it="Ascolta: Avviso Focus" data-aria-en="Listen: Focus warning"></button></td><td><span lang="it">Avviso Focus</span><span lang="en">Focus warning</span></td><td><span lang="it">10 s prima dello Spegnimento automatico</span><span lang="en">10 s before auto-off</span></td><td class="mono">2 × 450 Hz · 200 ms</td><td><span class="no"><span lang="it">muto</span><span lang="en">silent</span></span></td></tr>
+          <tr style="--c: var(--cyan)"><td><button type="button" class="play" data-snd="start" data-aria-it="Ascolta: Avvio" data-aria-en="Listen: start"></button></td><td><span lang="it">Avvio</span><span lang="en">Start</span></td><td><span lang="it">Inizio Esposizione o ripresa passo-passo</span><span lang="en">Exposure start or step-by-step resume</span></td><td class="mono">1000 Hz · 60 ms</td><td><span class="no"><span lang="it">muto</span><span lang="en">silent</span></span></td></tr>
+          <tr style="--c: var(--magenta)"><td><button type="button" class="play" data-snd="step" data-aria-it="Ascolta: Step" data-aria-en="Listen: step"></button></td><td>Step</td><td><span lang="it">A ogni Step del Test strip</span><span lang="en">At every test strip Step</span></td><td class="mono">600 Hz · 150 ms</td><td><span class="no"><span lang="it">muto</span><span lang="en">silent</span></span></td></tr>
+          <tr style="--c: var(--cyan)"><td><button type="button" class="play" data-snd="prewarn" data-aria-it="Ascolta: Preavviso" data-aria-en="Listen: pre-warning"></button></td><td><span lang="it">Preavviso</span><span lang="en">Pre-warning</span></td><td><span lang="it">0,3, 0,2 e 0,1 s prima di ogni Step</span><span lang="en">0.3, 0.2 and 0.1 s before each Step</span></td><td class="mono">3 × 800 Hz · 30 ms</td><td><span class="no"><span lang="it">muto</span><span lang="en">silent</span></span></td></tr>
+          <tr style="--c: var(--violet)"><td><button type="button" class="play" data-snd="metronome" data-aria-it="Ascolta: Metronomo" data-aria-en="Listen: metronome"></button></td><td><span lang="it">Metronomo</span><span lang="en">Metronome</span></td><td><span lang="it">Ogni secondo di un Countdown</span><span lang="en">Every second of a countdown</span></td><td class="mono">300 Hz · 80 ms</td><td><span class="no"><span lang="it">muto</span><span lang="en">silent</span></span></td></tr>
+          <tr style="--c: var(--green)"><td><button type="button" class="play" data-snd="confirm" data-aria-it="Ascolta: Conferma" data-aria-en="Listen: confirm"></button></td><td><span lang="it">Conferma</span><span lang="en">Confirm</span></td><td><span lang="it">Mute spento, Abilitazione relè, valore salvato nel Menu di servizio</span><span lang="en">Mute turned off, relay enable, value saved in the service menu</span></td><td class="mono">1200 Hz · 40 ms</td><td><span class="no"><span lang="it">muto*</span><span lang="en">silent*</span></span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note"><strong>Mute</strong><p lang="it"><kbd>*</kbd> tenuto 1 s lo attiva o disattiva. Attivarlo è silenzioso; disattivandolo suona la Conferma. Con il mute attivo suona solo il Suono di fine, perché la fine di un'Esposizione non passi inosservata. *Nel Menu di servizio i suoni restano udibili anche col mute. Sull'LCD l'icona ♪ sparisce.</p><p lang="en"><kbd>*</kbd> held for 1 s turns it on or off. Turning it on is silent; turning it off plays the confirm beep. With mute on only the end sound plays, so the end of an exposure never goes unnoticed. *In the service menu sounds stay audible even when muted. On the LCD the ♪ icon disappears.</p></div>
+  </section>
+
+  <!-- ======================= safety ======================= -->
+  <section id="sicurezza">
+    <h2><span lang="it">Sicurezza: cosa noti all'uso</span><span lang="en">Safety: what you notice in use</span></h2>
+    <div class="grid safe">
+      <div class="card" style="--c: var(--green)">
+        <span class="num">OFF</span>
+        <h3><span lang="it">Relè spento all'avvio</span><span lang="en">Relay off at start-up</span></h3>
+        <p lang="it">All'accensione e dopo ogni reset il relè resta spento finché non avvii un'Esposizione. Un'Esposizione interrotta da una mancanza di corrente non riprende mai.</p>
+        <p lang="en">At power-on and after every reset the relay stays off until you start an exposure. An exposure interrupted by a power cut never resumes.</p>
+      </div>
+      <div class="card" style="--c: var(--cyan)">
+        <span class="num">20 ms</span>
+        <h3><span lang="it">Pulsante antirimbalzo</span><span lang="en">Debounced button</span></h3>
+        <p lang="it">Il pulsante principale agisce alla pressione, dopo 20 ms di contatto stabile: un rimbalzo non avvia né annulla un'Esposizione.</p>
+        <p lang="en">The main button acts on press, after 20 ms of stable contact: a bounce neither starts nor cancels an exposure.</p>
+      </div>
+      <div class="card" style="--c: var(--red)">
+        <span class="num">250 ms</span>
+        <h3>Watchdog</h3>
+        <p lang="it">Se il firmware si blocca la lampada si spegne entro 250 ms e la scheda si riavvia dopo 500 ms. Al riavvio l'LCD mostra <code>RESET: WDT</code> per 3 s.</p>
+        <p lang="en">If the firmware hangs the lamp goes off within 250 ms and the board restarts after 500 ms. On restart the LCD shows <code>RESET: WDT</code> for 3 s.</p>
+      </div>
+      <div class="card" style="--c: var(--amber)">
+        <span class="num">2,7 V</span>
+        <h3>Brown-out</h3>
+        <p lang="it">Sotto 2,7 V di alimentazione la scheda si resetta con il relè spento.</p>
+        <p lang="en">Below 2.7 V supply the board resets with the relay off.</p>
+      </div>
+      <div class="card" style="--c: var(--violet)">
+        <span class="num">LCD</span>
+        <h3><span lang="it">LCD guasto? Si continua</span><span lang="en">LCD failed? Carry on</span></h3>
+        <p lang="it">Se l'LCD si guasta o si scollega il timer continua con il solo 7 segmenti; l'LCD viene ricollegato da solo appena risponde.</p>
+        <p lang="en">If the LCD fails or is unplugged the timer keeps going on the 7-segment alone; the LCD is reconnected by itself as soon as it answers.</p>
+      </div>
+      <div class="card" style="--c: var(--magenta)">
+        <span class="num">1 ms</span>
+        <h3><span lang="it">Spegnimento al millisecondo</span><span lang="en">Off to the millisecond</span></h3>
+        <p lang="it">Fine del Countdown e Step del passo-passo spengono la lampada dal timer hardware, al millisecondo, indipendentemente da display e suoni.</p>
+        <p lang="en">End of a countdown and step-by-step Steps switch the lamp off from the hardware timer, to the millisecond, regardless of displays and sounds.</p>
+      </div>
+    </div>
+  </section>
+</main>
+<footer class="site"><span lang="it">R080 Timer · firmware v2.0.0 · dal manuale d'uso e dal codice del firmware</span><span lang="en">R080 Timer · firmware v2.0.0 · from the user manual and the firmware code</span></footer>
+<script src="assets/site.js"></script>
+<script>
+(function () {
+  "use strict";
+  const root = document.documentElement;
+  const isEn = () => root.dataset.lang === "en";
+  const L = (it, en) => `<span lang="it">${it}</span><span lang="en">${en}</span>`;
+  const K = (k, letter) => `<kbd${letter ? ' class="letter"' : ""}>${k}</kbd>`;
+
+  /* ---------- 7-segment SVG ---------- */
+  const DIG = ["abcdef", "bc", "abged", "abgcd", "fgbc", "afgcd", "afgedc", "abc", "abcdefg", "abcdfg"];
+  const H = 3.6, X0 = 8, X1 = 40, Y0 = 6, YM = 39, Y1 = 72, G = 2;
+  const hz = (a, b, y) => `${a},${y} ${a + H},${y - H} ${b - H},${y - H} ${b},${y} ${b - H},${y + H} ${a + H},${y + H}`;
+  const vt = (x, a, b) => `${x},${a} ${x + H},${a + H} ${x + H},${b - H} ${x},${b} ${x - H},${b - H} ${x - H},${a + H}`;
+  const SEGS = {
+    a: hz(X0 + G, X1 - G, Y0), g: hz(X0 + G, X1 - G, YM), d: hz(X0 + G, X1 - G, Y1),
+    f: vt(X0, Y0 + G, YM - G), e: vt(X0, YM + G, Y1 - G), b: vt(X1, Y0 + G, YM - G), c: vt(X1, YM + G, Y1 - G)
+  };
+  // digits: four chars "0123"; dp: index of the digit followed by the point
+  function seg(el, digits, dp) {
+    let s = "";
+    [...digits].forEach((ch, i) => {
+      const on = DIG[+ch] || "";
+      s += `<g transform="translate(${i * 52} 0)">`;
+      for (const k in SEGS) s += `<polygon class="${on.includes(k) ? "on" : "off"}" points="${SEGS[k]}"/>`;
+      s += `<circle class="${i === dp ? "on" : "off"}" cx="47" cy="${Y1}" r="3.4"/></g>`;
+    });
+    el.innerHTML = `<svg viewBox="0 0 222 80" aria-hidden="true"><g transform="translate(10 0) skewX(-6)">${s}</g></svg>`;
+    el.setAttribute("role", "img");
+    el.setAttribute("aria-label", digits.slice(0, dp + 1) + "." + digits.slice(dp + 1));
+  }
+
+  /* ---------- LCD ---------- */
+  function lcd(el, r1, r2) {
+    let glass = el.querySelector(".lcd-glass");
+    if (!glass) { glass = document.createElement("div"); glass.className = "lcd-glass"; el.appendChild(glass); }
+    glass.innerHTML = [r1, r2].map((r) =>
+      `<div class="lcd-row">${[...r.padEnd(16).slice(0, 16)].map((c) => `<span>${c === " " ? "&nbsp;" : c}</span>`).join("")}</div>`).join("");
+    el.setAttribute("role", "img");
+    el.setAttribute("aria-label", "LCD: " + r1.trim() + " / " + r2.replace("ϟ", "⚡").trim());
+  }
+
+  document.querySelectorAll("[data-seg]").forEach((el) => seg(el, el.dataset.seg, el.dataset.dp ? +el.dataset.dp : 2));
+  document.querySelectorAll("[data-lcd]").forEach((el) => { const [a, b] = el.dataset.lcd.split("|"); lcd(el, a, b || ""); });
+
+  /* ---------- LCD anatomy ---------- */
+  (function anatomy() {
+    const el = document.getElementById("anat");
+    const zone = (from, to, c, it, en) => `<span style="grid-column:${from + 1} / ${to + 2}; --c: var(--${c})">${L(it, en)}</span>`;
+    const chars = (r) => [...r].map((c) => `<span>${c === " " ? "&nbsp;" : c}</span>`).join("");
+    el.innerHTML =
+      `<div class="anat-idx">${Array.from({ length: 16 }, (_, i) => `<span>${i}</span>`).join("")}</div>` +
+      `<div class="anat-chars">${chars("TEST STRIP [F]PP")}</div>` +
+      `<div class="anat-zones">${zone(0, 9, "magenta", "Modalità", "Mode")}${zone(11, 13, "cyan", "Tipo", "Type")}${zone(14, 15, "amber", "CO/PP", "CO/PP")}</div>` +
+      `<div class="anat-chars">${chars("1/3 +02  Ch:A ♪ϟ")}</div>` +
+      `<div class="anat-zones">${zone(0, 3, "cyan", "Precisione", "Precision")}${zone(4, 6, "violet", "Offset", "Offset")}${zone(9, 12, "magenta", "Canale", "Channel")}${zone(14, 14, "green", "♪", "♪")}${zone(15, 15, "amber", "⚡&#xFE0E;", "⚡&#xFE0E;")}</div>`;
+  })();
+
+  /* ---------- brightness bars ---------- */
+  document.querySelectorAll(".lv-bars").forEach((el) => {
+    el.innerHTML = el.dataset.levels.split(",").map((v, i) => {
+      const cls = [i + 1 === +el.dataset.def ? "def" : "", i + 1 === +el.dataset.exp ? "exp" : ""].join(" ").trim();
+      return `<div class="${cls}" style="height:${Math.max(3, (v / 255) * 100)}%"><b>${i + 1}</b></div>`;
+    }).join("");
+  });
+
+  /* ---------- sounds (tables from SoundScheduler.cpp) ---------- */
+  const SOUNDS = {
+    end: [[600, 150], [0, 80], [450, 150], [0, 80], [300, 150]],
+    error: [[150, 300]],
+    focusWarn: [[450, 200], [0, 100], [450, 200]],
+    start: [[1000, 60]],
+    step: [[600, 150]],
+    prewarn: [[800, 30], [0, 70], [800, 30], [0, 70], [800, 30]],
+    metronome: [[300, 80], [0, 920], [300, 80], [0, 920], [300, 80]],
+    confirm: [[1200, 40]]
+  };
+  let ac = null;
+  function play(name) {
+    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return 0; }
+    if (ac.state === "suspended") ac.resume();
+    let t = ac.currentTime + 0.03;
+    const t0 = t;
+    for (const [hzv, ms] of SOUNDS[name]) {
+      const d = ms / 1000;
+      if (hzv) {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = "square";
+        o.frequency.value = hzv;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.06, t + 0.004);
+        g.gain.setValueAtTime(0.06, t + d - 0.006);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+        o.connect(g).connect(ac.destination);
+        o.start(t);
+        o.stop(t + d + 0.01);
+      }
+      t += d;
+    }
+    return (t - t0) * 1000;
+  }
+  const PLAY_ICON = '<svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0 10 6 0 12z"/></svg>';
+  document.querySelectorAll(".play").forEach((b) => {
+    b.innerHTML = PLAY_ICON;
+    b.addEventListener("click", () => {
+      const ms = play(b.dataset.snd);
+      b.classList.add("on");
+      setTimeout(() => b.classList.remove("on"), Math.max(200, ms));
+    });
+  });
+
+  /* ---------- simulator (mirrors Controller::onInput with the timer idle) ---------- */
+  const SEC = [1, 2, 3, 4, 5, 6, 7, 8, 10, 15, 20];
+  const DEN = [1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 64];
+  const LCDV = [4, 8, 16, 28, 48, 80, 140, 255], SEGV = [2, 5, 10, 20, 40, 80, 150, 255];
+  const MODES = ["Focus", "Countdown", "Test strip"];
+  const factory = () => ({ mode: 1, kind: 0, idx: 0, adv: 0, time: 100, base: 100, off: 0, relay: 1 });
+  let S;
+  function reset() { S = { ch: 0, mute: false, lcd: 3, seg: 3, entering: false, c: [factory(), factory(), factory()] }; }
+  const clamp = (ds) => (ds < 1 ? 1 : ds > 9999 ? 9999 : ds);
+  const fstop = (b, o, d) => Math.min(65535, Math.floor(b * Math.pow(2, o / d) + 0.5));
+  const shifted = (c, n) => (c.kind ? fstop(c.base, c.off + n, DEN[c.idx]) : c.time + n * SEC[c.idx] * 10);
+  const stepLevel = (l, d) => (d > 0 ? (l < 8 ? l + 1 : l) : (l > 1 ? l - 1 : l));
+
+  function act(input, arg) {
+    const c = S.c[S.ch];
+    if (c.mode === 0 && (input === "digit" || input === "precTurn" || input === "precClick")) return;
+    let typing = false;
+    switch (input) {
+      case "digit":
+        c.time = S.entering ? (c.time % 1000) * 10 + arg : arg;
+        c.base = c.time; c.off = 0; typing = true;
+        break;
+      case "star": case "hash": {
+        const d = input === "hash" ? 1 : -1;
+        if (c.mode === 0) S.lcd = stepLevel(S.lcd, d);
+        else if (c.kind) {
+          const o = c.off + d;
+          if (c.base && o <= 99 && o >= -99) {
+            const t = shifted(c, d);
+            if (d > 0 ? t <= 9999 : t >= 1) { c.off = o; c.time = clamp(t); }
+          }
+        } else c.time = clamp(shifted(c, d));
+        break;
+      }
+      case "zstar": case "zhash":
+        if (c.mode === 0) S.seg = stepLevel(S.seg, input === "zhash" ? 1 : -1);
+        break;
+      case "precTurn":
+        c.idx = (c.idx + 11 + arg) % 11;
+        if (c.kind && c.base > 0) c.time = clamp(shifted(c, 0));
+        break;
+      case "starHold":
+        S.mute = !S.mute;
+        if (!S.mute) play("confirm");
+        break;
+      case "hashHold":
+        c.relay = c.relay ? 0 : 1;
+        if (!S.mute) play("confirm");
+        break;
+      case "precClick": c.kind ^= 1; c.base = c.time; c.off = 0; break;
+      case "ch": S.ch = arg; break;
+      case "D": c.time = c.base = 0; c.off = 0; break;
+      case "modeTurn": c.mode = (c.mode + 3 + arg) % 3; break;
+      case "modeClick": if (c.mode === 2) c.adv ^= 1; break;
+    }
+    S.entering = typing;
+  }
+
+  // Same layout as Screen::compose
+  function compose() {
+    const c = S.c[S.ch];
+    const r1 = [...["FOCUS           ", "COUNTDOWN  [S]  ", "TEST STRIP [S]CO"][c.mode]];
+    if (c.mode === 2 && c.adv) { r1[14] = "P"; r1[15] = "P"; }
+    if (c.mode !== 0 && c.kind) r1[12] = "F";
+    const r2 = Array(16).fill(" ");
+    const put = (col, s) => [...s].forEach((ch, i) => { r2[col + i] = ch; });
+    if (c.mode !== 0) {
+      if (c.kind) {
+        put(0, "1/" + DEN[c.idx]);
+        r2[4] = c.off > 0 ? "+" : c.off < 0 ? "-" : " ";
+        put(5, String(Math.abs(c.off)).padStart(2, "0"));
+      } else {
+        const p = SEC[c.idx];
+        put(p < 10 ? 1 : 0, String(p));
+        r2[2] = "s";
+      }
+    }
+    put(9, "Ch:" + "ABC"[S.ch]);
+    r2[14] = S.mute ? " " : "♪";
+    r2[15] = c.relay ? "ϟ" : " ";
+    return [r1.join(""), r2.join("")];
+  }
+
+  const fmt = (ds) => (ds / 10).toFixed(1).replace(".", isEn() ? "." : ",");
+  const lcdEl = document.getElementById("simLcd"), segEl = document.getElementById("simSeg");
+  const stateEl = document.getElementById("simState");
+  let knobRot = { modeEnc: 0, precEnc: 0 };
+
+  function renderSim() {
+    const c = S.c[S.ch];
+    const [a, b] = compose();
+    lcd(lcdEl, a, b);
+    lcdEl.style.setProperty("--b", (0.38 + 0.62 * Math.sqrt(LCDV[S.lcd - 1] / 255)).toFixed(3));
+    seg(segEl, String(c.time).padStart(4, "0"), 2);
+    segEl.style.setProperty("--sb", (0.3 + 0.7 * Math.sqrt(SEGV[S.seg - 1] / 255)).toFixed(3));
+    const prec = c.kind ? "F-Stop 1/" + DEN[c.idx] : L("Secondi", "Seconds") + " " + SEC[c.idx] + " s";
+    const pill = (lbl, val) => `<span class="pill">${lbl} <b>${val}</b></span>`;
+    stateEl.innerHTML =
+      pill(L("Canale", "Channel"), "ABC"[S.ch]) +
+      pill(L("Modalità", "Mode"), MODES[c.mode] + (c.mode === 2 ? (c.adv ? " PP" : " CO") : "")) +
+      pill(L("Precisione", "Precision"), prec) +
+      pill(L("Tempo", "Time"), fmt(c.time) + " s") +
+      (c.kind ? pill(L("Tempo base", "Base time"), fmt(c.base) + " s") + pill("Offset", (c.off > 0 ? "+" : "") + c.off) : "") +
+      pill("Mute", S.mute ? "ON" : "OFF") +
+      pill(L("Relè", "Relay"), c.relay ? "ON" : "OFF") +
+      pill("LCD", S.lcd + "/8") +
+      pill("7 seg", S.seg + "/8") +
+      `<button type="button" class="reset" id="simReset">${L("Valori di fabbrica", "Factory values")}</button>`;
+    document.getElementById("simReset").addEventListener("click", () => { reset(); renderSim(); renderInspector(); });
+  }
+
+  /* ---------- control descriptions (checked against Controller.cpp / InputDevices.cpp) ---------- */
+  const LBL = {
+    short: L("Pressione breve", "Short press"),
+    press: L("Pressione", "Press"),
+    turn: L("Rotazione", "Turn"),
+    hold: L("Tenuto 1 s", "Held 1 s"),
+    chord: L("Combinazione", "Chord"),
+    boot: L("All'accensione", "At power-on"),
+    modes: L("In ogni Modalità", "In each mode"),
+    exp: L("Durante un'Esposizione", "During an exposure"),
+    pause: L("Passo-passo in pausa", "Step-by-step paused")
+  };
+  const IGN = L("Ignorato.", "Ignored.");
+  const INFO = {
+    digits: {
+      tag: L("Tastierino", "Keypad"), title: L("Cifre 1–9", "Digits 1–9"),
+      rows: [["short", L("Inseriscono il tempo a calcolatrice: ogni cifra entra da destra, in decimi di secondo, fino a quattro cifre; con la quinta esce la più vecchia. La prima cifra dopo un'altra azione inizia un tempo nuovo, che diventa anche il Tempo base con Offset zero.",
+        "Enter the time calculator-style: each digit comes in from the right, in tenths of a second, up to four digits; a fifth pushes the oldest out. The first digit after any other action starts a new time, which also becomes the Base time with Offset zero.")]],
+      modes: [L("Ignorate: il Focus non usa il tempo impostato.", "Ignored: Focus does not use the set time."), L("Durata dell'Esposizione.", "Exposure length."), L("Primo Step della prova.", "First Step of the strip.")],
+      exp: IGN, pause: IGN
+    },
+    zero: {
+      tag: L("Tastierino", "Keypad"), title: L("Cifra 0", "Digit 0"),
+      rows: [["short", L("Entra al <b>rilascio</b> del tasto, così non entra quando fa parte di una combinazione. Se premi un'altra cifra mentre lo 0 è ancora giù, lo 0 entra per primo.",
+        "Goes in on <b>release</b>, so it is not entered when it is part of a chord. If you press another digit while 0 is still down, the 0 goes in first.")],
+        ["chord", L(`${K("0")} tenuto + ${K("*")} / ${K("#")}: luminosità del 7 segmenti giù / su, solo in Focus.`, `${K("0")} held + ${K("*")} / ${K("#")}: 7-segment brightness down / up, Focus only.`)]],
+      modes: [L("Cifra ignorata; con *&thinsp;/&thinsp;# regola il 7 segmenti.", "Digit ignored; with *&thinsp;/&thinsp;# it sets the 7-segment."), L("Cifra del tempo; la combinazione non fa nulla.", "Time digit; the chord does nothing."), L("Cifra del tempo; la combinazione non fa nulla.", "Time digit; the chord does nothing.")],
+      exp: IGN, pause: IGN,
+      tries: [["0 + *", "zstar"], ["0 + #", "zhash"]]
+    },
+    star: {
+      tag: L("Tastierino", "Keypad"), title: L("Tasto *", "Key *"),
+      rows: [["short", L("Agisce al rilascio: un passo di precisione in meno (Secondi: −P; F-Stop: Offset −1). In Focus abbassa la luminosità dell'LCD.", "Acts on release: one precision step less (Seconds: −P; F-Stop: Offset −1). In Focus it dims the LCD.")],
+        ["hold", L("Mute acceso / spento. Attivarlo è silenzioso, spegnendolo suona la Conferma. L'azione breve non viene eseguita.", "Mute on / off. Turning it on is silent, turning it off plays the confirm beep. The short action is not performed.")],
+        ["chord", L(`Con ${K("0")} tenuto: 7 segmenti più scuro (solo Focus).`, `With ${K("0")} held: 7-segment dimmer (Focus only).`)]],
+      modes: [L("LCD più scuro (8 livelli).", "LCD dimmer (8 levels)."), L("Tempo più corto di un passo.", "Time one step shorter."), L("Primo Step più corto di un passo.", "First Step one step shorter.")],
+      exp: IGN, pause: IGN,
+      tries: [[L("Tenuto 1 s", "Hold 1 s"), "starHold"], ["0 + *", "zstar"]]
+    },
+    hash: {
+      tag: L("Tastierino", "Keypad"), title: L("Tasto #", "Key #"),
+      rows: [["short", L("Agisce al rilascio: un passo di precisione in più (Secondi: +P; F-Stop: Offset +1). In Focus alza la luminosità dell'LCD.", "Acts on release: one precision step more (Seconds: +P; F-Stop: Offset +1). In Focus it brightens the LCD.")],
+        ["hold", L("Abilitazione relè del Canale attivo (icona ⚡&#xFE0E;): spenta, l'Esposizione fa girare il tempo a lampada spenta. Beep di Conferma, muto se il mute è attivo. L'azione breve non viene eseguita.", "Relay enable of the active Channel (⚡&#xFE0E; icon): when off, the exposure runs the time with the lamp off. Confirm beep, silent when muted. The short action is not performed.")],
+        ["chord", L(`Con ${K("0")} tenuto: 7 segmenti più luminoso (solo Focus).`, `With ${K("0")} held: 7-segment brighter (Focus only).`)]],
+      modes: [L("LCD più luminoso (8 livelli).", "LCD brighter (8 levels)."), L("Tempo più lungo di un passo.", "Time one step longer."), L("Primo Step più lungo di un passo.", "First Step one step longer.")],
+      exp: IGN, pause: IGN,
+      tries: [[L("Tenuto 1 s", "Hold 1 s"), "hashHold"], ["0 + #", "zhash"]]
+    },
+    channel: {
+      tag: L("Tastierino", "Keypad"), title: L("Canali A · B · C", "Channels A · B · C"),
+      rows: [["short", L("Attivano il Canale: ripristinano tutta l'impostazione di stampa salvata (Modalità, precisione, Avanzamento, tempo, Tempo base, Offset, Abilitazione relè). Uguale in ogni Modalità.", "Activate the Channel: they restore the whole saved print setting (mode, precision, advance, time, Base time, Offset, relay enable). Same in every mode.")]],
+      exp: IGN,
+      pause: L("Concludono la prova (Suono di fine) e poi passano al Canale premuto.", "End the strip (end sound), then switch to the pressed Channel.")
+    },
+    d: {
+      tag: L("Tastierino", "Keypad"), title: L("Tasto D", "Key D"),
+      rows: [["short", L("Azzera tempo impostato, Tempo base e Offset del Canale attivo. Con tempo zero, Countdown e Test strip rispondono al pulsante principale con il beep di errore.", "Clears set time, Base time and Offset of the active Channel. With time zero, Countdown and Test strip answer the main button with the error beep.")],
+        ["boot", L("Tenuto mentre si accende il timer apre il Menu di servizio.", "Held while the timer powers on, it opens the service menu.")]],
+      exp: IGN,
+      pause: L("Conclude soltanto la prova, con il Suono di fine.", "Only ends the strip, with the end sound.")
+    },
+    modeEnc: {
+      tag: "Encoder", title: L("Encoder della Modalità", "Mode encoder"),
+      rows: [["turn", L("Modalità successiva o precedente, in ciclo: Focus → Countdown → Test strip. Il tempo del Canale non cambia.", "Next or previous mode, cycling: Focus → Countdown → Test strip. The Channel's time does not change.")],
+        ["press", L("Solo in Test strip: alterna Avanzamento continuo (CO) e passo-passo (PP).", "Test strip only: toggles continuous (CO) and step-by-step (PP) advance.")]],
+      modes: [L("Pressione senza effetto.", "Press has no effect."), L("Pressione senza effetto.", "Press has no effect."), L("Pressione: CO ↔ PP.", "Press: CO ↔ PP.")],
+      exp: IGN,
+      pause: L("La rotazione conclude la prova (Suono di fine) e cambia Modalità; la pressione è ignorata.", "Turning ends the strip (end sound) and changes mode; pressing is ignored."),
+      tries: [["◀", "modeTurn", -1], ["▶", "modeTurn", 1], [L("Premi", "Press"), "modeClick"]]
+    },
+    precEnc: {
+      tag: "Encoder", title: L("Encoder della precisione", "Precision encoder"),
+      rows: [["turn", L("Valore successivo o precedente fra gli 11 della lista, in ciclo. In F-Stop il tempo si ricalcola dal Tempo base con lo stesso Offset.", "Next or previous of the 11 values, cycling. In F-Stop the time is recomputed from the Base time with the same Offset.")],
+        ["press", L("Cambia tipo, Secondi ↔ F-Stop: il tempo attuale diventa il Tempo base, Offset zero.", "Switches type, Seconds ↔ F-Stop: the current time becomes the Base time, Offset zero.")]],
+      modes: [L("Ignorato: in Focus non c'è precisione.", "Ignored: Focus has no precision."), L("Passo di * e #.", "Step of * and #."), L("Passo di * e # e distanza fra gli Step.", "Step of * and # and spacing between Steps.")],
+      exp: IGN, pause: IGN,
+      tries: [["◀", "precTurn", -1], ["▶", "precTurn", 1], [L("Premi", "Press"), "precClick"]]
+    },
+    main: {
+      tag: L("Pulsante", "Button"), title: L("Pulsante principale", "Main button"),
+      rows: [["press", L("Agisce alla pressione, dopo 20 ms di contatto stabile. A timer fermo avvia l'Esposizione (Suono di avvio) e salva le impostazioni; durante l'Esposizione la annulla: lampada spenta, Suono di fine.", "Acts on press, after 20 ms of stable contact. With the timer idle it starts the exposure (start sound) and saves the settings; during the exposure it cancels it: lamp off, end sound.")]],
+      modes: [L("Accende la lampada e conta il tempo trascorso; la seconda pressione la spegne. Spegnimento automatico dopo il tempo massimo.", "Turns the lamp on and counts elapsed time; the second press turns it off. Auto-off after the maximum time."),
+        L("Conto alla rovescia del tempo impostato; con tempo zero, beep di errore. Finita l'Esposizione, un'altra pressione la ripete.", "Counts down the set time; with time zero, error beep. Once finished, another press repeats it."),
+        L("Avvia la prova dal primo Step; con tempo zero, beep di errore.", "Starts the strip from the first Step; with time zero, error beep.")],
+      exp: L("È l'unico comando attivo: annulla l'Esposizione.", "The only active control: it cancels the exposure."),
+      pause: L("Riprende: lampada accesa solo per l'incremento fino allo Step successivo.", "Resumes: lamp on only for the increment up to the next Step.")
+    }
+  };
+  const GLYPH = { digits: "1–9", zero: "0", star: "*", hash: "#", channel: "A B C", d: "D", modeEnc: "M", precEnc: "P", main: "●" };
+  const MODE_C = ["var(--amber)", "var(--cyan)", "var(--magenta)"];
+  let current = "main";
+
+  function renderInspector() {
+    const i = INFO[current], mode = S.c[S.ch].mode;
+    let h = `<div class="insp-head"><div class="insp-glyph" aria-hidden="true">${GLYPH[current]}</div><div><span class="tag">${i.tag}</span><h3>${i.title}</h3></div></div><div class="insp-rows">`;
+    for (const [k, v] of i.rows) h += `<div class="insp-row"><span class="lbl">${LBL[k]}</span><p>${v}</p></div>`;
+    if (i.modes) {
+      h += `<div class="insp-row"><span class="lbl">${LBL.modes}</span><div class="by-mode">` +
+        i.modes.map((m, n) => `<div style="--c:${MODE_C[n]}"${n === mode ? ' class="now"' : ""}><b>${MODES[n]}</b><span>${m}</span></div>`).join("") +
+        "</div></div>";
+    }
+    h += `<div class="insp-row lock"><span class="lbl">${LBL.exp}</span><p>${i.exp}</p></div>`;
+    h += `<div class="insp-row pause"><span class="lbl">${LBL.pause}</span><p>${i.pause}</p></div></div>`;
+    if (i.tries) {
+      h += `<div class="tries"><span class="ctl-name">${L("Prova", "Try")}</span>` +
+        i.tries.map(([lbl, inp, arg], n) => `<button type="button" class="try" data-n="${n}">${lbl}</button>`).join("") + "</div>";
+    }
+    const ins = document.getElementById("inspector");
+    ins.innerHTML = h;
+    ins.querySelectorAll(".try").forEach((b) => b.addEventListener("click", () => {
+      const [, inp, arg] = i.tries[+b.dataset.n];
+      if (inp === "modeTurn" || inp === "precTurn") spin(current, arg);
+      act(inp, arg || 0);
+      renderSim();
+      renderInspector();
+    }));
+  }
+
+  function spin(ctl, dir) {
+    knobRot[ctl] += dir * 30;
+    document.getElementById(ctl === "modeEnc" ? "knobMode" : "knobPrec").style.setProperty("--rot", knobRot[ctl] + "deg");
+  }
+
+  const controls = document.querySelectorAll("[data-ctl]");
+  controls.forEach((b) => b.addEventListener("click", () => {
+    current = b.dataset.ctl;
+    controls.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    const inp = b.dataset.in, arg = b.dataset.arg ? +b.dataset.arg : 0;
+    if (inp) {
+      if (inp === "modeTurn" || inp === "precTurn") spin(current, arg);
+      act(inp, arg);
+      renderSim();
+    }
+    renderInspector();
+  }));
+
+  function aria() {
+    const en = isEn();
+    document.querySelectorAll("[data-aria-it]").forEach((el) => el.setAttribute("aria-label", en ? el.dataset.ariaEn : el.dataset.ariaIt));
+  }
+
+  reset();
+  renderSim();
+  renderInspector();
+  aria();
+  document.querySelector('[data-ctl="main"]').setAttribute("aria-pressed", "true");
+  document.addEventListener("r080:lang", () => { aria(); renderSim(); });
+})();
+</script>
+</body>
+</html>

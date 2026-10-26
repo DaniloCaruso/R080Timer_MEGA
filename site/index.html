@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="it" data-lang="it" data-title-it="R080 Timer · timer per camera oscura" data-title-en="R080 Timer · darkroom enlarger timer">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>R080 Timer · timer per camera oscura</title>
+<meta name="description" content="R080 Timer: timer per ingranditore da camera oscura su Arduino Mega 2560, preciso al millisecondo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr);
+  gap: 36px;
+  align-items: center;
+  padding-block: 12px 8px;
+}
+.hero h1 { font-size: clamp(38px, 6.6vw, 82px); }
+.hero .lede { font-size: 17px; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font: 600 14px/1 var(--body);
+  text-decoration: none;
+  border: 1px solid var(--line-2);
+  color: var(--fg);
+  background: var(--panel);
+  transition: transform .2s ease, border-color .2s ease;
+}
+.btn:hover { transform: translateY(-1px); border-color: var(--violet); color: var(--fg); }
+.btn.primary { background: linear-gradient(120deg, var(--violet), var(--magenta)); border-color: transparent; color: #12081f; }
+
+/* the timer, drawn */
+.device {
+  position: relative;
+  aspect-ratio: 5 / 4;
+  max-width: 100%;
+  border-radius: 28px;
+  border: 1px solid var(--line-2);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(169, 133, 255, .18), transparent 60%),
+    linear-gradient(160deg, #241549, #150c2c);
+  box-shadow: 0 40px 90px -40px rgba(255, 92, 200, .45), 0 0 0 1px rgba(255, 255, 255, .03) inset;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 16px;
+  padding: 26px;
+  overflow: hidden;
+}
+.seg {
+  border-radius: 14px;
+  background: linear-gradient(150deg, #e11d3f, #a50f2c);
+  padding: 12px;
+  box-shadow: 0 0 40px -10px rgba(255, 46, 76, .7);
+}
+.seg-screen {
+  border-radius: 9px;
+  background: #0c0508;
+  text-align: center;
+  font: 700 clamp(44px, 7vw, 86px)/1.15 var(--mono);
+  letter-spacing: .06em;
+  color: #ff2e4c;
+  text-shadow: 0 0 18px rgba(255, 46, 76, .85), 0 0 4px rgba(255, 120, 140, .9);
+  font-variant-numeric: tabular-nums;
+}
+.lcd {
+  border-radius: 10px;
+  padding: 8px;
+  background: #101015;
+}
+.lcd-screen {
+  border-radius: 6px;
+  background: linear-gradient(180deg, #ff4766, #c3133a);
+  color: #3d0414;
+  font: 700 clamp(13px, 1.9vw, 21px)/1.35 var(--mono);
+  padding: 8px 12px;
+  white-space: pre;
+  overflow: hidden;
+}
+.knobs { display: flex; align-items: center; justify-content: space-around; gap: 16px; }
+.knob {
+  width: clamp(54px, 7vw, 80px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #fff, #cfd4e2 35%, #6c7389);
+  box-shadow: 0 0 0 7px #2b2f3d, 0 10px 24px rgba(0, 0, 0, .5);
+  position: relative;
+}
+.knob::after { content: ""; position: absolute; left: 50%; top: 14%; width: 10%; height: 30%; border-radius: 3px; background: #3a3f52; transform: translateX(-50%); }
+.go {
+  width: clamp(64px, 8.5vw, 96px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 30%, #ffb3ea, var(--magenta) 45%, #8a1f78);
+  box-shadow: 0 0 0 8px #0b0715, 0 0 40px rgba(255, 92, 200, .55);
+  animation: breathe 3.2s ease-in-out infinite;
+}
+@keyframes breathe { 50% { box-shadow: 0 0 0 8px #0b0715, 0 0 70px rgba(255, 92, 200, .8); } }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.stat { padding: 16px 18px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); display: grid; gap: 4px; }
+.stat b { font: 700 26px/1.1 var(--display); color: var(--c, var(--fg)); font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 13.5px; }
+
+.pages .card { gap: 10px; padding: 20px; }
+.pages .card h3 { font-size: 19px; }
+.pages .card .go-arrow { font: 600 13px/1 var(--mono); color: var(--c); }
+
+.news { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.news li { padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); font-size: 14px; }
+.news li b { color: var(--fg); display: block; margin-bottom: 2px; font-weight: 600; }
+
+@media (max-width: 860px) {
+  .hero { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body data-page="index.html">
+<main class="page">
+
+  <section class="hero" aria-labelledby="title">
+    <div class="page-head">
+      <div class="eyebrow"><span lang="it">Arduino Mega 2560 · firmware v2.0.0</span><span lang="en">Arduino Mega 2560 · firmware v2.0.0</span></div>
+      <h1 id="title">R080 Timer</h1>
+      <p class="lede" lang="it">Un timer per ingranditore da camera oscura che spegne la lampada <b>al millisecondo esatto</b>. Focus, Countdown e Test strip, tre canali che ricordano tutta l'impostazione di stampa, F-Stop, display rossi pensati per il buio.</p>
+      <p class="lede" lang="en">A darkroom enlarger timer that switches the lamp off <b>to the exact millisecond</b>. Focus, Countdown and Test strip, three channels that remember the whole print setting, F-stop steps, red displays made for the dark.</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="funzioni.html"><span lang="it">Scopri le funzioni</span><span lang="en">See the features</span> →</a>
+        <a class="btn" href="pinout.html"><span lang="it">Pinout interattivo</span><span lang="en">Interactive pinout</span></a>
+        <a class="btn" href="https://github.com/DaniloCaruso/R080Timer_MEGA">GitHub</a>
+      </div>
+    </div>
+    <div class="device" role="img" aria-label="Il timer R080 in Countdown: 10,0 secondi, canale A / The R080 timer in Countdown: 10.0 seconds, channel A">
+      <div class="seg"><div class="seg-screen" id="seg">010.0</div></div>
+      <div class="lcd"><div class="lcd-screen" id="lcd">COUNTDOWN  [S]
+ 5s      Ch:A♪</div></div>
+      <div class="knobs" aria-hidden="true"><div class="knob"></div><div class="go"></div><div class="knob"></div></div>
+    </div>
+  </section>
+
+  <section class="stats" aria-label="In breve / At a glance">
+    <div class="stat" style="--c: var(--magenta)"><b>±1 ms</b><span lang="it">spegnimento del relè dalla ISR di Timer1</span><span lang="en">relay switch-off from the Timer1 ISR</span></div>
+    <div class="stat" style="--c: var(--violet)"><b>3 + 3</b><span lang="it">modalità e canali con memoria completa</span><span lang="en">modes, and channels with full memory</span></div>
+    <div class="stat" style="--c: var(--cyan)"><b>1/64</b><span lang="it">stop: la frazione più fine dell'F-Stop</span><span lang="en">stop: the finest F-stop fraction</span></div>
+    <div class="stat" style="--c: var(--amber)"><b>500 ms</b><span lang="it">watchdog: oltre, la lampada si spegne e la scheda riparte</span><span lang="en">watchdog: past it the lamp goes off and the board restarts</span></div>
+  </section>
+
+  <section class="pages" aria-labelledby="explore">
+    <h2 id="explore"><span lang="it">Esplora</span><span lang="en">Explore</span></h2>
+    <div class="grid">
+      <a class="card" href="pinout.html" style="--c: var(--cyan)">
+        <span class="tag">Pinout</span>
+        <h3><span lang="it">Ogni filo, acceso</span><span lang="en">Every wire, lit up</span></h3>
+        <p lang="it">La scheda e i componenti disegnati: tocca un pezzo e la sua pista si illumina con la spiegazione tecnica.</p>
+        <p lang="en">The board and its parts, drawn: tap a part and its trace lights up with a technical note.</p>
+        <span class="go-arrow">pinout.html →</span>
+      </a>
+      <a class="card" href="funzioni.html" style="--c: var(--violet)">
+        <span class="tag"><span lang="it">Funzioni e comandi</span><span lang="en">Features and controls</span></span>
+        <h3><span lang="it">Cosa fa ogni tasto</span><span lang="en">What every key does</span></h3>
+        <p lang="it">Modalità, canali, F-Stop, tastierino, encoder, pulsante, display e suoni, con pressioni brevi e lunghe.</p>
+        <p lang="en">Modes, channels, F-stop, keypad, encoders, button, displays and sounds, short and long presses.</p>
+        <span class="go-arrow">funzioni.html →</span>
+      </a>
+      <a class="card" href="flussi.html" style="--c: var(--magenta)">
+        <span class="tag"><span lang="it">Flussi</span><span lang="en">Flows</span></span>
+        <h3><span lang="it">Il timer, passo per passo</span><span lang="en">The timer, step by step</span></h3>
+        <p lang="it">Diagrammi animati: avvio, esposizione, test strip, salvataggio, menu di servizio.</p>
+        <p lang="en">Animated diagrams: boot, exposure, test strip, saving, service menu.</p>
+        <span class="go-arrow">flussi.html →</span>
+      </a>
+      <a class="card" href="installazione.html" style="--c: var(--amber)">
+        <span class="tag"><span lang="it">Installazione</span><span lang="en">Setup</span></span>
+        <h3><span lang="it">Dal banco alla camera oscura</span><span lang="en">From the bench to the darkroom</span></h3>
+        <p lang="it">Componenti, cablaggio, caricamento del firmware, calibrazione del clock e collaudo.</p>
+        <p lang="en">Parts, wiring, flashing the firmware, clock calibration and acceptance test.</p>
+        <span class="go-arrow">installazione.html →</span>
+      </a>
+    </div>
+  </section>
+
+  <section aria-labelledby="new">
+    <h2 id="new"><span lang="it">Novità della v2.0.0</span><span lang="en">New in v2.0.0</span></h2>
+    <ul class="news">
+      <li lang="it"><b>Tempo deciso in hardware</b>Timer1 a 1 kHz è l'unico orologio dell'esposizione e spegne il relè dentro l'interrupt.</li>
+      <li lang="en"><b>Timing decided in hardware</b>Timer1 at 1 kHz is the only exposure clock and switches the relay off inside the interrupt.</li>
+      <li lang="it"><b>Canali completi</b>A, B e C ricordano modalità, precisione, avanzamento, tempo, base F-Stop e relè.</li>
+      <li lang="en"><b>Full channels</b>A, B and C remember mode, precision, advance, time, F-stop base and relay enable.</li>
+      <li lang="it"><b>Sicurezza</b>Watchdog, relè spento all'avvio e in ogni errore, impostazioni protette da CRC8.</li>
+      <li lang="en"><b>Safety</b>Watchdog, relay off at boot and on any fault, settings protected by CRC8.</li>
+      <li lang="it"><b>Menu di servizio</b>Diagnostica, test di ogni componente, calibrazione del clock in ppm.</li>
+      <li lang="en"><b>Service menu</b>Diagnostics, a test for every part, clock calibration in ppm.</li>
+    </ul>
+  </section>
+
+</main>
+<footer class="site">
+  <span lang="it">R080 Timer · firmware per Arduino Mega 2560 · documentazione del firmware v2.0.0</span>
+  <span lang="en">R080 Timer · Arduino Mega 2560 firmware · documentation for firmware v2.0.0</span>
+</footer>
+<script src="assets/site.js"></script>
+<script>
+// A quiet Countdown on the drawn timer: 10.0 s down to 0, then back to the set time.
+(function () {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const seg = document.getElementById("seg");
+  let ds = 100;
+  setInterval(() => {
+    ds = ds > 0 ? ds - 1 : 100;
+    seg.textContent = String(Math.floor(ds / 10)).padStart(3, "0") + "." + (ds % 10);
+  }, 100);
+})();
+</script>
+</body>
+</html>
