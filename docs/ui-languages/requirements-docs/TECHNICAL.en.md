@@ -15,7 +15,7 @@ The target is a single domain module, `Texts`, with a table in flash: one identi
 - **Domain without Arduino** (CLAUDE.md): `Texts` lives in `lib/r080_core/` and uses only `Flash.h` (`PROGMEM`, `fbyte`) for the table in flash.
 - **RAM:** no `String` and no dynamic allocation. The texts stay in `PROGMEM` and are not copied to RAM: `text()` returns the flash pointer, which `putF()`, `fmemcpy` and `fsnprintf` already accept.
 - **No blocking in the loop:** changing the language adds no waits. `Screen::render()` still sends only the differences, at most one row per pass.
-- **EEPROM:** saving stays `Settings::service()` with `writeBlockStep()`, one byte per pass and `eeprom_update_*` in the driver. The settings block (`0x000`) grows from 43 to 44 bytes and stays below the counters block (`0x040` = 64).
+- **EEPROM:** saving stays `Settings::service()` with `writeBlockStep()`, one byte per pass and `eeprom_update_*` in the driver. The settings block (`0x000`) grows from 43 to 45 bytes and stays below the counters block (`0x040` = 64).
 - **LCD layout** (requirement 7.5 of the `firmware-rewrite` feature): positions do not change. Translated texts sit in the same columns: Advance 14–15, `Ch:` 9–11, `St:` 0–2, items after `>` in columns 1–15.
 - **Tests** (CLAUDE.md): only the two seams. New tests go in `test/test_timer/` (whole domain with fake drivers), with no fakes of internal modules. The table check uses the public `Texts` API.
 - **USB log:** the `EventLog::print` formats in `Controller.cpp` and `Screen.cpp` (`BOOT`, `START`, `END`, `CANCEL`, `CAL`, `ERROR settings=factory`, `LCD offline/online`) do not go through `Texts` (REQ-1.4).
@@ -101,10 +101,10 @@ The target is a single domain module, `Texts`, with a table in flash: one identi
 - **Satisfies:** REQ-3.1, REQ-3.2, REQ-3.3, REQ-3.4, REQ-3.5
 - **Current state:** `GlobalRecord {uint8_t activeChannel, mute, lcdLevel, segLevel, lcdExposureLevel, focusLimitIndex; int16_t clockPpm;}`, 8 bytes. `static_assert(sizeof(SettingsData) == 38)`. In `Settings.cpp`: `VERSION = 1`, `BLOCK_LEN = 43`, `kFactory = {{0, 0, 3, 3, 1, 1, 0}, …}`. `inRange()` rejects out-of-table indexes and `load()` uses `kFactory` when the block is invalid.
 - **Change:**
-  - `GlobalRecord`: new field `uint8_t language;` after `focusLimitIndex`, before `clockPpm`. This keeps `int16_t` aligned, and on AVR there is no padding; the block is checked byte for byte by `static_assert` anyway.
-  - `static_assert(sizeof(SettingsData) == 39, …)`.
-  - `Settings.cpp`: `VERSION = 2`, `BLOCK_LEN` becomes 44 (computed as today), `kFactory = {{0, 0, 3, 3, 1, 1, LANG_IT, 0}, …}`. The factory-values comment mentions the Italian language.
-  - EEPROM map `0x000`: `'R'`, `'8'`, version 2, length 44 | `GlobalRecord` (9 bytes) | 3 × `ChannelRecord` (30 bytes) | CRC8.
+  - `GlobalRecord`: new fields `uint8_t language;` and `uint8_t reserved;` (always 0) after `focusLimitIndex`, before `clockPpm`. The reserved byte keeps `clockPpm` at an even offset: without it the compiler adds a padding byte on the PC that does not exist on AVR, and the tests' EEPROM image would differ from the board's (found by `static_assert` during implementation).
+  - `static_assert(sizeof(SettingsData) == 40, …)`.
+  - `Settings.cpp`: `VERSION = 2`, `BLOCK_LEN` becomes 45 (computed as today), `kFactory = {{0, 0, 3, 3, 1, 1, LANG_IT, 0, 0}, …}`. The factory-values comment mentions the Italian language.
+  - EEPROM map `0x000`: `'R'`, `'8'`, version 2, length 45 | `GlobalRecord` (10 bytes: language at byte 10, reserved at 11, clock correction at 12-13) | 3 × `ChannelRecord` (30 bytes) | CRC8.
   - `load()`: after the check, if `ok && d.g.language >= LANG_COUNT` then `d.g.language = LANG_IT` and `load()` returns `true` (REQ-3.5). `inRange()` does not check the language, so an unknown value does not discard the other settings.
   - A block with version 1 fails `b[2] == VERSION` and leads to `kFactory` (REQ-3.4), already today with no new code.
   - `factoryReset()` stays `d = kFactory` and therefore sets the language to `LANG_IT` (REQ-3.3).
@@ -184,7 +184,7 @@ The target is a single domain module, `Texts`, with a table in flash: one identi
   - The READMEs list the Service menu functions.
 - **Change:**
   - Manuals: `Lingua/Language` item in the §10 table; "the LCD texts are in Italian or English, chosen in the Lingua/Language item"; Italian among the factory values; an upgrade note from v2.0.0. In `DOCS.md` items are named in their English form, with the Italian in brackets where useful.
-  - `TECNICO.md`: §7 with 44 bytes, version 2 and a 9-byte `GlobalRecord` including the language; §9 with 16 items; module table with `Texts.{h,cpp}`.
+  - `TECNICO.md`: §7 with 45 bytes, version 2 and a 10-byte `GlobalRecord` with the language and the reserved byte; §9 with 16 items; module table with `Texts.{h,cpp}`.
   - READMEs (`README.md`, `README-IT.md`): "LCD language (Italian/English)" in the Service menu list, and a restyle in the style of the `main` README. At the top the banner `docs/assets/r080-banner.svg` (arrives from `main` with the rebase) and the badges: the branch's `firmware.yml` CI, site, CC BY-NC-SA 4.0 licence, version 2.1.0. Then links to the site pages and the features in compact tables; pinout, build and documents stay.
 - **Expected behaviour:** manuals and code describe the same menu.
 - **Verification:** reread; `grep -n "in italiano" DOCS-IT.md` no longer finds the old sentence; README preview on GitHub (banner and badges visible, links working).
