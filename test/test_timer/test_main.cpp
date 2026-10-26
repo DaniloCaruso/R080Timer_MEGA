@@ -8,6 +8,7 @@
 #include <ServiceMenu.h>
 #include <Settings.h>
 #include <SoundScheduler.h>
+#include <Texts.h>
 #include "../fakes/FakeBuzzer.h"
 #include "../fakes/FakeLcd.h"
 #include "../fakes/FakeLog.h"
@@ -1946,6 +1947,28 @@ static void test_exposure_ending_during_cancel_is_counted_once() {
   TEST_ASSERT_EQUAL_UINT8(0, t.log.count("END ms=1000 measured=1000"));
 }
 
+// ui-languages REQ-1.1, REQ-1.5, REQ-4.1..4.3: ogni testo esiste in ogni lingua, sta nelle sue
+// colonne e usa solo ASCII stampabile.
+static void test_every_text_exists_fits_and_is_printable_in_every_language() {
+  char msg[48];
+  for (uint8_t id = 0; id < TEXT_COUNT; id++)
+    for (uint8_t lang = 0; lang < LANG_COUNT; lang++) {
+      const char* s = text(TextId(id), lang);
+      snprintf(msg, sizeof msg, "testo %u, lingua %u", id, lang);
+      TEST_ASSERT_TRUE_MESSAGE(s[0] != '\0', msg);
+      TEST_ASSERT_TRUE_MESSAGE(strlen(s) <= textWidth(TextId(id)), msg);
+      for (const char* c = s; *c; c++) TEST_ASSERT_TRUE_MESSAGE(*c >= 0x20 && *c <= 0x7E, msg);
+    }
+  TEST_ASSERT_EQUAL_STRING("Italiano", languageName(LANG_IT));
+  TEST_ASSERT_EQUAL_STRING("English", languageName(LANG_EN));
+}
+
+// Una lingua sconosciuta vale l'italiano.
+static void test_unknown_language_reads_italian_texts() {
+  TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO", text(T_MENU_TITLE, LANG_COUNT));
+  TEST_ASSERT_EQUAL_STRING("SERVICE MENU", text(T_MENU_TITLE, LANG_EN));
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_exposure_ending_just_before_press_does_not_close_the_next);
@@ -2054,5 +2077,7 @@ int main() {
   RUN_TEST(test_key_d_in_pause_concludes_stepped_strip);
   RUN_TEST(test_channel_in_pause_concludes_stepped_strip_and_switches_channel);
   RUN_TEST(test_mode_turn_in_pause_concludes_stepped_strip_and_changes_mode);
+  RUN_TEST(test_every_text_exists_fits_and_is_printable_in_every_language);
+  RUN_TEST(test_unknown_language_reads_italian_texts);
   return UNITY_END();
 }
