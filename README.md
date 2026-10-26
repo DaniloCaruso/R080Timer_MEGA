@@ -1,19 +1,39 @@
-# R080 Timer
+<p align="center">
+  <img src="docs/assets/r080-banner.svg" alt="R080 Timer: darkroom enlarger timer on Arduino Mega 2560" width="100%">
+</p>
 
-[Versione italiana](README-IT.md)
+<p align="center">
+  <a href="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/firmware.yml?query=branch%3Afeature%2Farduino-mega-firmware"><img src="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/firmware.yml/badge.svg?branch=feature/arduino-mega-firmware" alt="Firmware CI"></a>
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/"><img src="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/pages.yml/badge.svg" alt="Site"></a>
+  <img src="https://img.shields.io/badge/firmware-v2.1.0-a985ff?style=flat-square" alt="Firmware v2.1.0">
+  <img src="https://img.shields.io/badge/board-Arduino%20Mega%202560-45e0ff?style=flat-square" alt="Arduino Mega 2560">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-ff5cc8?style=flat-square" alt="License CC BY-NC-SA 4.0"></a>
+</p>
 
-Darkroom enlarger timer on Arduino Mega 2560. Firmware v2.0.0, written in C++ with PlatformIO.
+<p align="center">
+  <b><a href="https://danilocaruso.github.io/R080Timer_MEGA/">Site</a></b> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/pinout.html">Pinout</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/funzioni.html">Features and controls</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/flussi.html">Flows</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/installazione.html">Setup</a> ·
+  <a href="README-IT.md">Italiano</a>
+</p>
 
-## Features
+Darkroom enlarger timer on Arduino Mega 2560: it decides how long the light exposes the paper. Firmware v2.1.0, written in C++ with PlatformIO and tested on the PC. The time is counted by Timer1, so the lamp turns off to the millisecond.
 
-- Three Modes: Focus with automatic shut-off, Countdown, continuous or step-by-step Test strip.
-- Precision in Seconds or F-Stop (1/1 to 1/64 of a stop), with the Offset shown on the LCD.
-- Three Channels (`A`, `B`, `C`), each holding a complete print setting, saved in EEPROM.
-- Time measured by Timer1 at 1 kHz: the lamp turns off to the millisecond, with clock correction in ppm.
-- Darkroom lights: LCD always red, 8 brightness levels for LCD and 7-segment, LCD dimmed during the Exposure.
-- Distinct sounds for start, Metronome, Pre-warning, Step, end; mute.
-- Safety: relay off at power-on and on every reset, watchdog, debounce, timer working even without the LCD.
-- Service menu: counters, system health, a test for every component, calibration, factory reset. Event log over USB.
+## What it does
+
+| Modes | Precision | Safety |
+|---|---|---|
+| **Focus** with automatic shut-off | **Seconds** or **F-Stop**, from 1/1 to 1/64 of a stop | Lamp off at power-on and on every reset |
+| **Countdown** with Metronome | Offset in stops always on the LCD | Watchdog: lamp off within 250 ms |
+| **Test strip**, continuous or step-by-step | Clock correction in ppm | The timer keeps working even without the LCD |
+
+| Channels | Darkroom lights and sounds | Service menu |
+|---|---|---|
+| `A`, `B`, `C`: each holds a complete print setting | LCD always red, 8 brightness levels for LCD and 7-segment | Counters, system health, a test for every component |
+| Saved in EEPROM, restored at power-on | LCD dimmed during the Exposure | Clock calibration, factory reset, event log over USB |
+| | Distinct sounds for start, Metronome, Pre-warning, Step, end; mute | LCD texts in **Italian or English** (`Lingua/Language`) |
 
 ## Hardware
 
@@ -32,7 +52,7 @@ Arduino Mega 2560, Waveshare 1602 RGB LCD (I²C), serial 7-segment display, 4x4 
 
 Details in [PINOUT.md](PINOUT.md) (Italian).
 
-**Upgrading from v1.** Move the 7-segment wire from A2 to D14 and add the 10 kΩ resistor between D47 and GND. At the first power-on the settings start from factory values.
+**Upgrading.** From v1: move the 7-segment wire from A2 to D14 and add the 10 kΩ resistor between D47 and GND. From v1 or v2.0.0: at the first power-on the settings start from factory values (Italian language).
 
 ## Build and upload
 
@@ -56,7 +76,7 @@ After the first upload, calibrate the clock: see the manual, §11.
 - [TECNICO.md](TECNICO.md): firmware architecture (Italian)
 - [CHANGELOG.md](CHANGELOG.md): versions (Italian)
 - [GLOSSARY.md](GLOSSARY.md): project vocabulary (Italian)
-- `docs/firmware-rewrite/`: v2 requirements and decisions
+- `docs/firmware-rewrite/`, `docs/ui-languages/`: v2 requirements and decisions
 - `tools/calibrate.py`: clock calibration from a PC
 
 ## License

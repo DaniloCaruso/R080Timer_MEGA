@@ -1,4 +1,4 @@
-# R080 Timer — Manuale d'uso (firmware v2.0.0)
+# R080 Timer — Manuale d'uso (firmware v2.1.0)
 
 [English version](DOCS.md)
 
@@ -166,9 +166,9 @@ I tasti `A`, `B` e `C` richiamano tre Canali. Ogni Canale è un'impostazione di 
 
 **Memoria.** Le impostazioni si salvano da sole 2 s dopo l'ultima modifica e all'avvio di ogni Esposizione: Canale attivo, i tre Canali, mute, luminosità e impostazioni del Menu di servizio. All'accensione si ritrova tutto com'era.
 
-**Valori di fabbrica.** Per ogni Canale: Countdown, Secondi 1 s, Avanzamento continuo, 10,0 s, Abilitazione relè attiva. Globali: Canale A, mute spento, LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus massimo 5 minuti, Correzione del clock 0 ppm.
+**Valori di fabbrica.** Per ogni Canale: Countdown, Secondi 1 s, Avanzamento continuo, 10,0 s, Abilitazione relè attiva. Globali: Canale A, mute spento, LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus massimo 5 minuti, lingua italiana, Correzione del clock 0 ppm.
 
-Alla prima accensione con la v2.0.0 le impostazioni della versione precedente non vengono lette: il timer parte dai valori di fabbrica.
+Alla prima accensione con la v2.1.0 le impostazioni delle versioni precedenti (v1 e v2.0.0) non vengono lette: il timer parte dai valori di fabbrica.
 
 ## 7. Suoni e mute
 
@@ -201,7 +201,7 @@ Alla prima accensione con la v2.0.0 le impostazioni della versione precedente no
 
 ## 10. Menu di servizio
 
-Si apre tenendo premuto `D` mentre si accende il timer (fino alla schermata iniziale). Nel menu non si avviano Esposizioni. I testi sull'LCD sono in italiano.
+Si apre tenendo premuto `D` mentre si accende il timer (fino alla schermata iniziale). Nel menu non si avviano Esposizioni. I testi sull'LCD sono in italiano o in inglese, a scelta nella voce Lingua/Language (di fabbrica italiano).
 
 | Comando | Azione |
 |---|---|
@@ -228,7 +228,8 @@ Un valore fuori dai limiti dà il beep di errore e resta da reinserire; uno acce
 | Calibrazione | Tre schermate: Log calibrazione, Correzione ppm, Durata 600 s (vedi §11) |
 | LCD esposizione | Livello dell'LCD durante l'Esposizione, da 1 a 8 |
 | Tempo max Focus | Minuti dello Spegnimento automatico: 3, 5, 10, 15 o 20 |
-| Ripristino fabb | Dentro la voce, una pressione chiede conferma e una seconda riporta tutte le impostazioni ai valori di fabbrica, Correzione del clock compresa (i contatori restano); `D` annulla |
+| Lingua/Language | Mostra la lingua dei testi dell'LCD (`Italiano` o `English`); ogni pressione passa all'altra lingua e la salva subito; `D` torna all'elenco, già nella nuova lingua. Il nome della voce è lo stesso nelle due lingue |
+| Ripristino fabb | Dentro la voce, una pressione chiede conferma e una seconda riporta tutte le impostazioni ai valori di fabbrica, Correzione del clock e lingua comprese (i contatori restano); `D` annulla |
 | Esci | Torna all'uso normale |
 
 Nei test ogni comando va al componente in prova; `D` esce.

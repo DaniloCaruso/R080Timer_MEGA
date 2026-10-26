@@ -2,6 +2,25 @@
 
 Versionamento semantico. Ogni rilascio è un tag `vX.Y.Z` sul commit verificato con la Checklist di collaudo firmata.
 
+## [2.1.0] — in collaudo
+
+Testi dell'LCD in italiano e in inglese, con la lingua scelta dal Menu di servizio.
+
+### Da fare per aggiornare dalla v2.0.0
+
+- Le impostazioni della v2.0.0 non vengono lette (blocco impostazioni alla versione 2): alla prima accensione il timer parte dai valori di fabbrica, in italiano.
+
+### Aggiunto
+
+- Voce `Lingua/Language` nel Menu di servizio, prima del ripristino di fabbrica: ogni pressione passa da italiano a inglese e viceversa, la scelta vale subito e si salva.
+- Tutti i testi dell'LCD in italiano e in inglese: schermata principale (Avanzamento `CO`/`PP`, in inglese `CO`/`SS`), messaggio `RESET: WDT`, Menu di servizio completo. Nomi delle Modalità, schermata di avvio e numeri restano uguali; il log su USB resta in inglese.
+- Test sul PC che bloccano traduzioni mancanti, troppo lunghe per la loro posizione o con caratteri che l'LCD non mostra.
+
+### Modificato
+
+- Il ripristino di fabbrica riporta anche la lingua all'italiano.
+- README rinnovati con banner, badge e link al sito.
+
 ## [2.0.0] — in collaudo
 
 Riscrittura completa del firmware per Arduino Mega 2560. Stesse funzioni e stessa mappa dei comandi della v1, con i difetti corretti e una base più sicura e misurabile. Il firmware v1 resta al tag `pre-rewrite`.
