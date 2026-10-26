@@ -61,4 +61,4 @@ Dopo il primo caricamento conviene calibrare il clock: vedi il manuale, §11.
 
 ## Licenza
 
-[CC0 1.0 Universal](LICENSE)
+[Creative Commons Attribuzione - Non commerciale - Condividi allo stesso modo 4.0 Internazionale](https://creativecommons.org/licenses/by-nc-sa/4.0/deed.it) (CC BY-NC-SA 4.0): il progetto si può condividere e modificare citando l'autore, non a fini commerciali e con la stessa licenza. Testo completo in [LICENSE](LICENSE).
