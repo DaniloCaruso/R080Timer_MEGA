@@ -185,7 +185,7 @@ L'obiettivo è un solo modulo di dominio, `Texts`, con una tabella in flash: un 
 - **Modifica:**
   - Manuali: voce `Lingua/Language` nella tabella del §10; "I testi sull'LCD sono in italiano o in inglese, a scelta nella voce Lingua/Language"; lingua italiana tra i valori di fabbrica; nota di aggiornamento dalla v2.0.0. In `DOCS.md` i nomi delle voci si citano nella forma inglese con l'italiano tra parentesi dove serve.
   - `TECNICO.md`: §7 con 44 byte, versione 2, `GlobalRecord` a 9 byte con la lingua; §9 con 16 voci; tabella dei moduli con `Texts.{h,cpp}`.
-  - README (`README.md`, `README-IT.md`): "lingua dell'LCD (italiano/inglese)" nell'elenco del Menu di servizio e restyling nello stile del README di `main`. In apertura il banner `docs/assets/r080-banner.svg` (arriva da `main` con il rebase) e i badge: CI `firmware.yml` del branch, sito, licenza CC0, versione 2.1.0. Poi i link alle pagine del sito e le funzioni in tabelle compatte; pinout, compilazione e documenti restano.
+  - README (`README.md`, `README-IT.md`): "lingua dell'LCD (italiano/inglese)" nell'elenco del Menu di servizio e restyling nello stile del README di `main`. In apertura il banner `docs/assets/r080-banner.svg` (arriva da `main` con il rebase) e i badge: CI `firmware.yml` del branch, sito, licenza CC BY-NC-SA 4.0, versione 2.1.0. Poi i link alle pagine del sito e le funzioni in tabelle compatte; pinout, compilazione e documenti restano.
 - **Comportamento atteso:** manuali e codice descrivono lo stesso menu.
 - **Verifica:** rilettura; `grep -n "in italiano" DOCS-IT.md` non trova più la frase vecchia; anteprima del README su GitHub (banner e badge visibili, link funzionanti).
 

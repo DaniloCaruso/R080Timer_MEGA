@@ -61,4 +61,4 @@ After the first upload, calibrate the clock: see the manual, §11.
 
 ## License
 
-[CC0 1.0 Universal](LICENSE)
+[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-nc-sa/4.0/) (CC BY-NC-SA 4.0): you may share and adapt the project with attribution, not for commercial purposes, and under the same licence. Full text in [LICENSE](LICENSE).
