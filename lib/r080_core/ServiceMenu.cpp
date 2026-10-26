@@ -3,22 +3,26 @@
 #include <stdio.h>
 #include <string.h>
 #include "ClockCorrection.h"
+#include "Texts.h"
 
-// Testi in flash (Flash.h): le righe si compongono con fsnprintf e putF.
+// Testi nella lingua scelta (Texts.h), in flash: le righe si compongono con fsnprintf e putF.
 // Le voci T_* sono i test hardware (REQ-9.5), contigue fra T_RELAY e T_MAIN_BUTTON.
 enum : uint8_t { INFO, COUNTERS, HEALTH, T_RELAY, T_BUZZER, T_SEVEN_SEG, T_LCD, T_KEYPAD, T_ENCODERS,
-                 T_MAIN_BUTTON, CALIBRATION, LCD_EXPOSURE, FOCUS_LIMIT, FACTORY, EXIT, ITEM_COUNT };
-static const char kItems[ITEM_COUNT][16] PROGMEM = {"Info",           "Contatori",       "Salute",
-                                            "Test rele",      "Test buzzer",     "Test 7 segmenti",
-                                            "Test LCD",       "Test tastierino", "Test encoder",
-                                            "Test pulsante",  "Calibrazione",    "LCD esposizione",
-                                            "Tempo max Focus", "Ripristino fabb", "Esci"};
-static const uint8_t kPages[ITEM_COUNT] = {1, 4, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1};  // schermate di ogni voce
-static const char kCounterTitles[4][16] PROGMEM = {"Accensioni", "Reset watchdog", "Esposizioni", "Ore lampada"};
-static const char kHealthTitles[3][16] PROGMEM = {"Loop max", "ISR max", "Tick persi"};
+                 T_MAIN_BUTTON, CALIBRATION, LCD_EXPOSURE, FOCUS_LIMIT, LANGUAGE, FACTORY, EXIT, ITEM_COUNT };
+static const uint8_t kItems[ITEM_COUNT] PROGMEM = {T_INFO,         T_COUNTERS,      T_HEALTH,        T_TEST_RELAY,
+                                                   T_TEST_BUZZER,  T_TEST_SEVEN_SEG, T_TEST_LCD,     T_TEST_KEYPAD,
+                                                   T_TEST_ENCODERS, T_TEST_BUTTON,  T_CALIBRATION,   T_LCD_EXPOSURE,
+                                                   T_FOCUS_LIMIT,  T_LANGUAGE,      T_FACTORY,       T_EXIT};
+static const uint8_t kPages[ITEM_COUNT] = {1, 4, 3, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1};  // schermate di ogni voce
+static const uint8_t kCounterTitles[4] PROGMEM = {T_POWER_ONS, T_WDT_RESETS, T_EXPOSURES, T_LAMP_HOURS};
+static const uint8_t kHealthTitles[3] PROGMEM = {T_LOOP_MAX, T_ISR_MAX, T_LOST_TICKS};
 // REQ-9.6, REQ-9.12: le tre schermate della Calibrazione.
 enum : uint8_t { CAL_LOG, CAL_PPM, CAL_MEASURE };
-static const char kCalTitles[3][17] PROGMEM = {"Log calibrazione", "Correzione ppm", "Durata 600 s"};
+static const uint8_t kCalTitles[3] PROGMEM = {T_CAL_LOG, T_CAL_PPM, T_CAL_MEASURE};
+
+// Il testo dell'elemento i di una delle tabelle di TextId qui sopra, nella lingua lang.
+static const char* textAt(const uint8_t* table, uint8_t i, uint8_t lang) { return text(TextId(fbyte(&table[i])), lang); }
+
 constexpr uint32_t CAL_NOMINAL_MS = 600000;  // Countdown di riferimento di 600,0 s
 
 void ServiceMenu::load() {
@@ -74,6 +78,12 @@ void ServiceMenu::click() {
       return;
     }
     set_.factoryReset();
+  } else if (item_ == LANGUAGE) {  // ui-languages REQ-2.3, REQ-2.5: si resta nella voce
+    g.language = (g.language + 1) % LANG_COUNT;
+    set_.changed();
+    set_.save();
+    sound_.play(Sound::Confirm);
+    return;
   } else {
     return;
   }
@@ -150,10 +160,11 @@ static void putF(char* row, const char* s, uint8_t n = 16) {
 }
 
 void ServiceMenu::compose(char rows[2][16]) const {
+  uint8_t lang = set_.d.g.language;
   if (!inside_) {
-    putF(rows[0], FSTR("MENU SERVIZIO"));
+    putF(rows[0], text(T_MENU_TITLE, lang));
     rows[1][0] = '>';
-    putF(&rows[1][1], kItems[item_], 15);
+    putF(&rows[1][1], textAt(kItems, item_, lang), 15);
     return;
   }
   if (item_ == T_LCD) {  // REQ-9.5: blocco pieno in ogni cella
@@ -162,7 +173,7 @@ void ServiceMenu::compose(char rows[2][16]) const {
   }
   char b[24];  // le righe oltre 16 caratteri (encoder) le taglia put()
   const CounterRecord& c = cnt_.d;
-  const char* title = kItems[item_];
+  const char* title = textAt(kItems, item_, lang);
   switch (item_) {
     case INFO:  // REQ-9.2
       fsnprintf(b, sizeof b, FSTR("R080 v%s"), version_);
@@ -170,7 +181,7 @@ void ServiceMenu::compose(char rows[2][16]) const {
       put(rows[1], date_);
       return;
     case COUNTERS:  // REQ-9.3
-      title = kCounterTitles[page_];
+      title = textAt(kCounterTitles, page_, lang);
       if (page_ == 3)
         fsnprintf(b, sizeof b, FSTR("%luh %02lum"), (unsigned long)(c.lampSeconds / 3600),
                  (unsigned long)(c.lampSeconds / 60 % 60));
@@ -178,47 +189,51 @@ void ServiceMenu::compose(char rows[2][16]) const {
         fsnprintf(b, sizeof b, FSTR("%lu"), (unsigned long)(page_ == 0 ? c.powerOns : page_ == 1 ? c.watchdogResets : c.exposures));
       break;
     case HEALTH:  // REQ-9.4
-      title = kHealthTitles[page_];
+      title = textAt(kHealthTitles, page_, lang);
       if (page_ == 0) fsnprintf(b, sizeof b, FSTR("%lu us"), (unsigned long)health_.loopMaxUs);
       else if (page_ == 1) fsnprintf(b, sizeof b, FSTR("%lu us"), (unsigned long)health_.isrMaxUs);
       else fsnprintf(b, sizeof b, FSTR("%lu"), (unsigned long)health_.lostTicks);
       break;
     case CALIBRATION:
-      title = kCalTitles[page_];
-      if (page_ == CAL_LOG) fsnprintf(b, sizeof b, log_ ? FSTR("Attivo, D: esci") : FSTR("Clic: avvia"));
+      title = textAt(kCalTitles, page_, lang);
+      if (page_ == CAL_LOG) fsnprintf(b, sizeof b, text(log_ ? T_LOG_ACTIVE : T_CLICK_START, lang));
       else if (page_ == CAL_PPM) fsnprintf(b, sizeof b, FSTR("ppm: %+ld"), (long)value_);
-      else fsnprintf(b, sizeof b, FSTR("%ld,%02ld s"), (long)(value_ / 100), (long)(value_ % 100));
+      else fsnprintf(b, sizeof b, text(T_DURATION_FMT, lang), (long)(value_ / 100), (long)(value_ % 100));
       break;
     case LCD_EXPOSURE:
-      fsnprintf(b, sizeof b, FSTR("Livello 1-8: %d"), int(value_));  // due cifre al massimo
+      fsnprintf(b, sizeof b, text(T_LEVEL_FMT, lang), int(value_));  // due cifre al massimo
       break;
     case FOCUS_LIMIT:
-      fsnprintf(b, sizeof b, FSTR("Minuti: %ld"), (long)value_);
+      fsnprintf(b, sizeof b, text(T_MINUTES_FMT, lang), (long)value_);
       break;
     case T_RELAY:
-      fsnprintf(b, sizeof b, hw_[0] ? FSTR("Clic: acceso") : FSTR("Clic: spento"));
+      fsnprintf(b, sizeof b, text(hw_[0] ? T_RELAY_ON : T_RELAY_OFF, lang));
       break;
     case T_BUZZER:
-      fsnprintf(b, sizeof b, FSTR("Suono %u: clic"), hw_[0] + 1);
+      fsnprintf(b, sizeof b, text(T_SOUND_FMT, lang), hw_[0] + 1);
       break;
     case T_SEVEN_SEG:
-      fsnprintf(b, sizeof b, FSTR("Accesi: 888.8"));
+      fsnprintf(b, sizeof b, text(T_SEG_ALL, lang));
       break;
     case T_KEYPAD:
-      fsnprintf(b, sizeof b, FSTR("Tasto: %c"), hw_[0] ? hw_[0] : '-');
+      fsnprintf(b, sizeof b, text(T_KEY_FMT, lang), hw_[0] ? hw_[0] : '-');
       break;
     case T_ENCODERS:
       fsnprintf(b, sizeof b, FSTR("M%+d c%u  P%+d c%u"), hw_[0], uint8_t(hw_[1]), hw_[2], uint8_t(hw_[3]));
       break;
     case T_MAIN_BUTTON:
-      fsnprintf(b, sizeof b, hw_[0] == 1 ? FSTR("Premuto") : hw_[0] == 2 ? FSTR("Rilasciato") : FSTR("Premi"));
+      fsnprintf(b, sizeof b, text(hw_[0] == 1 ? T_PRESSED : hw_[0] == 2 ? T_RELEASED : T_PRESS, lang));
       break;
     case FACTORY:
-      if (page_) title = FSTR("Confermi?");
-      fsnprintf(b, sizeof b, page_ ? FSTR("clic=Si D=No") : FSTR("Clic: ripristina"));
+      if (page_) title = text(T_CONFIRM_Q, lang);
+      fsnprintf(b, sizeof b, text(page_ ? T_YES_NO : T_CLICK_RESET, lang));
+      break;
+    case LANGUAGE:  // ui-languages REQ-2.2: il nome nella sua lingua
+      title = text(T_LANGUAGE, lang);
+      fsnprintf(b, sizeof b, languageName(lang));
       break;
     default:
-      fsnprintf(b, sizeof b, FSTR("Clic: conferma"));
+      fsnprintf(b, sizeof b, text(T_CLICK_CONFIRM, lang));
       break;
   }
   putF(rows[0], title);
