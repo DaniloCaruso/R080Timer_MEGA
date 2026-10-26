@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="420" viewBox="0 0 1280 420" role="img" aria-label="R080 Timer: darkroom enlarger timer on Arduino Mega 2560">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1a0f31"/><stop offset="1" stop-color="#0d0619"/></linearGradient>
+<radialGradient id="g1" cx="0.12" cy="0" r="0.6"><stop offset="0" stop-color="#a985ff" stop-opacity=".35"/><stop offset="1" stop-color="#a985ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="g2" cx="0.95" cy="0.15" r="0.55"><stop offset="0" stop-color="#ff5cc8" stop-opacity=".22"/><stop offset="1" stop-color="#ff5cc8" stop-opacity="0"/></radialGradient>
+<radialGradient id="g3" cx="0.75" cy="0.55" r="0.35"><stop offset="0" stop-color="#ff2a3d" stop-opacity=".22"/><stop offset="1" stop-color="#ff2a3d" stop-opacity="0"/></radialGradient>
+<linearGradient id="title" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f2edff"/><stop offset=".55" stop-color="#a985ff"/><stop offset="1" stop-color="#ff5cc8"/></linearGradient>
+<linearGradient id="case" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b1a4f"/><stop offset="1" stop-color="#160c2b"/></linearGradient>
+<linearGradient id="lcd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4a4a"/><stop offset="1" stop-color="#d81f2c"/></linearGradient>
+<filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="14"/></filter>
+<pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="1.5" cy="1.5" r="1.2" fill="#3a2766" opacity=".55"/></pattern>
+</defs>
+<rect width="1280" height="420" rx="24" fill="url(#bg)"/>
+<rect width="1280" height="420" rx="24" fill="url(#dots)"/>
+<rect width="1280" height="420" rx="24" fill="url(#g1)"/>
+<rect width="1280" height="420" rx="24" fill="url(#g2)"/>
+<rect width="1280" height="420" rx="24" fill="url(#g3)"/>
+<rect x=".5" y=".5" width="1279" height="419" rx="24" fill="none" stroke="#3a2766"/>
+<text x="72" y="120" fill="#ff5cc8" font-family="'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15" font-weight="600" letter-spacing="4">DARKROOM · ENLARGER TIMER</text>
+<text x="68" y="222" fill="url(#title)" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="104" font-weight="800" letter-spacing="-3">R080 Timer</text>
+<text x="72" y="270" fill="#a99ad6" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="25">Exposures to the millisecond on Arduino Mega 2560</text>
+<rect x="72" y="304" width="66" height="34" rx="17" fill="#a985ff" fill-opacity=".1" stroke="#4b3580"/>
+<text x="105" y="326" text-anchor="middle" fill="#e3d9ff" font-family="'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15">Focus</text>
+<rect x="148.0" y="304" width="104" height="34" rx="17" fill="#a985ff" fill-opacity=".1" stroke="#4b3580"/>
+<text x="200" y="326" text-anchor="middle" fill="#e3d9ff" font-family="'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15">Countdown</text>
+<rect x="262.4" y="304" width="114" height="34" rx="17" fill="#a985ff" fill-opacity=".1" stroke="#4b3580"/>
+<text x="319" y="326" text-anchor="middle" fill="#e3d9ff" font-family="'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15">Test strip</text>
+<rect x="386.4" y="304" width="76" height="34" rx="17" fill="#a985ff" fill-opacity=".1" stroke="#4b3580"/>
+<text x="424" y="326" text-anchor="middle" fill="#e3d9ff" font-family="'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15">F-Stop</text>
+<rect x="472.0" y="304" width="114" height="34" rx="17" fill="#a985ff" fill-opacity=".1" stroke="#4b3580"/>
+<text x="529" y="326" text-anchor="middle" fill="#e3d9ff" font-family="'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace" font-size="15">3 Channels</text>
+<rect x="770" y="80" width="456" height="296" rx="26" fill="#000" opacity=".45" filter="url(#soft)"/>
+<rect x="760" y="62" width="456" height="296" rx="26" fill="url(#case)" stroke="#4b3580" stroke-width="1.5"/>
+<circle cx="778" cy="80" r="5" fill="#110920" stroke="#4b3580"/>
+<circle cx="1198" cy="80" r="5" fill="#110920" stroke="#4b3580"/>
+<circle cx="778" cy="340" r="5" fill="#110920" stroke="#4b3580"/>
+<circle cx="1198" cy="340" r="5" fill="#110920" stroke="#4b3580"/>
+<rect x="788" y="92" width="409.6" height="123" rx="12" fill="#0b0614" stroke="#2c1d4f"/>
+<rect x="802" y="106" width="381.6" height="95" rx="6" fill="url(#lcd)" filter="url(#glow)"/>
+<rect x="813.0" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="835.6" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="858.2" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="880.8" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="903.4" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="926.0" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="948.6" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="971.2" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="993.8" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1016.4" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1039.0" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1061.6" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1084.2" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1106.8" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1129.4" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1152.0" y="116" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<text x="823.3 845.9 868.5 891.1 913.7 936.3 958.9 981.5 1004.1 1026.7 1049.3 1071.9 1094.5 1117.1 1139.7 1162.3" y="143" text-anchor="middle" fill="#3b0508" fill-opacity=".88" font-family="'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace" font-size="27" font-weight="700"> - R080 Timer - </text>
+<rect x="813.0" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="835.6" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="858.2" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="880.8" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="903.4" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="926.0" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="948.6" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="971.2" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="993.8" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1016.4" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1039.0" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1061.6" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1084.2" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1106.8" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1129.4" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<rect x="1152.0" y="155" width="20.6" height="36" rx="1.5" fill="#000" opacity=".07"/>
+<text x="823.3 845.9 868.5 891.1 913.7 936.3 958.9 981.5 1004.1 1026.7 1049.3 1071.9 1094.5 1117.1 1139.7 1162.3" y="182" text-anchor="middle" fill="#3b0508" fill-opacity=".88" font-family="'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace" font-size="27" font-weight="700">COUNTDOWN  [F]  </text>
+<rect x="792" y="242" width="282" height="108" rx="10" fill="#0b0614" stroke="#2c1d4f"/>
+<g transform="translate(900,334) skewX(-7) translate(-900,-334)">
+<polygon points="818.5,262.5 823.0,258.0 845.0,258.0 849.5,262.5 845.0,267.0 823.0,267.0" fill="#2a0b17"/>
+<polygon points="851.5,264.5 856.0,269.0 856.0,289.5 851.5,294.0 847.0,289.5 847.0,269.0" fill="#2a0b17"/>
+<polygon points="851.5,298.0 856.0,302.5 856.0,323.0 851.5,327.5 847.0,323.0 847.0,302.5" fill="#2a0b17"/>
+<polygon points="818.5,329.5 823.0,325.0 845.0,325.0 849.5,329.5 845.0,334.0 823.0,334.0" fill="#2a0b17"/>
+<polygon points="816.5,298.0 821.0,302.5 821.0,323.0 816.5,327.5 812.0,323.0 812.0,302.5" fill="#2a0b17"/>
+<polygon points="816.5,264.5 821.0,269.0 821.0,289.5 816.5,294.0 812.0,289.5 812.0,269.0" fill="#2a0b17"/>
+<polygon points="818.5,296.0 823.0,291.5 845.0,291.5 849.5,296.0 845.0,300.5 823.0,300.5" fill="#2a0b17"/>
+<polygon points="884.5,262.5 889.0,258.0 911.0,258.0 915.5,262.5 911.0,267.0 889.0,267.0" fill="#2a0b17"/>
+<polygon points="917.5,264.5 922.0,269.0 922.0,289.5 917.5,294.0 913.0,289.5 913.0,269.0" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="917.5,298.0 922.0,302.5 922.0,323.0 917.5,327.5 913.0,323.0 913.0,302.5" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="884.5,329.5 889.0,325.0 911.0,325.0 915.5,329.5 911.0,334.0 889.0,334.0" fill="#2a0b17"/>
+<polygon points="882.5,298.0 887.0,302.5 887.0,323.0 882.5,327.5 878.0,323.0 878.0,302.5" fill="#2a0b17"/>
+<polygon points="882.5,264.5 887.0,269.0 887.0,289.5 882.5,294.0 878.0,289.5 878.0,269.0" fill="#2a0b17"/>
+<polygon points="884.5,296.0 889.0,291.5 911.0,291.5 915.5,296.0 911.0,300.5 889.0,300.5" fill="#2a0b17"/>
+<polygon points="950.5,262.5 955.0,258.0 977.0,258.0 981.5,262.5 977.0,267.0 955.0,267.0" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="983.5,264.5 988.0,269.0 988.0,289.5 983.5,294.0 979.0,289.5 979.0,269.0" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="983.5,298.0 988.0,302.5 988.0,323.0 983.5,327.5 979.0,323.0 979.0,302.5" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="950.5,329.5 955.0,325.0 977.0,325.0 981.5,329.5 977.0,334.0 955.0,334.0" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="948.5,298.0 953.0,302.5 953.0,323.0 948.5,327.5 944.0,323.0 944.0,302.5" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="948.5,264.5 953.0,269.0 953.0,289.5 948.5,294.0 944.0,289.5 944.0,269.0" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="950.5,296.0 955.0,291.5 977.0,291.5 981.5,296.0 977.0,300.5 955.0,300.5" fill="#2a0b17"/>
+<circle cx="999.0" cy="329" r="5.5" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="1016.5,262.5 1021.0,258.0 1043.0,258.0 1047.5,262.5 1043.0,267.0 1021.0,267.0" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="1049.5,264.5 1054.0,269.0 1054.0,289.5 1049.5,294.0 1045.0,289.5 1045.0,269.0" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="1049.5,298.0 1054.0,302.5 1054.0,323.0 1049.5,327.5 1045.0,323.0 1045.0,302.5" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="1016.5,329.5 1021.0,325.0 1043.0,325.0 1047.5,329.5 1043.0,334.0 1021.0,334.0" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="1014.5,298.0 1019.0,302.5 1019.0,323.0 1014.5,327.5 1010.0,323.0 1010.0,302.5" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="1014.5,264.5 1019.0,269.0 1019.0,289.5 1014.5,294.0 1010.0,289.5 1010.0,269.0" fill="#ff3b47" filter="url(#glow)"/>
+<polygon points="1016.5,296.0 1021.0,291.5 1043.0,291.5 1047.5,296.0 1043.0,300.5 1021.0,300.5" fill="#2a0b17"/>
+</g>
+<circle cx="1128" cy="298" r="34" fill="#110920" stroke="#4b3580" stroke-width="2"/>
+<circle cx="1128" cy="298" r="24" fill="#ff5cc8" fill-opacity=".9" filter="url(#glow)"/>
+<circle cx="1128" cy="298" r="24" fill="none" stroke="#ffd1f0" stroke-opacity=".6"/>
+</svg>
