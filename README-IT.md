@@ -1,19 +1,39 @@
-# R080 Timer
+<p align="center">
+  <img src="docs/assets/r080-banner.svg" alt="R080 Timer: timer per ingranditore da camera oscura su Arduino Mega 2560" width="100%">
+</p>
 
-[English version](README.md)
+<p align="center">
+  <a href="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/firmware.yml?query=branch%3Afeature%2Farduino-mega-firmware"><img src="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/firmware.yml/badge.svg?branch=feature/arduino-mega-firmware" alt="CI del firmware"></a>
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/"><img src="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/pages.yml/badge.svg" alt="Sito"></a>
+  <img src="https://img.shields.io/badge/firmware-v2.1.0-a985ff?style=flat-square" alt="Firmware v2.1.0">
+  <img src="https://img.shields.io/badge/scheda-Arduino%20Mega%202560-45e0ff?style=flat-square" alt="Arduino Mega 2560">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licenza-CC%20BY--NC--SA%204.0-ff5cc8?style=flat-square" alt="Licenza CC BY-NC-SA 4.0"></a>
+</p>
 
-Timer per ingranditore fotografico da camera oscura su Arduino Mega 2560. Firmware v2.0.0, scritto in C++ con PlatformIO.
+<p align="center">
+  <b><a href="https://danilocaruso.github.io/R080Timer_MEGA/">Sito</a></b> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/pinout.html">Pinout</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/funzioni.html">Funzioni e comandi</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/flussi.html">Flussi</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/installazione.html">Installazione</a> ·
+  <a href="README.md">English</a>
+</p>
 
-## Funzioni
+Timer per ingranditore da camera oscura su Arduino Mega 2560: decide per quanto tempo la luce impressiona la carta. Firmware v2.1.0, scritto in C++ con PlatformIO e testato sul PC. Il tempo lo conta il Timer1, quindi la lampada si spegne al millisecondo.
 
-- Tre Modalità: Focus con Spegnimento automatico, Countdown, Test strip continuo o passo-passo.
-- Precisione in Secondi o F-Stop (da 1/1 a 1/64 di stop), con Offset visibile sull'LCD.
-- Tre Canali (`A`, `B`, `C`), ognuno con un'impostazione di stampa completa, salvati in EEPROM.
-- Tempo misurato dal Timer1 a 1 kHz: la lampada si spegne al millisecondo, con Correzione del clock in ppm.
-- Luci da camera oscura: LCD sempre rosso, 8 livelli di luminosità per LCD e 7 segmenti, LCD attenuato durante l'Esposizione.
-- Suoni distinti per avvio, Metronomo, Preavviso, Step, fine; mute.
-- Sicurezza: relè spento all'accensione e a ogni reset, watchdog, antirimbalzo, timer funzionante anche senza LCD.
-- Menu di servizio: contatori, salute del sistema, test di ogni componente, calibrazione, ripristino di fabbrica. Log degli eventi su USB.
+## Cosa fa
+
+| Modalità | Precisione | Sicurezza |
+|---|---|---|
+| **Focus** con Spegnimento automatico | **Secondi** o **F-Stop**, da 1/1 a 1/64 di stop | Lampada spenta all'accensione e a ogni reset |
+| **Countdown** con Metronomo | Offset in stop sempre sull'LCD | Watchdog: lampada spenta entro 250 ms |
+| **Test strip**, continuo o passo-passo | Correzione del clock in ppm | Il timer funziona anche senza LCD |
+
+| Canali | Luci e suoni in camera oscura | Menu di servizio |
+|---|---|---|
+| `A`, `B`, `C`: ognuno tiene un'impostazione di stampa completa | LCD sempre rosso, 8 livelli di luminosità per LCD e 7 segmenti | Contatori, salute del sistema, test di ogni componente |
+| Salvati in EEPROM, ripristinati all'accensione | LCD attenuato durante l'Esposizione | Calibrazione del clock, ripristino di fabbrica, log degli eventi su USB |
+| | Suoni distinti per avvio, Metronomo, Preavviso, Step, fine; mute | Testi dell'LCD in **italiano o inglese** (`Lingua/Language`) |
 
 ## Hardware
 
@@ -32,7 +52,7 @@ Arduino Mega 2560, LCD Waveshare 1602 RGB (I²C), display 7 segmenti seriale, ta
 
 Dettagli in [PINOUT.md](PINOUT.md).
 
-**Aggiornamento dalla v1.** Spostare il filo del 7 segmenti da A2 a D14 e aggiungere la resistenza da 10 kΩ tra D47 e GND. Alla prima accensione le impostazioni ripartono dai valori di fabbrica.
+**Aggiornamento.** Dalla v1: spostare il filo del 7 segmenti da A2 a D14 e aggiungere la resistenza da 10 kΩ tra D47 e GND. Dalla v1 o dalla v2.0.0: alla prima accensione le impostazioni ripartono dai valori di fabbrica (lingua italiana).
 
 ## Compilare e caricare
 
@@ -56,7 +76,7 @@ Dopo il primo caricamento conviene calibrare il clock: vedi il manuale, §11.
 - [TECNICO.md](TECNICO.md): architettura del firmware
 - [CHANGELOG.md](CHANGELOG.md): versioni
 - [GLOSSARY.md](GLOSSARY.md): vocabolario del progetto
-- `docs/firmware-rewrite/`: requisiti e decisioni della v2
+- `docs/firmware-rewrite/`, `docs/ui-languages/`: requisiti e decisioni della v2
 - `tools/calibrate.py`: calibrazione del clock dal PC
 
 ## Licenza

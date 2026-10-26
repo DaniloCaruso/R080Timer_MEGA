@@ -1,4 +1,4 @@
-# R080 Timer — User manual (firmware v2.0.0)
+# R080 Timer — User manual (firmware v2.1.0)
 
 [Versione italiana](DOCS-IT.md)
 
@@ -168,9 +168,9 @@ Keys `A`, `B` and `C` recall three Channels. Each Channel is a complete print se
 
 **Memory.** Settings are saved automatically 2 s after the last change and at the start of every Exposure: active Channel, the three Channels, mute, brightness and Service menu settings. At power-on everything is as it was.
 
-**Factory values.** For each Channel: Countdown, Seconds 1 s, continuous Advance, 10.0 s, relay enabled. Global: Channel A, mute off, LCD level 3, 7-segment level 3, LCD during exposure level 1, Focus maximum 5 minutes, clock correction 0 ppm.
+**Factory values.** For each Channel: Countdown, Seconds 1 s, continuous Advance, 10.0 s, relay enabled. Global: Channel A, mute off, LCD level 3, 7-segment level 3, LCD during exposure level 1, Focus maximum 5 minutes, Italian language, clock correction 0 ppm.
 
-At the first power-on with v2.0.0 the settings of the previous version are not read: the timer starts from factory values.
+At the first power-on with v2.1.0 the settings of the previous versions (v1 and v2.0.0) are not read: the timer starts from factory values.
 
 ## 7. Sounds and mute
 
@@ -191,7 +191,7 @@ At the first power-on with v2.0.0 the settings of the previous version are not r
 
 - The LCD is always and only red. 8 brightness levels for the LCD and 8 for the 7-segment, denser at the low end.
 - In Focus, lamp off: `*`/`#` dim/brighten the LCD; holding `0`, `*`/`#` dim/brighten the 7-segment.
-- During every Exposure (including Focus on) the LCD drops to the "LCD esposizione" level of the Service menu (factory 1, the minimum) and returns to the normal level at the end. The 7-segment stays at the chosen level.
+- During every Exposure (including Focus on) the LCD drops to the "LCD exposure" level of the Service menu (factory 1, the minimum) and returns to the normal level at the end. The 7-segment stays at the chosen level.
 
 ## 9. Power-on and safety
 
@@ -203,7 +203,7 @@ At the first power-on with v2.0.0 the settings of the previous version are not r
 
 ## 10. Service menu
 
-Opens by holding `D` while powering on the timer (until the start screen). No Exposures can be started in the menu.
+Opens by holding `D` while powering on the timer (until the start screen). No Exposures can be started in the menu. The LCD texts are in Italian or English, chosen in the Lingua/Language item (factory: Italian); below, item names are in English with the Italian in brackets.
 
 | Control | Action |
 |---|---|
@@ -218,20 +218,21 @@ An out-of-range value gives the error beep and must be entered again; an accepte
 | Item (LCD) | Content |
 |---|---|
 | Info | Firmware version and build date |
-| Contatori (counters) | Four screens: Accensioni (every start-up, watchdog resets included), Reset watchdog, Esposizioni (Countdowns and test strips, cancelled ones included), Ore lampada (lamp hours: relay-on time, Focus included) |
-| Salute (health) | Three screens: Loop max (µs), ISR max (µs), Tick persi (Timer1 ticks lost since power-on) |
-| Test rele | A press turns the relay on and off; leaving turns it off |
-| Test buzzer | Turning picks one of the 8 sounds, pressing plays it (1 end, 2 error, 3 Focus warning, 4 start, 5 step, 6 pre-warning, 7 metronome, 8 confirm) |
-| Test 7 segmenti | Lights all segments (`888.8`) |
-| Test LCD | Fills every cell |
-| Test tastierino | Shows the last key pressed; `D` is tested by leaving |
-| Test encoder | `M` and `P`: position and press count of the two encoders |
-| Test pulsante | Premi (press), Premuto (pressed), Rilasciato (released) |
-| Calibrazione | Three screens: Log calibrazione, Correzione ppm, Durata 600 s (see §11) |
-| LCD esposizione | LCD level during the Exposure, 1 to 8 |
-| Tempo max Focus | Minutes before automatic shut-off: 3, 5, 10, 15 or 20 |
-| Ripristino fabb | Inside the item, a press asks for confirmation and a second press restores all settings to factory values, clock correction included (counters are kept); `D` cancels |
-| Esci | Back to normal use |
+| Counters (Contatori) | Four screens: Power-ons (every start-up, watchdog resets included), Watchdog resets, Exposures (Countdowns and test strips, cancelled ones included), Lamp hours (relay-on time, Focus included) |
+| Health (Salute) | Three screens: Loop max (µs), ISR max (µs), Lost ticks (Timer1 ticks lost since power-on) |
+| Relay test (Test rele) | A press turns the relay on and off; leaving turns it off |
+| Buzzer test (Test buzzer) | Turning picks one of the 8 sounds, pressing plays it (1 end, 2 error, 3 Focus warning, 4 start, 5 step, 6 pre-warning, 7 metronome, 8 confirm) |
+| 7-segment test (Test 7 segmenti) | Lights all segments (`888.8`) |
+| LCD test (Test LCD) | Fills every cell |
+| Keypad test (Test tastierino) | Shows the last key pressed; `D` is tested by leaving |
+| Encoder test (Test encoder) | `M` and `P`: position and press count of the two encoders |
+| Button test (Test pulsante) | Press, Pressed, Released |
+| Calibration (Calibrazione) | Three screens: Calibration log, PPM correction, Measured 600 s (see §11) |
+| LCD exposure (LCD esposizione) | LCD level during the Exposure, 1 to 8 |
+| Focus max time (Tempo max Focus) | Minutes before automatic shut-off: 3, 5, 10, 15 or 20 |
+| Lingua/Language | Shows the LCD language (`Italiano` or `English`); each press switches to the other language and saves it at once; `D` returns to the list, already in the new language. The item has the same name in both languages |
+| Factory reset (Ripristino fabb) | Inside the item, a press asks for confirmation and a second press restores all settings to factory values, clock correction and language included (counters are kept); `D` cancels |
+| Exit (Esci) | Back to normal use |
 
 In the tests every control goes to the component under test; `D` leaves.
 
@@ -244,10 +245,10 @@ The board's crystal can be off by a few tens of parts per million (ppm): 50 ppm 
 You need a PC with Python 3.10 or later and `pyserial` (`pip install pyserial`), and the board's USB cable.
 
 1. Close any program using the serial port (including `pio device monitor`).
-2. On the timer: Service menu → Calibrazione → "Log calibrazione" screen, press the encoder. The LCD shows `Attivo, D: esci` (active, D: exit).
+2. On the timer: Service menu → Calibration → "Calibration log" screen, press the encoder. The LCD shows `Active, D: exit` (in Italian `Attivo, D: esci`).
 3. On the PC: `python3 tools/calibrate.py /dev/ttyACM0` (on Windows e.g. `COM3`).
 4. After 30 minutes the script prints, for example, `Correzione del clock: +23 ppm`. The value is absolute: it does not depend on the correction already saved.
-5. On the timer: `D` closes the log and returns to the list. Press the encoder to enter Calibrazione again, turn to the "Correzione ppm" screen, type the value (`2` `3`), press `*` if it is negative, press the encoder to save.
+5. On the timer: `D` closes the log and returns to the list. Press the encoder to enter Calibration again, turn to the "PPM correction" screen, type the value (`2` `3`), press `*` if it is negative, press the encoder to save.
 
 Options: `--minutes N` changes the measurement length; `--self-test` checks the script without a board. If the timer restarts when the port opens (the start screen appears again), stop the script with Ctrl+C, open the Service menu again and restart from step 2.
 
@@ -259,7 +260,7 @@ You need an audio recorder (a smartphone is fine) and a program that shows the w
 2. Countdown, time `6` `0` `0` `0` (600.0 s).
 3. Start recording near the timer, press the main button and wait for the End sound.
 4. On the waveform measure the time from the start of the start beep to the start of the first tone of the End sound. The Metronome ticks, one per second, help to find your way.
-5. Restart the timer holding `D`: Service menu → Calibrazione, turn to the "Durata 600 s" screen. Type the measured duration in hundredths of a second (`6` `0` `0` `1` `2` for 600.12 s) and press the encoder.
+5. Restart the timer holding `D`: Service menu → Calibration, turn to the "Measured 600 s" screen. Type the measured duration in hundredths of a second (`6` `0` `0` `1` `2` for 600.12 s) and press the encoder.
 
 The timer computes the new correction starting from the saved one, so the measurement can be repeated to refine it. A 10 ms reading error on the waveform is about 17 ppm: the script is more accurate.
 
