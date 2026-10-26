@@ -7,7 +7,7 @@
   <a href="https://danilocaruso.github.io/R080Timer_MEGA/"><img src="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/pages.yml/badge.svg" alt="Site"></a>
   <img src="https://img.shields.io/badge/firmware-v2.0.0-a985ff?style=flat-square" alt="Firmware v2.0.0">
   <img src="https://img.shields.io/badge/board-Arduino%20Mega%202560-45e0ff?style=flat-square" alt="Arduino Mega 2560">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC0%201.0-ff5cc8?style=flat-square" alt="License CC0 1.0"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-CC%20BY--NC--SA%204.0-ff5cc8?style=flat-square" alt="License CC BY-NC-SA 4.0"></a>
 </p>
 
 <p align="center">
@@ -82,4 +82,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ## License
 
-[CC0 1.0 Universal](LICENSE)
+[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-nc-sa/4.0/) (CC BY-NC-SA 4.0): you may share and adapt the project with attribution, not for commercial purposes, and under the same licence. Full text in [LICENSE](LICENSE).
