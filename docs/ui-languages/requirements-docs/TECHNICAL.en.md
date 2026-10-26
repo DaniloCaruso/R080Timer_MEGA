@@ -185,7 +185,7 @@ The target is a single domain module, `Texts`, with a table in flash: one identi
 - **Change:**
   - Manuals: `Lingua/Language` item in the §10 table; "the LCD texts are in Italian or English, chosen in the Lingua/Language item"; Italian among the factory values; an upgrade note from v2.0.0. In `DOCS.md` items are named in their English form, with the Italian in brackets where useful.
   - `TECNICO.md`: §7 with 44 bytes, version 2 and a 9-byte `GlobalRecord` including the language; §9 with 16 items; module table with `Texts.{h,cpp}`.
-  - READMEs (`README.md`, `README-IT.md`): "LCD language (Italian/English)" in the Service menu list, and a restyle in the style of the `main` README. At the top the banner `docs/assets/r080-banner.svg` (arrives from `main` with the rebase) and the badges: the branch's `firmware.yml` CI, site, CC0 licence, version 2.1.0. Then links to the site pages and the features in compact tables; pinout, build and documents stay.
+  - READMEs (`README.md`, `README-IT.md`): "LCD language (Italian/English)" in the Service menu list, and a restyle in the style of the `main` README. At the top the banner `docs/assets/r080-banner.svg` (arrives from `main` with the rebase) and the badges: the branch's `firmware.yml` CI, site, CC BY-NC-SA 4.0 licence, version 2.1.0. Then links to the site pages and the features in compact tables; pinout, build and documents stay.
 - **Expected behaviour:** manuals and code describe the same menu.
 - **Verification:** reread; `grep -n "in italiano" DOCS-IT.md` no longer finds the old sentence; README preview on GitHub (banner and badges visible, links working).
 
