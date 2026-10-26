@@ -4,16 +4,17 @@
 #include "Crc8.h"
 #include "ClockCorrection.h"
 #include "Precision.h"
+#include "Texts.h"
 #include "TimeUnits.h"
 
-constexpr uint8_t VERSION = 1;
-constexpr uint8_t HEADER = 4, BLOCK_LEN = HEADER + sizeof(SettingsData) + 1;  // 43 byte
+constexpr uint8_t VERSION = 2;  // 2: lingua (ui-languages C-2); la versione 1 porta ai valori di fabbrica
+constexpr uint8_t HEADER = 4, BLOCK_LEN = HEADER + sizeof(SettingsData) + 1;  // 45 byte
 constexpr uint32_t SAVE_DELAY_MS = 2000;  // REQ-6.7
 
 // Valori di fabbrica (C-10): Canale A, Countdown, Secondi 1 s, continuo, 10,0 s, relè abilitato;
-// mute spento, LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus 5 min, 0 ppm.
+// mute spento, LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus 5 min, italiano, 0 ppm.
 constexpr ChannelRecord kFactoryChannel = {COUNTDOWN, 0, 0, 0, 100, 100, 0, 1};
-constexpr SettingsData kFactory = {{0, 0, 3, 3, 1, 1, 0}, {kFactoryChannel, kFactoryChannel, kFactoryChannel}};
+constexpr SettingsData kFactory = {{0, 0, 3, 3, 1, 1, LANG_IT, 0, 0}, {kFactoryChannel, kFactoryChannel, kFactoryChannel}};
 
 // Anche con il CRC giusto, indici di tabelle e valori restano nei limiti.
 static bool inRange(const SettingsData& d) {
@@ -36,6 +37,7 @@ bool Settings::load() {
   bool ok = b[0] == 'R' && b[1] == '8' && b[2] == VERSION && b[3] == BLOCK_LEN &&
             crc8(b, BLOCK_LEN - 1) == b[BLOCK_LEN - 1] && inRange(d);
   if (!ok) d = kFactory;
+  if (d.g.language >= LANG_COUNT) d.g.language = LANG_IT;  // ui-languages REQ-3.5: le altre impostazioni restano
   return ok;
 }
 

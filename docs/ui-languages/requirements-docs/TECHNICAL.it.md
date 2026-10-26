@@ -15,7 +15,7 @@ L'obiettivo è un solo modulo di dominio, `Texts`, con una tabella in flash: un 
 - **Dominio senza Arduino** (CLAUDE.md): `Texts` sta in `lib/r080_core/` e usa solo `Flash.h` (`PROGMEM`, `fbyte`) per la tabella in flash.
 - **RAM:** niente `String` né allocazione dinamica. I testi restano in `PROGMEM` e non si copiano in RAM: `text()` restituisce il puntatore in flash, che `putF()`, `fmemcpy` e `fsnprintf` già accettano.
 - **Niente blocchi nel loop:** il cambio di lingua non aggiunge attese. `Screen::render()` continua a mandare solo le differenze, al massimo una riga per giro.
-- **EEPROM:** il salvataggio resta `Settings::service()` con `writeBlockStep()`, un byte per giro e `eeprom_update_*` nel driver. Il blocco impostazioni (`0x000`) passa da 43 a 44 byte e resta sotto il blocco contatori (`0x040` = 64).
+- **EEPROM:** il salvataggio resta `Settings::service()` con `writeBlockStep()`, un byte per giro e `eeprom_update_*` nel driver. Il blocco impostazioni (`0x000`) passa da 43 a 45 byte e resta sotto il blocco contatori (`0x040` = 64).
 - **Layout dell'LCD** (requisito 7.5 della feature `firmware-rewrite`): le posizioni non cambiano. I testi tradotti stanno nelle stesse colonne: Avanzamento 14–15, `Ch:` 9–11, `St:` 0–2, voci dopo `>` alle colonne 1–15.
 - **Test** (CLAUDE.md): solo le due seam. I nuovi test vanno in `test/test_timer/` (dominio intero con driver finti), senza finti di moduli interni. Il controllo della tabella usa l'API pubblica di `Texts`.
 - **Log USB:** i formati di `EventLog::print` in `Controller.cpp` e `Screen.cpp` (`BOOT`, `START`, `END`, `CANCEL`, `CAL`, `ERROR settings=factory`, `LCD offline/online`) non passano da `Texts` (REQ-1.4).
@@ -101,10 +101,10 @@ L'obiettivo è un solo modulo di dominio, `Texts`, con una tabella in flash: un 
 - **Soddisfa:** REQ-3.1, REQ-3.2, REQ-3.3, REQ-3.4, REQ-3.5
 - **Stato attuale:** `GlobalRecord {uint8_t activeChannel, mute, lcdLevel, segLevel, lcdExposureLevel, focusLimitIndex; int16_t clockPpm;}`, 8 byte. `static_assert(sizeof(SettingsData) == 38)`. In `Settings.cpp`: `VERSION = 1`, `BLOCK_LEN = 43`, `kFactory = {{0, 0, 3, 3, 1, 1, 0}, …}`. `inRange()` rifiuta indici fuori tabella e `load()` usa `kFactory` se il blocco non è valido.
 - **Modifica:**
-  - `GlobalRecord`: nuovo campo `uint8_t language;` dopo `focusLimitIndex`, prima di `clockPpm`. Così `int16_t` resta allineato e su AVR non c'è padding; il blocco si confronta comunque byte per byte con `static_assert`.
-  - `static_assert(sizeof(SettingsData) == 39, …)`.
-  - `Settings.cpp`: `VERSION = 2`, `BLOCK_LEN` diventa 44 (calcolato com'è oggi), `kFactory = {{0, 0, 3, 3, 1, 1, LANG_IT, 0}, …}`. Il commento dei valori di fabbrica cita la lingua italiana.
-  - Mappa EEPROM `0x000`: `'R'`, `'8'`, versione 2, lunghezza 44 | `GlobalRecord` (9 byte) | 3 × `ChannelRecord` (30 byte) | CRC8.
+  - `GlobalRecord`: nuovi campi `uint8_t language;` e `uint8_t reserved;` (sempre 0) dopo `focusLimitIndex`, prima di `clockPpm`. Il byte riservato tiene `clockPpm` a un offset pari: senza, sul PC il compilatore aggiunge un byte di padding che sull'AVR non c'è, e l'immagine EEPROM dei test sarebbe diversa da quella della scheda (lo ha rivelato `static_assert` durante l'implementazione).
+  - `static_assert(sizeof(SettingsData) == 40, …)`.
+  - `Settings.cpp`: `VERSION = 2`, `BLOCK_LEN` diventa 45 (calcolato com'è oggi), `kFactory = {{0, 0, 3, 3, 1, 1, LANG_IT, 0, 0}, …}`. Il commento dei valori di fabbrica cita la lingua italiana.
+  - Mappa EEPROM `0x000`: `'R'`, `'8'`, versione 2, lunghezza 45 | `GlobalRecord` (10 byte: lingua al byte 10, riservato all'11, Correzione del clock al 12-13) | 3 × `ChannelRecord` (30 byte) | CRC8.
   - `load()`: dopo il controllo, se `ok && d.g.language >= LANG_COUNT` allora `d.g.language = LANG_IT` e `load()` restituisce `true` (REQ-3.5). `inRange()` non controlla la lingua, così un valore sconosciuto non annulla le altre impostazioni.
   - Un blocco con versione 1 non passa `b[2] == VERSION` e porta a `kFactory` (REQ-3.4), già oggi senza codice nuovo.
   - `factoryReset()` resta `d = kFactory` e porta quindi la lingua a `LANG_IT` (REQ-3.3).
@@ -184,7 +184,7 @@ L'obiettivo è un solo modulo di dominio, `Texts`, con una tabella in flash: un 
   - I README elencano le funzioni del Menu di servizio.
 - **Modifica:**
   - Manuali: voce `Lingua/Language` nella tabella del §10; "I testi sull'LCD sono in italiano o in inglese, a scelta nella voce Lingua/Language"; lingua italiana tra i valori di fabbrica; nota di aggiornamento dalla v2.0.0. In `DOCS.md` i nomi delle voci si citano nella forma inglese con l'italiano tra parentesi dove serve.
-  - `TECNICO.md`: §7 con 44 byte, versione 2, `GlobalRecord` a 9 byte con la lingua; §9 con 16 voci; tabella dei moduli con `Texts.{h,cpp}`.
+  - `TECNICO.md`: §7 con 45 byte, versione 2, `GlobalRecord` a 10 byte con lingua e byte riservato; §9 con 16 voci; tabella dei moduli con `Texts.{h,cpp}`.
   - README (`README.md`, `README-IT.md`): "lingua dell'LCD (italiano/inglese)" nell'elenco del Menu di servizio e restyling nello stile del README di `main`. In apertura il banner `docs/assets/r080-banner.svg` (arriva da `main` con il rebase) e i badge: CI `firmware.yml` del branch, sito, licenza CC BY-NC-SA 4.0, versione 2.1.0. Poi i link alle pagine del sito e le funzioni in tabelle compatte; pinout, compilazione e documenti restano.
 - **Comportamento atteso:** manuali e codice descrivono lo stesso menu.
 - **Verifica:** rilettura; `grep -n "in italiano" DOCS-IT.md` non trova più la frase vecchia; anteprima del README su GitHub (banner e badge visibili, link funzionanti).

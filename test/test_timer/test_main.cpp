@@ -798,6 +798,10 @@ static void assertFactoryDefaults() {
   TEST_ASSERT_EQUAL_UINT16(100, t.seg.shown);
 }
 
+// Blocco impostazioni versione 2 (ui-languages C-2): intestazione 0-3, GlobalRecord 4-13 (lingua al
+// byte 10, riservato 11, Correzione del clock 12-13), ChannelRecord da 14, CRC8 al byte 44.
+constexpr uint8_t SETTINGS_CRC = 44;
+
 // CRC8 polinomio 0x07, scritto qui per ricostruire un blocco con un CRC valido.
 static uint8_t crc8(const uint8_t* p, uint8_t n) {
   uint8_t crc = 0;
@@ -811,7 +815,7 @@ static uint8_t crc8(const uint8_t* p, uint8_t n) {
 // REQ-2.5: CRC errato porta ai valori di fabbrica.
 static void test_bad_crc_loads_factory_defaults() {
   saveNonFactorySettings();
-  eeprom.bytes[42] ^= 0x01;
+  eeprom.bytes[SETTINGS_CRC] ^= 0x01;
   assertFactoryDefaults();
 }
 
@@ -819,24 +823,24 @@ static void test_bad_crc_loads_factory_defaults() {
 static void test_out_of_range_channel_loads_factory_defaults() {
   saveNonFactorySettings();
   eeprom.bytes[4] = 7;  // primo byte dopo l'intestazione: Canale attivo
-  eeprom.bytes[42] = crc8(eeprom.bytes, 42);
+  eeprom.bytes[SETTINGS_CRC] = crc8(eeprom.bytes, SETTINGS_CRC);
   assertFactoryDefaults();
 }
 
 // Anche con CRC giusto, valori fuori dai limiti non vengono usati: Correzione del clock oltre
-// ±1000 ppm, Offset oltre ±99, tempo o Tempo base oltre 999,9 s (Canale A, dal byte 12).
+// ±1000 ppm, Offset oltre ±99, tempo o Tempo base oltre 999,9 s (Canale A, dal byte 14).
 static void test_out_of_range_values_load_factory_defaults() {
   static const struct { uint8_t addr; uint8_t lo, hi; } cases[] = {
-    {10, 0xE9, 0x03},  // clockPpm = 1001
-    {16, 0x10, 0x27},  // timeDs = 10000
-    {18, 0x10, 0x27},  // baseDs = 10000
-    {20, 100, 0},      // offset = +100 (e relè disabilitato nel byte dopo)
+    {12, 0xE9, 0x03},  // clockPpm = 1001
+    {18, 0x10, 0x27},  // timeDs = 10000
+    {20, 0x10, 0x27},  // baseDs = 10000
+    {22, 100, 0},      // offset = +100 (e relè disabilitato nel byte dopo)
   };
   for (const auto& k : cases) {
     saveNonFactorySettings();
     eeprom.bytes[k.addr] = k.lo;
     eeprom.bytes[k.addr + 1] = k.hi;
-    eeprom.bytes[42] = crc8(eeprom.bytes, 42);
+    eeprom.bytes[SETTINGS_CRC] = crc8(eeprom.bytes, SETTINGS_CRC);
     assertFactoryDefaults();
   }
 }
@@ -844,9 +848,50 @@ static void test_out_of_range_values_load_factory_defaults() {
 // REQ-2.5: versione sconosciuta, anche con CRC giusto, porta ai valori di fabbrica.
 static void test_unknown_version_loads_factory_defaults() {
   saveNonFactorySettings();
-  eeprom.bytes[2] = 2;
+  eeprom.bytes[2] = 3;
+  eeprom.bytes[SETTINGS_CRC] = crc8(eeprom.bytes, SETTINGS_CRC);
+  assertFactoryDefaults();
+}
+
+// ui-languages REQ-3.4: il blocco della versione 1 (v2.0.0, 43 byte, senza lingua), anche con CRC
+// giusto, porta ai valori di fabbrica senza migrazione.
+static void test_version_1_block_loads_factory_defaults() {
+  saveNonFactorySettings();
+  eeprom.bytes[2] = 1;
+  eeprom.bytes[3] = 43;
   eeprom.bytes[42] = crc8(eeprom.bytes, 42);
   assertFactoryDefaults();
+}
+
+// ui-languages REQ-3.2: su EEPROM vergine la lingua è l'italiano.
+static void test_factory_language_is_italian() {
+  Timer t;
+  TEST_ASSERT_EQUAL_UINT8(LANG_IT, t.settings.d.g.language);
+}
+
+// ui-languages REQ-3.1: la lingua si salva e torna all'accensione.
+static void test_language_survives_power_off() {
+  {
+    Timer t;
+    t.settings.d.g.language = LANG_EN;
+    t.settings.changed();
+    t.advance(2100);
+  }
+  Timer t;
+  TEST_ASSERT_EQUAL_UINT8(LANG_EN, t.settings.d.g.language);
+}
+
+// ui-languages REQ-3.5: una lingua sconosciuta in un blocco valido vale l'italiano, e le altre
+// impostazioni restano.
+static void test_unknown_saved_language_falls_back_to_italian_keeping_settings() {
+  saveNonFactorySettings();
+  eeprom.bytes[10] = 7;
+  eeprom.bytes[SETTINGS_CRC] = crc8(eeprom.bytes, SETTINGS_CRC);
+  Timer t;
+  t.settle();
+  TEST_ASSERT_EQUAL_UINT8(LANG_IT, t.settings.d.g.language);
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:B  \x02", t.row(1));  // Canale B e mute salvati
+  TEST_ASSERT_EQUAL_UINT16(50, t.seg.shown);
 }
 
 // REQ-6.6: il vecchio formato (magic 0xA5 all'indirizzo 0, 13 byte) porta ai valori di fabbrica.
@@ -2079,5 +2124,9 @@ int main() {
   RUN_TEST(test_mode_turn_in_pause_concludes_stepped_strip_and_changes_mode);
   RUN_TEST(test_every_text_exists_fits_and_is_printable_in_every_language);
   RUN_TEST(test_unknown_language_reads_italian_texts);
+  RUN_TEST(test_version_1_block_loads_factory_defaults);
+  RUN_TEST(test_factory_language_is_italian);
+  RUN_TEST(test_language_survives_power_off);
+  RUN_TEST(test_unknown_saved_language_falls_back_to_italian_keeping_settings);
   return UNITY_END();
 }

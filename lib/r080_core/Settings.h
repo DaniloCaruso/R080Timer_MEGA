@@ -17,6 +17,8 @@ struct ChannelRecord {
 
 struct GlobalRecord {
   uint8_t activeChannel, mute, lcdLevel, segLevel, lcdExposureLevel, focusLimitIndex;
+  uint8_t language;  // Language (Texts.h)
+  uint8_t reserved;  // 0: clockPpm a un offset pari, stesso layout sull'AVR e sul PC
   int16_t clockPpm;
 };
 
@@ -28,7 +30,7 @@ struct SettingsData {
   GlobalRecord g;
   ChannelRecord ch[3];
 };
-static_assert(sizeof(SettingsData) == 38, "layout EEPROM cambiato: aumentare la versione");
+static_assert(sizeof(SettingsData) == 40, "layout EEPROM cambiato: aumentare la versione");
 
 class Settings {
  public:
