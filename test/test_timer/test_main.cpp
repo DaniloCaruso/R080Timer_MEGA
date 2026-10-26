@@ -1583,7 +1583,7 @@ static void test_service_sets_lcd_exposure_level() {
   {
     Timer t(false, true);
     t.settle();
-    openServiceItem(t, -4);
+    openServiceItem(t, -5);  // LCD esposizione
     TEST_ASSERT_EQUAL_STRING("LCD esposizione ", t.row(0));
     TEST_ASSERT_EQUAL_STRING("Livello 1-8: 1  ", t.row(1));
     t.type("9");
@@ -1609,7 +1609,7 @@ static void test_service_sets_focus_limit() {
   {
     Timer t(false, true);
     t.settle();
-    openServiceItem(t, -3);
+    openServiceItem(t, -4);  // Tempo max Focus
     TEST_ASSERT_EQUAL_STRING("Tempo max Focus ", t.row(0));
     TEST_ASSERT_EQUAL_STRING("Minuti: 5       ", t.row(1));
     t.type("7");
@@ -1634,9 +1634,10 @@ static void test_service_factory_reset_replaces_all_settings() {
   {
     Timer t(false, true);
     t.settle();
-    openServiceItem(t, -3);
+    openServiceItem(t, -4);  // Tempo max Focus
     t.type("20");
     t.clickMode();
+    t.turnMode(1);
     t.turnMode(1);
     t.clickMode();
     TEST_ASSERT_EQUAL_STRING("Ripristino fabb ", t.row(0));
@@ -1677,10 +1678,10 @@ static void test_service_factory_reset_cancelled_with_d_keeps_settings() {
 static void test_focus_beyond_999_9_s_shows_minutes_and_seconds() {
   Timer t(false, true);
   t.settle();
-  openServiceItem(t, -3);  // Tempo max Focus
+  openServiceItem(t, -4);  // Tempo max Focus
   t.type("20");
   t.clickMode();
-  t.turnMode(2);  // Esci
+  t.turnMode(3);  // Esci
   t.clickMode();
   t.turnMode(-1);  // Focus
   t.press();
@@ -1713,7 +1714,7 @@ static void test_service_sets_clock_correction_in_ppm() {
   {
     Timer t(false, true);
     t.settle();
-    openServiceItem(t, -5);  // Calibrazione
+    openServiceItem(t, -6);  // Calibrazione
     TEST_ASSERT_EQUAL_STRING("Log calibrazione", t.row(0));
     t.turnMode(1);
     TEST_ASSERT_EQUAL_STRING("Correzione ppm  ", t.row(0));
@@ -1736,7 +1737,7 @@ static void test_service_sets_clock_correction_in_ppm() {
 static void test_service_computes_clock_correction_from_measured_600_s_countdown() {
   Timer t(false, true);
   t.settle();
-  openServiceItem(t, -5);  // Calibrazione
+  openServiceItem(t, -6);  // Calibrazione
   t.turnMode(-1);
   TEST_ASSERT_EQUAL_STRING("Durata 600 s    ", t.row(0));
   TEST_ASSERT_EQUAL_STRING("600,00 s        ", t.row(1));
@@ -1765,7 +1766,7 @@ static void test_service_computes_clock_correction_from_measured_600_s_countdown
 static void test_service_calibration_log_writes_ms_count_every_second_until_d() {
   Timer t(false, true);
   t.settle();
-  openServiceItem(t, -5);  // Calibrazione
+  openServiceItem(t, -6);  // Calibrazione
   TEST_ASSERT_EQUAL_STRING("Clic: avvia     ", t.row(1));
   t.clickMode();
   uint32_t start = t.clock.nowMs, lines = t.log.lines;
@@ -2030,6 +2031,90 @@ static void test_english_main_screen_and_language_change_without_restart() {
   TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]PP", t.row(0));
 }
 
+// ui-languages REQ-2.1..2.5: la voce Lingua/Language sta prima del Ripristino di fabbrica; dentro,
+// ogni clic passa alla lingua successiva con il beep di conferma e salva; `D` torna alle voci già
+// nella nuova lingua.
+static void test_service_language_item_switches_language_and_saves() {
+  Timer t(false, true);
+  t.settle();
+  for (int i = 0; i < 3; i++) t.turnMode(-1);
+  TEST_ASSERT_EQUAL_STRING(">Lingua/Language", t.row(1));
+  t.turnMode(-1);
+  TEST_ASSERT_EQUAL_STRING(">Tempo max Focus", t.row(1));
+  t.turnMode(1);
+  t.clickMode();
+  TEST_ASSERT_EQUAL_STRING("Lingua/Language ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Italiano        ", t.row(1));
+  t.clickMode();
+  TEST_ASSERT_EQUAL_STRING("English         ", t.row(1));
+  TEST_ASSERT_EQUAL_UINT16(1200, t.buzzer.notes[t.buzzer.count - 1].hz);  // conferma
+  t.advance(100);
+  TEST_ASSERT_EQUAL_UINT8(LANG_EN, eeprom.bytes[10]);  // salvato subito, senza i 2 s di attesa
+  t.keyD();
+  TEST_ASSERT_EQUAL_STRING("SERVICE MENU    ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING(">Lingua/Language", t.row(1));
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING(">Factory reset  ", t.row(1));
+  t.turnMode(-1);
+  t.clickMode();
+  t.clickMode();  // dopo l'ultima lingua si torna alla prima
+  TEST_ASSERT_EQUAL_STRING("Italiano        ", t.row(1));
+  t.keyD();
+  TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO   ", t.row(0));
+}
+
+// ui-languages REQ-3.1, REQ-3.3: l'inglese resta dopo il riavvio; il Ripristino di fabbrica, con i
+// testi inglesi, riporta all'italiano.
+static void test_service_language_survives_restart_and_factory_reset_restores_italian() {
+  {
+    Timer t(false, true);
+    t.settle();
+    openServiceItem(t, -3);
+    t.clickMode();
+    t.advance(100);
+  }
+  Timer t(false, true);
+  t.settle();
+  TEST_ASSERT_EQUAL_STRING("SERVICE MENU    ", t.row(0));
+  openServiceItem(t, -2);
+  TEST_ASSERT_EQUAL_STRING("Factory reset   ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Click: reset    ", t.row(1));
+  t.clickMode();
+  TEST_ASSERT_EQUAL_STRING("Confirm?        ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("click=Yes D=No  ", t.row(1));
+  t.clickMode();
+  TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO   ", t.row(0));
+}
+
+// ui-languages REQ-1.2: in inglese anche titoli, indicazioni e formati delle schermate del menu.
+static void test_service_screens_in_english() {
+  Timer t(false, true);
+  t.settings.d.g.language = LANG_EN;
+  t.settle();
+  TEST_ASSERT_EQUAL_STRING(">Info           ", t.row(1));
+  openServiceItem(t, 1);
+  TEST_ASSERT_EQUAL_STRING("Power-ons       ", t.row(0));
+  t.turnMode(-1);
+  TEST_ASSERT_EQUAL_STRING("Lamp hours      ", t.row(0));
+  t.keyD();
+  openServiceItem(t, 2);
+  TEST_ASSERT_EQUAL_STRING("Relay test      ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Click: off      ", t.row(1));
+  t.keyD();
+  openServiceItem(t, 7);
+  TEST_ASSERT_EQUAL_STRING("Calibration log ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Click: start    ", t.row(1));
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("PPM correction  ", t.row(0));
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("Measured 600 s  ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("600.00 s        ", t.row(1));
+  t.keyD();
+  openServiceItem(t, 1);
+  TEST_ASSERT_EQUAL_STRING("LCD exposure    ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING("Level 1-8: 1    ", t.row(1));
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_exposure_ending_just_before_press_does_not_close_the_next);
@@ -2145,5 +2230,8 @@ int main() {
   RUN_TEST(test_language_survives_power_off);
   RUN_TEST(test_unknown_saved_language_falls_back_to_italian_keeping_settings);
   RUN_TEST(test_english_main_screen_and_language_change_without_restart);
+  RUN_TEST(test_service_language_item_switches_language_and_saves);
+  RUN_TEST(test_service_language_survives_restart_and_factory_reset_restores_italian);
+  RUN_TEST(test_service_screens_in_english);
   return UNITY_END();
 }
