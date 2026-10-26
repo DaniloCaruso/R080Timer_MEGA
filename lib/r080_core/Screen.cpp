@@ -2,9 +2,15 @@
 
 #include <string.h>
 #include "Precision.h"
+#include "Texts.h"
 
 constexpr uint32_t SPLASH_MS = 1500;  // REQ-7.9
 constexpr uint32_t WDT_MESSAGE_MS = 3000;  // REQ-9.9
+
+// Copia il testo id nella lingua lang, senza il terminatore.
+static void putText(char* p, TextId id, uint8_t lang) {
+  for (const char* s = text(id, lang); fbyte(s); s++) *p++ = fbyte(s);
+}
 
 // Scrive n senza zeri iniziali; ritorna le cifre scritte.
 static uint8_t writeNumber(char* p, uint16_t n) {
@@ -15,8 +21,9 @@ static uint8_t writeNumber(char* p, uint16_t n) {
 
 void Screen::compose(uint32_t nowMs) {
   memset(want_, ' ', sizeof want_);
+  uint8_t lang = ctl_.language();
   if (watchdogReset_ && nowMs < WDT_MESSAGE_MS) {
-    fmemcpy(want_[0], FSTR("RESET: WDT"), 10);
+    putText(want_[0], T_WDT_RESET, lang);
     return;
   }
   if (nowMs < SPLASH_MS) {
@@ -31,16 +38,16 @@ void Screen::compose(uint32_t nowMs) {
   if (const ServiceMenu* menu = ctl_.service()) return menu->compose(want_);
   // Disposizione del firmware precedente. Riga 1: Modalità, tipo di precisione 12, Avanzamento 14.
   // Riga 2: precisione 0-6 senza prefisso, Canale 9-12, nota 14, spina 15.
-  static const char kModeRows[MODE_COUNT][17] PROGMEM = {"FOCUS           ", "COUNTDOWN  [S]  ", "TEST STRIP [S]CO"};
+  static const char kModeRows[MODE_COUNT][17] PROGMEM = {"FOCUS           ", "COUNTDOWN  [S]  ", "TEST STRIP [S]  "};
   const ChannelRecord& c = ctl_.channel();
   fmemcpy(want_[0], kModeRows[c.mode], 16);
-  if (c.mode == TEST_STRIP && c.advance) fmemcpy(&want_[0][14], FSTR("PP"), 2);  // come il firmware precedente
+  if (c.mode == TEST_STRIP) putText(&want_[0][14], c.advance ? T_ADV_STEP : T_ADV_CONT, lang);
   if (c.mode != FOCUS && c.precisionKind) want_[0][12] = 'F';
   uint8_t i = c.precisionIndex;
   if (c.mode == FOCUS) {
     // REQ-7.10: in Focus nessuna precisione.
   } else if (uint16_t n = ctl_.stripStep()) {
-    fmemcpy(want_[1], FSTR("St:"), 3);  // REQ-7.6: al posto di precisione e Offset
+    putText(want_[1], T_STEP, lang);  // REQ-7.6: al posto di precisione e Offset
     writeNumber(&want_[1][3], n);
   } else if (c.precisionKind) {
     // F-Stop: `1/p` alle colonne 0-3, Offset alle 4-6 (REQ-4.4).
@@ -56,7 +63,7 @@ void Screen::compose(uint32_t nowMs) {
     writeNumber(&want_[1][kSecondsSteps[i] < 10], kSecondsSteps[i]);
     want_[1][2] = 's';
   }
-  fmemcpy(&want_[1][9], FSTR("Ch:"), 3);
+  putText(&want_[1][9], T_CHANNEL, lang);
   want_[1][12] = 'A' + ctl_.channelIndex();
   want_[1][14] = ctl_.muted() ? ' ' : LCD_NOTE;
   want_[1][15] = c.relayEnabled ? LCD_PLUG : ' ';

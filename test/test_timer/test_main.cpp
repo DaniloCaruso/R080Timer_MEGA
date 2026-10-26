@@ -2014,6 +2014,22 @@ static void test_unknown_language_reads_italian_texts() {
   TEST_ASSERT_EQUAL_STRING("SERVICE MENU", text(T_MENU_TITLE, LANG_EN));
 }
 
+// ui-languages REQ-1.2, REQ-1.3, REQ-2.4: in inglese cambia solo l'Avanzamento passo-passo (SS);
+// nomi delle Modalità, precisione e Canale restano uguali, e il cambio vale senza riavvio.
+static void test_english_main_screen_and_language_change_without_restart() {
+  Timer t;
+  t.settle();
+  t.settings.d.g.language = LANG_EN;
+  TEST_ASSERT_EQUAL_STRING("COUNTDOWN  [S]  ", t.row(0));
+  TEST_ASSERT_EQUAL_STRING(" 1s      Ch:A \x01\x02", t.row(1));
+  t.turnMode(1);
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]CO", t.row(0));
+  t.clickMode();
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]SS", t.row(0));
+  t.settings.d.g.language = LANG_IT;
+  TEST_ASSERT_EQUAL_STRING("TEST STRIP [S]PP", t.row(0));
+}
+
 int main() {
   UNITY_BEGIN();
   RUN_TEST(test_exposure_ending_just_before_press_does_not_close_the_next);
@@ -2128,5 +2144,6 @@ int main() {
   RUN_TEST(test_factory_language_is_italian);
   RUN_TEST(test_language_survives_power_off);
   RUN_TEST(test_unknown_saved_language_falls_back_to_italian_keeping_settings);
+  RUN_TEST(test_english_main_screen_and_language_change_without_restart);
   return UNITY_END();
 }
