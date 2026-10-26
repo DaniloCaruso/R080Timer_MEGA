@@ -1,6 +1,6 @@
-# TECNICO — Architettura del firmware R080 Timer v2.0.0
+# TECNICO — Architettura del firmware R080 Timer v2.1.0
 
-Documento per chi modifica il firmware. Comportamento utente in [DOCS-IT.md](DOCS-IT.md), collegamenti in [PINOUT.md](PINOUT.md), requisiti (REQ-x.y) in `docs/firmware-rewrite/requirements-docs/EARS.it.md`, decisioni in `docs/firmware-rewrite/decisions.md`, vocabolario in [GLOSSARY.md](GLOSSARY.md). Questo documento sostituisce i vecchi `TECNICO.md` e `DIAGRAMS.md`, che descrivevano il firmware v1 (consultabile al tag `pre-rewrite`).
+Documento per chi modifica il firmware. Comportamento utente in [DOCS-IT.md](DOCS-IT.md), collegamenti in [PINOUT.md](PINOUT.md), requisiti (REQ-x.y) in `docs/firmware-rewrite/requirements-docs/EARS.it.md` e, per le lingue dell'LCD, in `docs/ui-languages/requirements-docs/EARS.it.md`, decisioni in `docs/<feature>/decisions.md`, vocabolario in [GLOSSARY.md](GLOSSARY.md). Questo documento sostituisce i vecchi `TECNICO.md` e `DIAGRAMS.md`, che descrivevano il firmware v1 (consultabile al tag `pre-rewrite`).
 
 ## 1. Strati
 
@@ -22,6 +22,7 @@ Documento per chi modifica il firmware. Comportamento utente in [DOCS-IT.md](DOC
 | `Precision.h` | Liste di precisione e `fstopTime()` (float, solo nel loop) |
 | `Controller.{h,cpp}` | Macchina a stati dell'interfaccia: input, comandi al `TimingCore`, 7 segmenti, suoni, log, contatori |
 | `Screen.{h,cpp}` | Immagine dell'LCD e invio delle sole differenze |
+| `Texts.{h,cpp}` | Testi dell'LCD in italiano e inglese in una tabella in flash, con le colonne disponibili di ciascuno; `text(id, lingua)` |
 | `SoundScheduler.{h,cpp}` | Tabella dei suoni e sequenze senza attese |
 | `Settings.{h,cpp}`, `Crc8.h` | Canali e impostazioni globali in EEPROM; CRC8 e scrittura a passi dei blocchi |
 | `Counters.{h,cpp}` | Contatori persistenti per la diagnostica |
@@ -142,16 +143,16 @@ Con il mute `Controller::beep()` lascia passare solo il Suono di fine: la confer
 
 Due blocchi indipendenti, ognuno con intestazione, versione e CRC8 (polinomio 0x07). Un blocco non valido non si migra: le impostazioni tornano ai valori di fabbrica (riga `ERROR settings=factory`), i contatori a zero. Il formato v1 (`0xA5` all'indirizzo 0) non passa il controllo.
 
-**Impostazioni**, indirizzo `0x000`, 43 byte:
+**Impostazioni**, indirizzo `0x000`, 45 byte:
 
 | Offset | Byte | Contenuto |
 |---|---|---|
-| 0 | 4 | `'R'`, `'8'`, versione 1, lunghezza 43 |
-| 4 | 8 | `GlobalRecord`: Canale attivo, mute, livello LCD, livello 7 segmenti, livello LCD in esposizione, indice del tempo massimo Focus, Correzione del clock (`int16_t`, ppm) |
-| 12 | 30 | 3 × `ChannelRecord` (10 byte): Modalità, tipo di precisione, indice di precisione, Avanzamento, tempo (`uint16_t`, ds), Tempo base (`uint16_t`, ds), Offset (`int8_t`), Abilitazione relè |
-| 42 | 1 | CRC8 dei 42 byte precedenti |
+| 0 | 4 | `'R'`, `'8'`, versione 2, lunghezza 45 |
+| 4 | 10 | `GlobalRecord`: Canale attivo, mute, livello LCD, livello 7 segmenti, livello LCD in esposizione, indice del tempo massimo Focus, lingua (`Language`), byte riservato (0, tiene la Correzione del clock a un offset pari: stesso layout sull'AVR e sul PC), Correzione del clock (`int16_t`, ppm) |
+| 14 | 30 | 3 × `ChannelRecord` (10 byte): Modalità, tipo di precisione, indice di precisione, Avanzamento, tempo (`uint16_t`, ds), Tempo base (`uint16_t`, ds), Offset (`int8_t`), Abilitazione relè |
+| 44 | 1 | CRC8 dei 44 byte precedenti |
 
-Oltre al CRC, `load()` controlla che indici e valori siano nei limiti (Correzione del clock ±1000 ppm, Offset ±99, tempo e Tempo base fino a 999,9 s). Il salvataggio parte 2 s dopo l'ultima modifica (`Settings::changed()`) o subito all'avvio di un'Esposizione, e scrive solo i byte diversi da quelli in EEPROM, uno per giro di loop quando la EEPROM è pronta (`writeBlockStep()` in `Crc8.h`), il CRC per ultimo: un salvataggio interrotto lascia il blocco non valido e al riavvio valgono i valori di fabbrica.
+Oltre al CRC, `load()` controlla che indici e valori siano nei limiti (Correzione del clock ±1000 ppm, Offset ±99, tempo e Tempo base fino a 999,9 s). Una lingua sconosciuta diventa l'italiano senza scartare il resto. Il blocco della versione 1 (v2.0.0, 43 byte) non passa il controllo. Il salvataggio parte 2 s dopo l'ultima modifica (`Settings::changed()`) o subito all'avvio di un'Esposizione, e scrive solo i byte diversi da quelli in EEPROM, uno per giro di loop quando la EEPROM è pronta (`writeBlockStep()` in `Crc8.h`), il CRC per ultimo: un salvataggio interrotto lascia il blocco non valido e al riavvio valgono i valori di fabbrica.
 
 **Contatori**, indirizzo `0x040`, 17 byte: `'R'`, `'C'`, versione 1, lunghezza 17 | accensioni (`uint16_t`, ogni avvio, compresi i reset da watchdog), reset da watchdog (`uint16_t`), Esposizioni (`uint32_t`), secondi di lampada (`uint32_t`) | CRC8. Salvati all'avvio, in `setup()`, e dopo ogni fine o Annullamento di Esposizione un byte per giro di loop (`Counters::service()`), come le impostazioni. Countdown e test strip contano come Esposizione anche se annullati; il Focus no. Il tempo a relè acceso, Focus compreso, conta nei secondi di lampada.
 
@@ -164,7 +165,7 @@ Oltre al CRC, `load()` controlla che indici e valori siano nei limiti (Correzion
 
 ## 9. Menu di servizio e calibrazione
 
-`ServiceMenu` ha 15 voci (vedi il manuale, §10) e tiene in `hw_` lo stato del test in corso. Il Ripristino di fabbrica chiede una seconda pressione di conferma. Durante un test hardware il `Controller` applica `relayOn()` al relè con `TimingPort::setRelay()` e mostra `8888` se `sevenSegTest()`.
+`ServiceMenu` ha 16 voci (vedi il manuale, §10), con i testi presi da `Texts` nella lingua salvata, e tiene in `hw_` lo stato del test in corso. Il Ripristino di fabbrica chiede una seconda pressione di conferma. Durante un test hardware il `Controller` applica `relayOn()` al relè con `TimingPort::setRelay()` e mostra `8888` se `sevenSegTest()`.
 
 **Log di calibrazione.** A log attivo il `Controller` scrive ogni 1000 tick una riga `CAL ms=<tick>`, con i tick di Timer1 contati senza correzione. `tools/calibrate.py` registra per ogni riga l'istante del PC (`time.monotonic_ns()`), stima la pendenza con una regressione lineare (che assorbe il ritardo variabile della USB) e stampa `(pendenza − 1) · 10⁶` ppm: la correzione assoluta. `--self-test` verifica la stima su log sintetici da −1000 a +1000 ppm. La porta si apre con DTR e RTS bassi per non riavviare il Mega.
 
@@ -190,7 +191,7 @@ La versione è `FW_VERSION` in `platformio.ini` (mostrata all'avvio e in Info). 
 
 ## 12. Risorse e limiti noti
 
-Build v2.0.0: RAM 2545 byte su 8192 (31 %), Flash 28332 byte su 253952 (11 %).
+Build v2.1.0: RAM 1629 byte su 8192 (20 %), Flash 30070 byte su 253952 (12 %); la tabella dei testi in due lingue (`Texts`) sta tutta in flash.
 
 - Testi dell'LCD, formati e righe del log stanno in flash (`Flash.h`); in RAM restano solo la tabella dei suoni, le piccole tabelle numeriche, versione e data di compilazione.
 - Il 7 segmenti ha quattro cifre: un Focus oltre 999,9 s (possibile con il limite di 20 minuti) passa a minuti.secondi (`SevenSeg::showMinSec()`, punto dopo la seconda cifra).
