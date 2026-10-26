@@ -1,113 +1,85 @@
-# R080 TIMER MEGA - Timer per Ingranditore Fotografico
+<p align="center">
+  <img src="docs/assets/r080-banner.svg" alt="R080 Timer: timer per ingranditore da camera oscura su Arduino Mega 2560" width="100%">
+</p>
 
-## Descrizione
-Questo progetto implementa un timer digitale avanzato per ingranditore fotografico, basato su Arduino Mega 2560. Il dispositivo offre diverse modalità operative, tra cui Focus, Countdown e Test Strip, con controlli precisi per la gestione dei tempi di esposizione.
+<p align="center">
+  <a href="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/firmware.yml?query=branch%3Afeature%2Farduino-mega-firmware"><img src="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/firmware.yml/badge.svg?branch=feature/arduino-mega-firmware" alt="CI del firmware"></a>
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/"><img src="https://github.com/DaniloCaruso/R080Timer_MEGA/actions/workflows/pages.yml/badge.svg" alt="Sito"></a>
+  <img src="https://img.shields.io/badge/firmware-v2.0.0-a985ff?style=flat-square" alt="Firmware v2.0.0">
+  <img src="https://img.shields.io/badge/scheda-Arduino%20Mega%202560-45e0ff?style=flat-square" alt="Arduino Mega 2560">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licenza-CC0%201.0-ff5cc8?style=flat-square" alt="Licenza CC0 1.0"></a>
+</p>
 
-## Scheda di Sviluppo
+<p align="center">
+  <b><a href="https://danilocaruso.github.io/R080Timer_MEGA/">Sito</a></b> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/pinout.html">Pinout</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/funzioni.html">Funzioni e comandi</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/flussi.html">Flussi</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/installazione.html">Installazione</a> ·
+  <a href="README.md">English</a>
+</p>
 
-Questo progetto è stato sviluppato specificamente per l'**Arduino Mega 2560**. 
+R080 Timer comanda la lampada dell'ingranditore in camera oscura: decide per quanto tempo la luce impressiona la carta. Gira su un Arduino Mega 2560 con un LCD rosso, un display a 7 segmenti, un tastierino 4x4, due encoder e un grande pulsante principale. Il tempo lo conta un timer hardware, quindi la lampada si spegne al millisecondo.
 
-### Caratteristiche principali dell'Arduino Mega 2560:
-- Microcontrollore: ATmega2560
-- Tensione operativa: 5V
-- Pin digitali I/O: 54 (di cui 15 possono essere usati come uscite PWM)
-- Pin analogici in ingresso: 16
-- Corrente DC per pin I/O: 20 mA
-- Corrente DC per pin 3.3V: 50 mA
-- Memoria Flash: 256 KB (di cui 8 KB usati dal bootloader)
-- SRAM: 8 KB
-- EEPROM: 4 KB
-- Clock: 16 MHz
+## Cosa fa
 
-La scelta dell'Arduino Mega 2560 è stata motivata dalla necessità di un elevato numero di pin I/O per gestire tutti i componenti del progetto (display, encoder, tastierino, ecc.) e dalla maggiore capacità di memoria rispetto ad altre schede Arduino, che permette di implementare funzionalità più complesse.
+| Modalità | Precisione | Sicurezza |
+|---|---|---|
+| **Focus** con spegnimento automatico | **Secondi** o **F-Stop**, da 1/1 a 1/64 di stop | Lampada spenta all'accensione e a ogni reset |
+| **Countdown** con Metronomo | Offset in stop sempre sull'LCD | Watchdog: lampada spenta entro 250 ms |
+| **Test strip**, continuo o passo-passo | Correzione del clock in ppm | Il timer funziona anche senza LCD |
 
-## Configurazione Hardware
+| Canali | Luci in camera oscura | Menu di servizio |
+|---|---|---|
+| `A`, `B`, `C`: ognuno tiene un'impostazione di stampa completa | LCD sempre rosso, 8 livelli di luminosità | Contatori, salute del sistema, test dei componenti |
+| Salvati in EEPROM, ripristinati all'accensione | LCD attenuato durante l'Esposizione | Calibrazione del clock, ripristino di fabbrica |
 
-### Componenti utilizzati:
-1. Arduino Mega 2560
-2. Display LCD 16x2 (I2C)
-3. Display a 7 segmenti
-4. Tastierino numerico 4x4
-5. 2x Encoder rotativi con pulsante
-6. Pulsante principale
-7. Buzzer
-8. Relè per il controllo dell'ingranditore
+## Dove sta il codice
 
-### Collegamenti:
+| Branch | Firmware | Stato |
+|---|---|---|
+| [`feature/arduino-mega-firmware`](https://github.com/DaniloCaruso/R080Timer_MEGA/tree/feature/arduino-mega-firmware) | **v2**, C++ e PlatformIO su Arduino Mega 2560, riscritto da zero con test sul PC | in collaudo sulla scheda |
+| [`feature/esp32-micropython-firmware`](https://github.com/DaniloCaruso/R080Timer_MEGA/tree/feature/esp32-micropython-firmware) | Port MicroPython per ESP32-WROOM-32 | in pausa |
+| `main` (questo branch) | **v1**, il firmware originale; ospita anche il sito (`site/`) e i documenti comuni | riferimento |
 
+Manuale, pinout e istruzioni di compilazione della v2 sono nel [README di `feature/arduino-mega-firmware`](https://github.com/DaniloCaruso/R080Timer_MEGA/blob/feature/arduino-mega-firmware/README-IT.md) e sul [sito](https://danilocaruso.github.io/R080Timer_MEGA/).
 
-- **LCD I2C**: 
-  - SDA -> Pin 20
-  - SCL -> Pin 21
+## Avvio rapido (v2)
 
-- **Display 7 segmenti**:
-  - DIN -> Pin A2
+```
+git clone -b feature/arduino-mega-firmware https://github.com/DaniloCaruso/R080Timer_MEGA.git
+cd R080Timer_MEGA
+pio run -t upload            # compila e carica sul Mega
+pio test -e native           # test della logica sul PC
+pio device monitor -b 115200 # log degli eventi
+```
 
-- **Tastierino 4x4**:
-  - Righe: Pin 33, 31, 29, 27
-  - Colonne: Pin 41, 39, 37, 35
+Serve [PlatformIO](https://platformio.org/). Dopo il primo caricamento va calibrato il clock: vedi [Installazione](https://danilocaruso.github.io/R080Timer_MEGA/installazione.html).
 
-- **Encoder Modalità**:
-  - DT -> Pin 3
-  - CLK -> Pin 4
-  - SW -> Pin 17
+<details>
+<summary><b>Firmware v1 su questo branch</b></summary>
 
-- **Encoder Precisione**:
-  - DT -> Pin 18
-  - CLK -> Pin 19
-  - SW -> Pin 16
+Il codice su `main` è il firmware originale, conservato come riferimento. Il cablaggio differisce dalla v2 in un punto: il display a 7 segmenti è su **A2** (la v2 lo sposta su D14 e aggiunge una resistenza da 10 kΩ tra D47 e GND).
 
-- **Pulsante Principale**: Pin 2
+| Componente | Pin |
+|---|---|
+| LCD (I²C) | SDA 20, SCL 21 |
+| Display a 7 segmenti | A2 |
+| Tastierino righe / colonne | 33, 31, 29, 27 / 41, 39, 37, 35 |
+| Encoder Modalità DT / CLK / SW | 3 / 4 / 17 |
+| Encoder precisione DT / CLK / SW | 18 / 19 / 16 |
+| Pulsante principale | 2 |
+| Buzzer | 49 |
+| Relè dell'ingranditore | 47 |
 
-- **Buzzer**: Pin 49
+Compilazione con `pio run`, caricamento con `pio run -t upload`. Librerie: [EncoderButton](https://github.com/Stutchbury/EncoderButton), [Encoder](https://github.com/PaulStoffregen/Encoder), [Keypad](https://playground.arduino.cc/Code/Keypad/), [Waveshare LCD1602 RGB](https://www.waveshare.com/wiki/LCD1602_RGB_Module), [ArduinoSTL](https://github.com/mike-matera/ArduinoSTL).
 
-- **Relè Ingranditore**: Pin 47
-
-## Configurazione Software
-
-### Ambiente di sviluppo
-Questo progetto utilizza PlatformIO come ambiente di sviluppo. Per configurare il progetto:
-
-- #### Utilizzando Visual Studio Code:
-  1. Installare l'estensione PlatformIO IDE per Visual Studio Code
-  2. Clonare questo repository
-  3. Aprire la cartella del progetto in Visual Studio Code
-  4. Cliccare sull'icona PlatformIO nella barra laterale
-  5. Selezionare "Build" per compilare il progetto
-  6. Selezionare "Upload" per caricare il firmware su Arduino Mega 2560
-
-- #### Utilizzando PlatformIO Core:
-
-  1. Installare [PlatformIO Core](https://docs.platformio.org/en/latest/core/installation.html)
-  2. Clonare questo repository
-  3. Aprire una finestra di comando nella directory del progetto
-  4. Eseguire `pio run` per compilare il progetto
-  5. Eseguire `pio run --target upload` per caricare il firmware su Arduino Mega 2560
-
-### Librerie utilizzate
-
-- **EncoderButton**: Gestione di encoder rotativi con pulsante integrato
-  - [Github](https://github.com/Stutchbury/EncoderButton)
-
-- **Encoder**: Gestione di encoder rotativi
-  - [Github](https://github.com/PaulStoffregen/Encoder)
-
-- **Keypad**: Gestione del tastierino numerico
-  - [Github](https://playground.arduino.cc/Code/Keypad/)
-  
-- **Waveshare_LCD1602_RGB**: Controllo del display LCD RGB tramite I2C
-  - [Wiki](https://www.waveshare.com/wiki/LCD1602_RGB_Module)
-
-- **ArduinoSTL**: Implementazione di alcune funzionalità della libreria standard C++
-  - [Github](https://github.com/mike-matera/ArduinoSTL)
-
+</details>
 
 ## Contribuire
 
-Le pull request sono benvenute. 
-Per modifiche importanti, aprite prima un issue per discutere cosa vorreste cambiare.
+Le pull request sono benvenute. Per modifiche importanti aprire prima una issue per discuterne.
 
 ## Licenza
 
 [CC0 1.0 Universal](LICENSE)
-
