@@ -160,10 +160,10 @@
 .note.small { font-size: 13px; }
 </style>
 </head>
-<body data-page="flussi.html">
+<body data-page="flussi">
 <main class="page">
   <header class="page-head">
-    <span class="eyebrow"><span lang="it">Comportamento · firmware v2.0.0</span><span lang="en">Behaviour · firmware v2.0.0</span></span>
+    <span class="eyebrow"><span lang="it">Comportamento · firmware v2.1.0</span><span lang="en">Behaviour · firmware v2.1.0</span></span>
     <h1><span lang="it">Flussi</span><span lang="en">Flows</span></h1>
     <p class="lede" lang="it">Come si comporta il timer, un flusso alla volta. Scegli un flusso, premi <b>Riproduci</b> per seguire una sequenza tipica passo per passo, oppure tocca uno stato per leggerne la spiegazione. Nel pannello accanto al diagramma vedi cosa mostrano il <b>7 segmenti</b> e l'<b>LCD</b>, lo stato del relè e il suono di ogni passo.</p>
     <p class="lede" lang="en">How the timer behaves, one flow at a time. Pick a flow, press <b>Play</b> to follow a typical sequence step by step, or tap a state to read what it does. In the panel next to the diagram you see what the <b>7-segment</b> display and the <b>LCD</b> show, the relay state and the sound of each step.</p>
@@ -203,11 +203,11 @@
   </section>
 
   <div class="note small"><strong><span lang="it">Fonte</span><span lang="en">Source</span></strong>
-    <p lang="it">Ogni passo è verificato sul codice del firmware v2.0.0 (<code>Controller.cpp</code>, <code>TimingCore.h</code>, <code>ServiceMenu.cpp</code>, <code>Settings.cpp</code>, <code>Screen.cpp</code>). I tempi del 7 segmenti sono esempi; i testi dell'LCD sono quelli reali, carattere per carattere.</p>
-    <p lang="en">Every step is checked against the v2.0.0 firmware code (<code>Controller.cpp</code>, <code>TimingCore.h</code>, <code>ServiceMenu.cpp</code>, <code>Settings.cpp</code>, <code>Screen.cpp</code>). The 7-segment times are examples; the LCD texts are the real ones, character by character.</p>
+    <p lang="it">Ogni passo è verificato sul codice del firmware v2.1.0 (<code>Controller.cpp</code>, <code>TimingCore.h</code>, <code>ServiceMenu.cpp</code>, <code>Settings.cpp</code>, <code>Screen.cpp</code>). I tempi del 7 segmenti sono esempi; i testi dell'LCD sono quelli reali, carattere per carattere, nella lingua della pagina.</p>
+    <p lang="en">Every step is checked against the v2.1.0 firmware code (<code>Controller.cpp</code>, <code>TimingCore.h</code>, <code>ServiceMenu.cpp</code>, <code>Settings.cpp</code>, <code>Screen.cpp</code>). The 7-segment times are examples; the LCD texts are the real ones, character by character, in the page language.</p>
   </div>
 </main>
-<footer class="site"><span lang="it">R080 Timer · timer per ingranditore su Arduino Mega 2560 · firmware v2.0.0</span><span lang="en">R080 Timer · enlarger timer on Arduino Mega 2560 · firmware v2.0.0</span></footer>
+<footer class="site"><span lang="it">R080 Timer · timer per ingranditore su Arduino Mega 2560 · firmware v2.1.0</span><span lang="en">R080 Timer · enlarger timer on Arduino Mega 2560 · firmware v2.1.0</span></footer>
 <script src="assets/site.js"></script>
 <script>
 (function () {
@@ -220,12 +220,13 @@
   const KIND = { idle: "--violet", input: "--indigo", lamp: "--amber", off: "--cyan", warn: "--magenta", end: "--green", err: "--red", ask: "--fg", mute: "--faint" };
 
   // LCD rows, exactly as Screen.cpp composes them: row 2 = precision (cols 0-6), Ch:x (9-12), note (14), plug (15).
+  // A row is a string or T(it, en) when the LCD text depends on the firmware language.
   const pad = (s) => (s + " ".repeat(16)).slice(0, 16);
-  const R1 = { F: "FOCUS", CD: "COUNTDOWN  [S]", TS: "TEST STRIP [S]CO", TSF: "TEST STRIP [F]CO", TP: "TEST STRIP [S]PP" };
+  const R1 = { F: "FOCUS", CD: "COUNTDOWN  [S]", TS: "TEST STRIP [S]CO", TSF: "TEST STRIP [F]CO", TP: T("TEST STRIP [S]PP", "TEST STRIP [S]SS") };
   const r2 = (p, ch, note, plug) => (p + "         ").slice(0, 9) + "Ch:" + (ch || "A") + " " + (note === false ? " " : "♪") + (plug === false ? " " : "⚡");
   const LCD_CD = [R1.CD, r2(" 1s")];
   const LCD_F = [R1.F, r2("")];
-  const MENU = (item) => ["MENU SERVIZIO", ">" + item];
+  const MENU = (it, en) => [T("MENU SERVIZIO", "SERVICE MENU"), T(">" + it, ">" + (en === undefined ? it : en))];
 
   // Sounds from SoundScheduler.cpp: [hz, ms] (hz 0 = pause).
   const SND = {
@@ -290,7 +291,7 @@
           { n: "wdt", c: T("Nessun marcatore: avvio normale. Il watchdog ora sorveglia il loop.", "No marker: normal start. The watchdog now guards the loop.") },
           { n: "load", c: T("Impostazioni valide, contatore Accensioni +1.", "Settings valid, power-on counter +1.") },
           { n: "cause", c: T("Causa POWER: il log scrive BOOT reset=POWER.", "Cause POWER: the log writes BOOT reset=POWER.") },
-          { n: "splash", seg: "010.0", lcd: [" - R080 Timer - ", "     v2.0.0"], c: T("Schermata iniziale per 1,5 s; il 7 segmenti mostra già 10,0 s.", "Splash for 1.5 s; the 7-segment already shows 10.0 s.") },
+          { n: "splash", seg: "010.0", lcd: [" - R080 Timer - ", "     v2.1.0"], c: T("Schermata iniziale per 1,5 s; il 7 segmenti mostra già 10,0 s.", "Splash for 1.5 s; the 7-segment already shows 10.0 s.") },
           { n: "idle", lcd: LCD_CD, c: T("Ultimo stato salvato: Countdown, Canale A, pronto.", "Last saved state: Countdown, channel A, ready.") }
         ] },
         { name: T("Dopo un blocco", "After a hang"), steps: [
@@ -307,7 +308,7 @@
           { n: "rel" }, { n: "wdt" },
           { n: "load", c: T("D letto una volta sola, qui: il Menu di servizio è aperto.", "D is read only once, here: the Service menu is open.") },
           { n: "cause" },
-          { n: "splash", seg: "010.0", lcd: [" - R080 Timer - ", "     v2.0.0"], c: T("La schermata iniziale compare comunque per 1,5 s.", "The splash screen still shows for 1.5 s.") },
+          { n: "splash", seg: "010.0", lcd: [" - R080 Timer - ", "     v2.1.0"], c: T("La schermata iniziale compare comunque per 1,5 s.", "The splash screen still shows for 1.5 s.") },
           { n: "menu", lcd: MENU("Info"), c: T("Menu di servizio, prima voce Info. Si scorre con l'encoder della Modalità.", "Service menu, first item Info. Scroll with the mode encoder.") }
         ] }
       ]
@@ -494,9 +495,9 @@
       intro: T("A ogni Step la lampada si spegne al millisecondo e il timer aspetta: si sposta la carta e si preme per esporre solo l'incremento.",
         "At every step the lamp goes off to the millisecond and the timer waits: move the paper and press to expose only the increment."),
       nodes: [
-        ["idle", 140, 270, "idle", T("Fermo", "Idle"), T("TEST STRIP · PP", "TEST STRIP · PP"),
+        ["idle", 140, 270, "idle", T("Fermo", "Idle"), T("TEST STRIP · PP", "TEST STRIP · SS"),
           T("Avanzamento passo-passo (PP), scelto premendo l'encoder della Modalità. Il primo Step è il tempo impostato.",
-            "Step-by-step advance (PP), chosen by pressing the mode encoder. The first step is the set time.")],
+            "Step-by-step advance (SS on the English LCD, PP on the Italian one), chosen by pressing the mode encoder. The first step is the set time.")],
         ["run", 430, 270, "lamp", T("Lampada accesa", "Lamp on"), T("fino allo Step", "up to the step"),
           T("Prima pressione: dall'inizio al primo Step. Dopo ogni pausa solo l'incremento fino allo Step successivo, con il beep di avvio. Il pulsante principale annulla.",
             "First press: from zero to the first step. After each pause only the increment to the next step, with the start beep. The main button cancels.")],
@@ -568,7 +569,7 @@
             "Calculator-style digits; 0 enters on release, because it can be part of the 0 + * / # chord. A B C select the channel, D clears the time.")],
         ["enc", 680, 432, "input", T("Encoder", "Encoders"), T("Modalità · precisione", "mode · precision"),
           T("Modalità: rotazione Focus / Countdown / Test strip, pressione CO / PP. Precisione: rotazione fra 11 valori in ciclo, pressione Secondi / F-Stop.",
-            "Mode: turn for Focus / Countdown / Test strip, press for CO / PP. Precision: turn through 11 values in a loop, press for seconds / F-stop.")],
+            "Mode: turn for Focus / Countdown / Test strip, press for CO / SS. Precision: turn through 11 values in a loop, press for seconds / F-stop.")],
         ["short", 680, 512, "input", T("* / # brevi", "Short * / #"), T("agiscono al rilascio", "act on release"),
           T("Al rilascio: tempo − / + secondo la precisione. In Focus abbassano e alzano la luminosità dell'LCD.",
             "On release: time − / + by the precision. In Focus they lower and raise the LCD brightness.")],
@@ -631,9 +632,9 @@
         ["write", 740, 100, "off", T("Scrittura", "Writing"), T("1 byte per giro di loop", "1 byte per loop pass"),
           T("A ogni giro il loop scrive solo il primo byte diverso dalla EEPROM (eeprom_update), e solo se la EEPROM è pronta: nessuna attesa. Una modifica durante la scrittura entra nello stesso salvataggio.",
             "Each pass the loop writes only the first byte that differs from the EEPROM (eeprom_update), and only when the EEPROM is ready: no waiting. A change during the write joins the same save.")],
-        ["saved", 1060, 100, "end", T("Salvato", "Saved"), T("43 byte · CRC8", "43 bytes · CRC8"),
-          T("Blocco di 43 byte: firma R8, versione, lunghezza, tre Canali e impostazioni globali, CRC8. I contatori hanno un blocco a parte (17 byte, indirizzo 0x040).",
-            "A 43-byte block: R8 signature, version, length, three channels and global settings, CRC8. Counters have their own block (17 bytes, address 0x040).")],
+        ["saved", 1060, 100, "end", T("Salvato", "Saved"), T("45 byte · CRC8", "45 bytes · CRC8"),
+          T("Blocco di 45 byte: firma R8, versione, lunghezza, tre Canali e impostazioni globali (lingua compresa), CRC8. I contatori hanno un blocco a parte (17 byte, indirizzo 0x040).",
+            "A 45-byte block: R8 signature, version, length, three channels and global settings (language included), CRC8. Counters have their own block (17 bytes, address 0x040).")],
         ["boot", 1060, 400, "input", T("Accensione", "Power-on"), T("lettura del blocco", "block read"),
           T("All'avvio il blocco viene letto una volta, prima di tutto il resto.", "At start-up the block is read once, before anything else.")],
         ["check", 740, 400, "ask", T("Blocco valido?", "Block valid?"), T("firma, CRC8, limiti", "signature, CRC8, ranges"),
@@ -642,8 +643,8 @@
         ["load", 420, 330, "end", T("Ultimo stato", "Last state"), T("tutto come prima", "all as before"),
           T("Canale attivo, i tre Canali, mute, luminosità e impostazioni del menu tornano come allo spegnimento.", "Active channel, the three channels, mute, brightness and menu settings come back as at power-off.")],
         ["fact", 420, 470, "err", T("Valori di fabbrica", "Factory defaults"), T("log ERROR settings=factory", "log ERROR settings=factory"),
-          T("Dati corrotti o del firmware precedente (0xA5 all'indirizzo 0): Canale A, Countdown, Secondi 1 s, 10,0 s, relè abilitato; LCD 3, 7 seg 3, LCD esposizione 1, Focus 5 min, 0 ppm.",
-            "Corrupted data or the previous firmware's (0xA5 at address 0): channel A, Countdown, seconds 1 s, 10.0 s, relay enabled; LCD 3, 7-seg 3, exposure LCD 1, Focus 5 min, 0 ppm.")]
+          T("Dati corrotti o di un firmware precedente (v1 con 0xA5 all'indirizzo 0, v2.0.0 con versione 1): Canale A, Countdown, Secondi 1 s, 10,0 s, relè abilitato; LCD 3, 7 seg 3, LCD esposizione 1, Focus 5 min, 0 ppm, italiano.",
+            "Corrupted data or an earlier firmware's (v1 with 0xA5 at address 0, v2.0.0 with version 1): channel A, Countdown, seconds 1 s, 10.0 s, relay enabled; LCD 3, 7-seg 3, exposure LCD 1, Focus 5 min, 0 ppm, Italian.")]
       ],
       edges: [
         ["change", "pend", ""], ["pend", "pend", T("altra modifica: riparte", "another change: restart"), { loop: "top" }],
@@ -670,11 +671,11 @@
         ] },
         { name: T("Riaccensione", "Power-on"), steps: [
           { n: "boot", seg: "", lcd: ["", ""], r: false, c: T("Accensione: lettura del blocco.", "Power-on: block read.") },
-          { n: "check", c: T("Firma R8, versione 1, 43 byte, CRC8 giusto, valori nei limiti.", "R8 signature, version 1, 43 bytes, CRC8 right, values in range.") },
+          { n: "check", c: T("Firma R8, versione 2, 45 byte, CRC8 giusto, valori nei limiti.", "R8 signature, version 2, 45 bytes, CRC8 right, values in range.") },
           { n: "load", seg: "012.5", lcd: LCD_CD, c: T("Tutto come prima: 12,5 s sul Canale A.", "All as before: 12.5 s on channel A.") }
         ] },
         { name: T("Dati non validi", "Invalid data"), steps: [
-          { n: "boot", seg: "", lcd: ["", ""], r: false, c: T("Prima accensione con la v2.0.0, o EEPROM rovinata.", "First power-on with v2.0.0, or damaged EEPROM.") },
+          { n: "boot", seg: "", lcd: ["", ""], r: false, c: T("Prima accensione con la v2.1.0, o EEPROM rovinata.", "First power-on with v2.1.0, or damaged EEPROM.") },
           { n: "check", c: T("Firma o CRC8 non tornano.", "Signature or CRC8 do not match.") },
           { n: "fact", seg: "010.0", lcd: LCD_CD, c: T("Valori di fabbrica; il log USB scrive ERROR settings=factory.", "Factory defaults; the USB log writes ERROR settings=factory.") }
         ] }
@@ -686,20 +687,20 @@
         "Diagnostics, tests and calibration. Navigate with the mode encoder: turn to scroll, press to enter or confirm; D goes back to the list."),
       nodes: [
         ["boot", 400, 130, "input", T("D all'accensione", "D at power-on"), T("dopo la schermata iniziale", "after the splash"),
-          T("Tenere D mentre si accende il timer. I testi del menu sono in italiano; nel menu non si avviano Esposizioni.",
-            "Hold D while powering on. Menu texts are in Italian; no exposure can start inside the menu.")],
+          T("Tenere D mentre si accende il timer. I testi del menu sono in italiano o in inglese, secondo la voce Lingua/Language; nel menu non si avviano Esposizioni.",
+            "Hold D while powering on. Menu texts are in Italian or English, as set in the Lingua/Language item; no exposure can start inside the menu.")],
         ["list", 400, 330, "warn", T("Elenco voci", "Item list"), T("rotazione: voce · clic: entra", "turn: item · click: enter"),
-          T("15 voci in ciclo: Info, Contatori, Salute, sette test, Calibrazione, LCD esposizione, Tempo max Focus, Ripristino fabb, Esci.",
-            "15 items in a loop: Info, Counters, Health, seven tests, Calibration, exposure LCD, Focus max time, factory reset, Exit.")],
+          T("16 voci in ciclo: Info, Contatori, Salute, sette test, Calibrazione, LCD esposizione, Tempo max Focus, Lingua/Language, Ripristino fabb, Esci.",
+            "16 items in a loop: Info, Counters, Health, seven tests, Calibration, LCD exposure, Focus max time, Lingua/Language, Factory reset, Exit.")],
         ["read", 700, 60, "idle", T("Info · Contatori · Salute", "Info · Counters · Health"), T("rotazione: schermata", "turn: page"),
           T("Sola lettura. Info: versione e data. Contatori: Accensioni, Reset watchdog, Esposizioni, Ore lampada. Salute: Loop max, ISR max, Tick persi.",
-            "Read only. Info: version and date. Counters: power-ons, watchdog resets, exposures, lamp hours. Health: loop max, ISR max, lost ticks.")],
+            "Read only. Info: version and date. Counters: Power-ons, Watchdog resets, Exposures, Lamp hours. Health: Loop max, ISR max, Lost ticks.")],
         ["test", 700, 190, "lamp", T("Test hardware", "Hardware tests"), T("relè, buzzer, display, tasti", "relay, buzzer, displays, keys"),
           T("Relè, buzzer (8 suoni), 7 segmenti (888.8), LCD (tutte le celle), tastierino, encoder, pulsante. Ogni comando va al componente in prova; D esce e il relè si spegne.",
             "Relay, buzzer (8 sounds), 7-segment (888.8), LCD (all cells), keypad, encoders, button. Every input goes to the part under test; D exits and the relay goes off.")],
         ["value", 700, 330, "input", T("Valore", "Value"), T("cifre · * segno · clic", "digits · * sign · click"),
           T("Calibrazione (ppm o durata di 600 s), LCD esposizione (1–8), Tempo max Focus (3, 5, 10, 15, 20). Cifre a calcolatrice, * cambia segno, D torna senza salvare.",
-            "Calibration (ppm or 600 s duration), exposure LCD (1–8), Focus max time (3, 5, 10, 15, 20). Calculator-style digits, * flips the sign, D goes back without saving.")],
+            "Calibration (ppm or 600 s duration), LCD exposure (1–8), Focus max time (3, 5, 10, 15, 20). Calculator-style digits, * flips the sign, D goes back without saving.")],
         ["fact", 700, 480, "warn", T("Ripristino fabb", "Factory reset"), T("prima pressione", "first press"),
           T("Dentro la voce, la prima pressione non cancella nulla: chiede conferma.", "Inside the item, the first press erases nothing: it asks for confirmation.")],
         ["refused", 1000, 250, "err", T("Rifiutato", "Refused"), T("beep di errore", "error beep"),
@@ -707,8 +708,11 @@
         ["saved", 1000, 410, "end", T("Salvato", "Saved"), T("beep di conferma", "confirm beep"),
           T("Valore accettato: salvato subito, beep di conferma (si sente anche col mute), ritorno all'elenco.", "Value accepted: saved at once, confirm beep (audible even when muted), back to the list.")],
         ["confirm", 1000, 560, "err", T("Confermi?", "Confirm?"), T("clic = Sì · D = No", "click = yes · D = no"),
-          T("La seconda pressione riporta tutte le impostazioni ai valori di fabbrica, Correzione del clock compresa; i contatori restano. D annulla.",
-            "The second press puts every setting back to factory, clock correction included; counters are kept. D cancels.")],
+          T("La seconda pressione riporta tutte le impostazioni ai valori di fabbrica, Correzione del clock compresa, e la lingua all'italiano; i contatori restano. D annulla.",
+            "The second press puts every setting back to factory, clock correction included, and the language to Italian; counters are kept. D cancels.")],
+        ["lang", 130, 190, "input", T("Lingua/Language", "Lingua/Language"), T("clic: cambia · salva", "click: switch · save"),
+          T("Mostra il nome della lingua attuale, Italiano o English. Ogni pressione passa all'altra, salva subito e dà il beep di conferma; si resta nella voce. D torna all'elenco già nella nuova lingua.",
+            "Shows the current language name, Italiano or English. Each press switches to the other, saves at once and gives the confirm beep; you stay in the item. D returns to the list already in the new language.")],
         ["exit", 130, 490, "end", T("Uso normale", "Normal use"), T("Esci, senza riavvio", "Exit, no restart"),
           T("La voce Esci torna all'uso normale senza riavviare la scheda, con le impostazioni già salvate.", "The Exit item returns to normal use without restarting the board, with settings already saved.")]
       ],
@@ -723,39 +727,49 @@
         ["value", "saved", T("valido", "valid")], ["saved", "list", T("elenco", "list"), { c: [700, 418] }],
         ["list", "fact", T("clic", "click")], ["fact", "confirm", T("clic", "click")],
         ["confirm", "saved", T("clic", "click")], ["confirm", "list", T("D"), { c: [700, 660] }],
-        ["list", "exit", T("clic su Esci", "click on Exit")]
+        ["list", "exit", T("clic su Esci", "click on Exit")],
+        ["list", "lang", T("clic", "click"), { bend: -26 }], ["lang", "list", T("D"), { bend: -26 }],
+        ["lang", "lang", T("clic", "click"), { loop: "top" }]
       ],
       sc: [
         { name: T("Scorrere e leggere", "Browse and read"), steps: [
-          { n: "boot", seg: "010.0", lcd: [" - R080 Timer - ", "     v2.0.0"], r: false, c: T("D tenuto all'accensione: prima la schermata iniziale, 1,5 s.", "D held at power-on: first the splash, 1.5 s.") },
+          { n: "boot", seg: "010.0", lcd: [" - R080 Timer - ", "     v2.1.0"], r: false, c: T("D tenuto all'accensione: prima la schermata iniziale, 1,5 s.", "D held at power-on: first the splash, 1.5 s.") },
           { n: "list", lcd: MENU("Info"), c: T("Menu di servizio: la riga 2 mostra la voce.", "Service menu: row 2 shows the item.") },
-          { n: "list", lcd: MENU("Contatori"), c: T("Rotazione: voce successiva.", "Turn: next item.") },
-          { n: "read", lcd: ["Accensioni", "128"], c: T("Clic: prima schermata dei Contatori.", "Click: first Counters page.") },
-          { n: "read", lcd: ["Reset watchdog", "2"], c: T("Rotazione: schermata successiva.", "Turn: next page.") },
-          { n: "list", lcd: MENU("Contatori"), c: T("D: di nuovo all'elenco.", "D: back to the list.") }
+          { n: "list", lcd: MENU("Contatori", "Counters"), c: T("Rotazione: voce successiva.", "Turn: next item.") },
+          { n: "read", lcd: [T("Accensioni", "Power-ons"), "128"], c: T("Clic: prima schermata dei Contatori.", "Click: first Counters page.") },
+          { n: "read", lcd: [T("Reset watchdog", "Watchdog resets"), "2"], c: T("Rotazione: schermata successiva.", "Turn: next page.") },
+          { n: "list", lcd: MENU("Contatori", "Counters"), c: T("D: di nuovo all'elenco.", "D: back to the list.") }
         ] },
         { name: T("Tempo max Focus", "Focus max time"), steps: [
-          { n: "list", seg: "010.0", lcd: MENU("Tempo max Focus"), r: false, c: T("Voce Tempo max Focus.", "Focus max time item.") },
-          { n: "value", lcd: ["Tempo max Focus", "Minuti: 5"], c: T("Clic: valore attuale, 5 minuti.", "Click: current value, 5 minutes.") },
-          { n: "value", lcd: ["Tempo max Focus", "Minuti: 7"], c: T("Digito 7.", "I type 7.") },
+          { n: "list", seg: "010.0", lcd: MENU("Tempo max Focus", "Focus max time"), r: false, c: T("Voce Tempo max Focus.", "Focus max time item.") },
+          { n: "value", lcd: [T("Tempo max Focus", "Focus max time"), T("Minuti: 5", "Minutes: 5")], c: T("Clic: valore attuale, 5 minuti.", "Click: current value, 5 minutes.") },
+          { n: "value", lcd: [T("Tempo max Focus", "Focus max time"), T("Minuti: 7", "Minutes: 7")], c: T("Digito 7.", "I type 7.") },
           { n: "refused", snd: "error", c: T("7 non è fra 3, 5, 10, 15, 20: beep di errore.", "7 is not one of 3, 5, 10, 15, 20: error beep.") },
-          { n: "value", lcd: ["Tempo max Focus", "Minuti: 10"], c: T("Digito 1 0.", "I type 1 0.") },
-          { n: "saved", lcd: MENU("Tempo max Focus"), snd: "ok", c: T("Clic: salvato, beep di conferma, ritorno all'elenco.", "Click: saved, confirm beep, back to the list.") },
+          { n: "value", lcd: [T("Tempo max Focus", "Focus max time"), T("Minuti: 10", "Minutes: 10")], c: T("Digito 1 0.", "I type 1 0.") },
+          { n: "saved", lcd: MENU("Tempo max Focus", "Focus max time"), snd: "ok", c: T("Clic: salvato, beep di conferma, ritorno all'elenco.", "Click: saved, confirm beep, back to the list.") },
           { n: "list", c: T("Pronto per un'altra voce.", "Ready for another item.") }
         ] },
         { name: T("Ripristino di fabbrica", "Factory reset"), steps: [
-          { n: "list", seg: "010.0", lcd: MENU("Ripristino fabb"), r: false, c: T("Voce Ripristino fabb.", "Factory reset item.") },
-          { n: "fact", lcd: ["Ripristino fabb", "Clic: ripristina"], c: T("Clic: si entra nella voce.", "Click: inside the item.") },
-          { n: "confirm", lcd: ["Confermi?", "clic=Si D=No"], c: T("Clic: richiesta di conferma.", "Click: confirmation request.") },
-          { n: "saved", lcd: MENU("Ripristino fabb"), snd: "ok", c: T("Clic: tutto ai valori di fabbrica, ppm compresi; i contatori restano.", "Click: everything to factory, ppm included; counters are kept.") },
-          { n: "list", lcd: MENU("Esci"), c: T("Rotazione fino a Esci.", "Turn to Exit.") },
+          { n: "list", seg: "010.0", lcd: MENU("Ripristino fabb", "Factory reset"), r: false, c: T("Voce Ripristino fabb.", "Factory reset item.") },
+          { n: "fact", lcd: [T("Ripristino fabb", "Factory reset"), T("Clic: ripristina", "Click: reset")], c: T("Clic: si entra nella voce.", "Click: inside the item.") },
+          { n: "confirm", lcd: [T("Confermi?", "Confirm?"), T("clic=Si D=No", "click=Yes D=No")], c: T("Clic: richiesta di conferma.", "Click: confirmation request.") },
+          { n: "saved", lcd: MENU("Ripristino fabb", "Factory reset"), snd: "ok", c: T("Clic: tutto ai valori di fabbrica, ppm compresi, lingua italiana; i contatori restano.", "Click: everything to factory, ppm included, language Italian; counters are kept.") },
+          { n: "list", lcd: MENU("Esci", "Exit"), c: T("Rotazione fino a Esci.", "Turn to Exit.") },
           { n: "exit", lcd: LCD_CD, c: T("Clic su Esci: uso normale, senza riavvio.", "Click on Exit: normal use, no restart.") }
         ] },
         { name: T("Test relè", "Relay test"), steps: [
-          { n: "list", seg: "010.0", lcd: MENU("Test rele"), r: false, c: T("Voce Test rele.", "Relay test item.") },
-          { n: "test", lcd: ["Test rele", "Clic: spento"], c: T("Clic: si entra nel test.", "Click: into the test.") },
-          { n: "test", lcd: ["Test rele", "Clic: acceso"], r: true, c: T("Clic: relè acceso.", "Click: relay on.") },
-          { n: "list", lcd: MENU("Test rele"), r: false, c: T("D: si esce dal test e il relè si spegne.", "D: out of the test, the relay switches off.") }
+          { n: "list", seg: "010.0", lcd: MENU("Test rele", "Relay test"), r: false, c: T("Voce Test rele.", "Relay test item.") },
+          { n: "test", lcd: [T("Test rele", "Relay test"), T("Clic: spento", "Click: off")], c: T("Clic: si entra nel test.", "Click: into the test.") },
+          { n: "test", lcd: [T("Test rele", "Relay test"), T("Clic: acceso", "Click: on")], r: true, c: T("Clic: relè acceso.", "Click: relay on.") },
+          { n: "list", lcd: MENU("Test rele", "Relay test"), r: false, c: T("D: si esce dal test e il relè si spegne.", "D: out of the test, the relay switches off.") }
+        ] },
+        { name: T("Cambiare la lingua dell'LCD", "Change the LCD language"), steps: [
+          { n: "boot", seg: "010.0", lcd: [" - R080 Timer - ", "     v2.1.0"], r: false, c: T("D tenuto all'accensione: prima la schermata iniziale, 1,5 s.", "D held at power-on: first the splash, 1.5 s.") },
+          { n: "list", lcd: ["MENU SERVIZIO", ">Info"], c: T("Menu di servizio in italiano, la lingua di fabbrica.", "Service menu in Italian, the factory language.") },
+          { n: "list", lcd: ["MENU SERVIZIO", ">Lingua/Language"], c: T("Rotazione fino a Lingua/Language, subito prima di Ripristino fabb. Il nome è uguale nelle due lingue.", "Turn to Lingua/Language, right before the factory reset item. Its name is the same in both languages.") },
+          { n: "lang", lcd: ["Lingua/Language", "Italiano"], c: T("Clic: la voce mostra la lingua attuale, Italiano.", "Click: the item shows the current language, Italiano.") },
+          { n: "lang", lcd: ["Lingua/Language", "English"], snd: "ok", c: T("Clic: si passa all'inglese, salvato subito, beep di conferma. Si resta nella voce; un altro clic torna all'italiano.", "Click: switched to English, saved at once, confirm beep. You stay in the item; another click goes back to Italian.") },
+          { n: "list", lcd: ["SERVICE MENU", ">Lingua/Language"], c: T("D: elenco delle voci, già in inglese.", "D: the item list, already in English.") }
         ] }
       ]
     }
@@ -1015,10 +1029,10 @@
   };
   function lcd(rows, dim) {
     const r = rows.map((row) => {
-      const s = [...pad(row)].slice(0, 16);
+      const s = [...pad(L(row))].slice(0, 16);
       return `<div class="row">${s.map((ch) => `<span class="c${ch === "█" ? " full" : ""}">${ICON[ch] || (ch === " " ? "" : ch.replace("<", "&lt;").replace(">", "&gt;"))}</span>`).join("")}</div>`;
     }).join("");
-    return `<div class="lcd${dim ? " dim" : ""}" role="img" aria-label="LCD: ${rows.map((x) => x.trim()).join(" / ")}">${r}</div>`;
+    return `<div class="lcd${dim ? " dim" : ""}" role="img" aria-label="LCD: ${rows.map((x) => L(x).trim()).join(" / ")}">${r}</div>`;
   }
   function sound(key, go) {
     if (!key) return `<div class="sound off"><svg viewBox="0 0 96 34"><rect x="0" y="16" width="96" height="2" rx="1"/></svg><b>${L(T("Silenzio", "Silence"))}</b><small>—</small></div>`;

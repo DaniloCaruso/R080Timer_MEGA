@@ -121,18 +121,18 @@
 }
 </style>
 </head>
-<body data-page="index.html">
+<body data-page="./">
 <main class="page">
 
   <section class="hero" aria-labelledby="title">
     <div class="page-head">
-      <div class="eyebrow"><span lang="it">Arduino Mega 2560 · firmware v2.0.0</span><span lang="en">Arduino Mega 2560 · firmware v2.0.0</span></div>
+      <div class="eyebrow"><span lang="it">Arduino Mega 2560 · firmware v2.1.0</span><span lang="en">Arduino Mega 2560 · firmware v2.1.0</span></div>
       <h1 id="title">R080 Timer</h1>
       <p class="lede" lang="it">Un timer per ingranditore da camera oscura che spegne la lampada <b>al millisecondo esatto</b>. Focus, Countdown e Test strip, tre canali che ricordano tutta l'impostazione di stampa, F-Stop, display rossi pensati per il buio.</p>
       <p class="lede" lang="en">A darkroom enlarger timer that switches the lamp off <b>to the exact millisecond</b>. Focus, Countdown and Test strip, three channels that remember the whole print setting, F-stop steps, red displays made for the dark.</p>
       <div class="hero-actions">
-        <a class="btn primary" href="funzioni.html"><span lang="it">Scopri le funzioni</span><span lang="en">See the features</span> →</a>
-        <a class="btn" href="pinout.html"><span lang="it">Pinout interattivo</span><span lang="en">Interactive pinout</span></a>
+        <a class="btn primary" href="funzioni"><span lang="it">Scopri le funzioni</span><span lang="en">See the features</span> →</a>
+        <a class="btn" href="pinout"><span lang="it">Pinout interattivo</span><span lang="en">Interactive pinout</span></a>
         <a class="btn" href="https://github.com/DaniloCaruso/R080Timer_MEGA">GitHub</a>
       </div>
     </div>
@@ -154,40 +154,42 @@
   <section class="pages" aria-labelledby="explore">
     <h2 id="explore"><span lang="it">Esplora</span><span lang="en">Explore</span></h2>
     <div class="grid">
-      <a class="card" href="pinout.html" style="--c: var(--cyan)">
+      <a class="card" href="pinout" style="--c: var(--cyan)">
         <span class="tag">Pinout</span>
         <h3><span lang="it">Ogni filo, acceso</span><span lang="en">Every wire, lit up</span></h3>
         <p lang="it">La scheda e i componenti disegnati: tocca un pezzo e la sua pista si illumina con la spiegazione tecnica.</p>
         <p lang="en">The board and its parts, drawn: tap a part and its trace lights up with a technical note.</p>
-        <span class="go-arrow">pinout.html →</span>
+        <span class="go-arrow">pinout →</span>
       </a>
-      <a class="card" href="funzioni.html" style="--c: var(--violet)">
+      <a class="card" href="funzioni" style="--c: var(--violet)">
         <span class="tag"><span lang="it">Funzioni e comandi</span><span lang="en">Features and controls</span></span>
         <h3><span lang="it">Cosa fa ogni tasto</span><span lang="en">What every key does</span></h3>
         <p lang="it">Modalità, canali, F-Stop, tastierino, encoder, pulsante, display e suoni, con pressioni brevi e lunghe.</p>
         <p lang="en">Modes, channels, F-stop, keypad, encoders, button, displays and sounds, short and long presses.</p>
-        <span class="go-arrow">funzioni.html →</span>
+        <span class="go-arrow">funzioni →</span>
       </a>
-      <a class="card" href="flussi.html" style="--c: var(--magenta)">
+      <a class="card" href="flussi" style="--c: var(--magenta)">
         <span class="tag"><span lang="it">Flussi</span><span lang="en">Flows</span></span>
         <h3><span lang="it">Il timer, passo per passo</span><span lang="en">The timer, step by step</span></h3>
         <p lang="it">Diagrammi animati: avvio, esposizione, test strip, salvataggio, menu di servizio.</p>
         <p lang="en">Animated diagrams: boot, exposure, test strip, saving, service menu.</p>
-        <span class="go-arrow">flussi.html →</span>
+        <span class="go-arrow">flussi →</span>
       </a>
-      <a class="card" href="installazione.html" style="--c: var(--amber)">
+      <a class="card" href="installazione" style="--c: var(--amber)">
         <span class="tag"><span lang="it">Installazione</span><span lang="en">Setup</span></span>
         <h3><span lang="it">Dal banco alla camera oscura</span><span lang="en">From the bench to the darkroom</span></h3>
         <p lang="it">Componenti, cablaggio, caricamento del firmware, calibrazione del clock e collaudo.</p>
         <p lang="en">Parts, wiring, flashing the firmware, clock calibration and acceptance test.</p>
-        <span class="go-arrow">installazione.html →</span>
+        <span class="go-arrow">installazione →</span>
       </a>
     </div>
   </section>
 
   <section aria-labelledby="new">
-    <h2 id="new"><span lang="it">Novità della v2.0.0</span><span lang="en">New in v2.0.0</span></h2>
+    <h2 id="new"><span lang="it">Novità della v2.1.0 e della v2.0.0</span><span lang="en">New in v2.1.0 and v2.0.0</span></h2>
     <ul class="news">
+      <li lang="it"><b>v2.1.0 · LCD in italiano o in inglese</b>La lingua si sceglie dal Menu di servizio, voce Lingua/Language; di fabbrica è l'italiano.</li>
+      <li lang="en"><b>v2.1.0 · LCD in Italian or English</b>The language is chosen in the Service menu, Lingua/Language item; Italian from the factory.</li>
       <li lang="it"><b>Tempo deciso in hardware</b>Timer1 a 1 kHz è l'unico orologio dell'esposizione e spegne il relè dentro l'interrupt.</li>
       <li lang="en"><b>Timing decided in hardware</b>Timer1 at 1 kHz is the only exposure clock and switches the relay off inside the interrupt.</li>
       <li lang="it"><b>Canali completi</b>A, B e C ricordano modalità, precisione, avanzamento, tempo, base F-Stop e relè.</li>
@@ -201,8 +203,8 @@
 
 </main>
 <footer class="site">
-  <span lang="it">R080 Timer · firmware per Arduino Mega 2560 · documentazione del firmware v2.0.0</span>
-  <span lang="en">R080 Timer · Arduino Mega 2560 firmware · documentation for firmware v2.0.0</span>
+  <span lang="it">R080 Timer · firmware per Arduino Mega 2560 · documentazione del firmware v2.1.0</span>
+  <span lang="en">R080 Timer · Arduino Mega 2560 firmware · documentation for firmware v2.1.0</span>
 </footer>
 <script src="assets/site.js"></script>
 <script>

@@ -12,10 +12,10 @@
 
 <p align="center">
   <b><a href="https://danilocaruso.github.io/R080Timer_MEGA/">Sito</a></b> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/pinout.html">Pinout</a> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/funzioni.html">Funzioni e comandi</a> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/flussi.html">Flussi</a> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/installazione.html">Installazione</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/pinout">Pinout</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/funzioni">Funzioni e comandi</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/flussi">Flussi</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/installazione">Installazione</a> ·
   <a href="README.md">English</a>
 </p>
 
@@ -54,7 +54,7 @@ pio test -e native           # test della logica sul PC
 pio device monitor -b 115200 # log degli eventi
 ```
 
-Serve [PlatformIO](https://platformio.org/). Dopo il primo caricamento va calibrato il clock: vedi [Installazione](https://danilocaruso.github.io/R080Timer_MEGA/installazione.html).
+Serve [PlatformIO](https://platformio.org/). Dopo il primo caricamento va calibrato il clock: vedi [Installazione](https://danilocaruso.github.io/R080Timer_MEGA/installazione).
 
 <details>
 <summary><b>Firmware v1 su questo branch</b></summary>
