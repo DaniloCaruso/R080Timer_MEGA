@@ -280,10 +280,10 @@
 }
 </style>
 </head>
-<body data-page="installazione.html">
+<body data-page="installazione">
 <main class="page">
   <header class="page-head">
-    <span class="eyebrow"><span lang="it">Guida pratica · firmware v2.0.0</span><span lang="en">Practical guide · firmware v2.0.0</span></span>
+    <span class="eyebrow"><span lang="it">Guida pratica · firmware v2.1.0</span><span lang="en">Practical guide · firmware v2.1.0</span></span>
     <h1><span lang="it">Installazione e calibrazione</span><span lang="en">Setup and calibration</span></h1>
     <p class="lede" lang="it">Dalla scatola dei componenti al timer collaudato: cosa comprare, come collegarlo, come caricare il firmware, cosa aspettarsi alla prima accensione, come <b>calibrare il clock</b> e come verificare che tutto funzioni prima di esporre la prima carta.</p>
     <p class="lede" lang="en">From a box of parts to a tested timer: what to buy, how to wire it, how to flash the firmware, what to expect at the first power-on, how to <b>calibrate the clock</b> and how to check that everything works before exposing the first sheet of paper.</p>
@@ -307,8 +307,8 @@
     <div class="sec-head">
       <span class="eyebrow"><span lang="it">01 · Distinta componenti</span><span lang="en">01 · Bill of materials</span></span>
       <h2><span lang="it">Cosa serve</span><span lang="en">What you need</span></h2>
-      <p class="sub" lang="it">Nove componenti, tutti facili da trovare. I pin indicati sono quelli della Mega; la mappa completa è nella pagina <a href="pinout.html">Pinout</a>.</p>
-      <p class="sub" lang="en">Nine parts, all easy to find. The pins shown are on the Mega; the full map is on the <a href="pinout.html">Pinout</a> page.</p>
+      <p class="sub" lang="it">Nove componenti, tutti facili da trovare. I pin indicati sono quelli della Mega; la mappa completa è nella pagina <a href="pinout">Pinout</a>.</p>
+      <p class="sub" lang="en">Nine parts, all easy to find. The pins shown are on the Mega; the full map is on the <a href="pinout">Pinout</a> page.</p>
     </div>
 
     <div class="grid bom">
@@ -507,8 +507,8 @@
     <div class="sec-head">
       <span class="eyebrow"><span lang="it">02 · Cablaggio</span><span lang="en">02 · Wiring</span></span>
       <h2><span lang="it">Collegamenti in sintesi</span><span lang="en">Wiring at a glance</span></h2>
-      <p class="sub" lang="it">Tutte le periferiche prendono 5 V e GND dalla Mega. Pulsanti e pulsanti degli encoder chiudono verso GND: il pull-up è quello interno. Per la mappa interattiva, il tastierino riga per riga e le risorse del microcontrollore vedi <a href="pinout.html">Pinout</a>.</p>
-      <p class="sub" lang="en">Every peripheral takes 5 V and GND from the Mega. Buttons and encoder buttons close to GND: the internal pull-up is used. For the interactive map, the keypad row by row and the microcontroller resources see <a href="pinout.html">Pinout</a>.</p>
+      <p class="sub" lang="it">Tutte le periferiche prendono 5 V e GND dalla Mega. Pulsanti e pulsanti degli encoder chiudono verso GND: il pull-up è quello interno. Per la mappa interattiva, il tastierino riga per riga e le risorse del microcontrollore vedi <a href="pinout">Pinout</a>.</p>
+      <p class="sub" lang="en">Every peripheral takes 5 V and GND from the Mega. Buttons and encoder buttons close to GND: the internal pull-up is used. For the interactive map, the keypad row by row and the microcontroller resources see <a href="pinout">Pinout</a>.</p>
     </div>
 
     <div class="table-wrap">
@@ -602,8 +602,8 @@
       </li>
       <li>
         <h3><span lang="it">Scaricare il progetto</span><span lang="en">Get the project</span></h3>
-        <p lang="it">Finché la v2.0.0 è in collaudo il firmware sta sul branch <code>feature/arduino-mega-firmware</code>; dopo il rilascio usare il tag <code>v2.0.0</code>.</p>
-        <p lang="en">While v2.0.0 is under acceptance testing the firmware lives on the <code>feature/arduino-mega-firmware</code> branch; after the release use the <code>v2.0.0</code> tag.</p>
+        <p lang="it">Finché la v2.1.0 è in collaudo il firmware sta sul branch <code>feature/arduino-mega-firmware</code>; dopo il rilascio usare il tag <code>v2.1.0</code>.</p>
+        <p lang="en">While v2.1.0 is under acceptance testing the firmware lives on the <code>feature/arduino-mega-firmware</code> branch; after the release use the <code>v2.1.0</code> tag.</p>
         <div class="cmdbox"><pre class="cmd">git clone https://github.com/DaniloCaruso/R080Timer_MEGA.git
 cd R080Timer_MEGA
 git checkout feature/arduino-mega-firmware</pre></div>
@@ -640,8 +640,8 @@ git checkout feature/arduino-mega-firmware</pre></div>
     <div class="sec-head">
       <span class="eyebrow"><span lang="it">05 · Prima accensione</span><span lang="en">05 · First boot</span></span>
       <h2><span lang="it">Cosa dovresti vedere</span><span lang="en">What you should see</span></h2>
-      <p class="sub" lang="it">Il formato delle impostazioni in EEPROM è nuovo (versione e CRC8): alla prima accensione con la v2.0.0 nulla di vecchio viene letto e il timer parte dai valori di fabbrica.</p>
-      <p class="sub" lang="en">The EEPROM settings format is new (version and CRC8): at the first power-on with v2.0.0 nothing old is read and the timer starts from factory values.</p>
+      <p class="sub" lang="it">Il formato delle impostazioni in EEPROM è nuovo (versione e CRC8): alla prima accensione con la v2.1.0 le impostazioni della v1 e della v2.0.0 non vengono lette e il timer parte dai valori di fabbrica, in italiano.</p>
+      <p class="sub" lang="en">The EEPROM settings format is new (version and CRC8): at the first power-on with v2.1.0 the settings of v1 and v2.0.0 are not read and the timer starts from factory values, in Italian.</p>
     </div>
 
     <div class="boot">
@@ -666,12 +666,12 @@ git checkout feature/arduino-mega-firmware</pre></div>
       <div class="panel">
         <h3><span lang="it">Valori di fabbrica</span><span lang="en">Factory values</span></h3>
         <ul class="expect">
-          <li lang="it"><span><b>Avvio:</b> <code>- R080 Timer -</code> e <code>v2.0.0</code> per 1,5 s, poi il Canale A.</span></li>
-          <li lang="en"><span><b>Start:</b> <code>- R080 Timer -</code> and <code>v2.0.0</code> for 1.5 s, then Channel A.</span></li>
+          <li lang="it"><span><b>Avvio:</b> <code>- R080 Timer -</code> e <code>v2.1.0</code> per 1,5 s, poi il Canale A.</span></li>
+          <li lang="en"><span><b>Start:</b> <code>- R080 Timer -</code> and <code>v2.1.0</code> for 1.5 s, then Channel A.</span></li>
           <li lang="it"><span><b>Ogni Canale:</b> Countdown, Secondi 1 s, Avanzamento continuo, 10,0 s, relè abilitato (⚡).</span></li>
           <li lang="en"><span><b>Every Channel:</b> Countdown, Seconds 1 s, continuous Advance, 10.0 s, relay enabled (⚡).</span></li>
-          <li lang="it"><span><b>Globali:</b> mute spento (♪ visibile), LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus massimo 5 minuti, correzione del clock 0 ppm.</span></li>
-          <li lang="en"><span><b>Global:</b> mute off (♪ visible), LCD level 3, 7-segment level 3, LCD during exposure level 1, Focus maximum 5 minutes, clock correction 0 ppm.</span></li>
+          <li lang="it"><span><b>Globali:</b> mute spento (♪ visibile), LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus massimo 5 minuti, correzione del clock 0 ppm, lingua italiana.</span></li>
+          <li lang="en"><span><b>Global:</b> mute off (♪ visible), LCD level 3, 7-segment level 3, LCD during exposure level 1, Focus maximum 5 minutes, clock correction 0 ppm, language Italian.</span></li>
           <li lang="it" style="--c: var(--amber)"><span><b>Log:</b> <code>ERROR settings=factory</code> compare una volta sola, quando non c'è un blocco valido; dalla seconda accensione no.</span></li>
           <li lang="en" style="--c: var(--amber)"><span><b>Log:</b> <code>ERROR settings=factory</code> appears once, when there is no valid block; not from the second power-on.</span></li>
           <li lang="it" style="--c: var(--red)"><span><b>Relè:</b> resta spento finché non si avvia un'Esposizione. Se scatta all'accensione vedi <a href="#t-relay">Problemi</a>.</span></li>
@@ -691,8 +691,8 @@ git checkout feature/arduino-mega-firmware</pre></div>
     <div class="sec-head">
       <span class="eyebrow"><span lang="it">06 · Menu di servizio</span><span lang="en">06 · Service menu</span></span>
       <h2><span lang="it">Tenere <kbd class="letter">D</kbd> all'accensione</span><span lang="en">Hold <kbd class="letter">D</kbd> at power-on</span></h2>
-      <p class="sub" lang="it">Tieni premuto <kbd class="letter">D</kbd>, dai corrente (o premi RESET sulla Mega) e lascia il tasto quando compare <code>MENU SERVIZIO</code>. Nel menu non si avviano Esposizioni e i suoni restano udibili anche col mute. Le voci sull'LCD sono in italiano.</p>
-      <p class="sub" lang="en">Hold <kbd class="letter">D</kbd>, power up (or press RESET on the Mega) and release the key when <code>MENU SERVIZIO</code> appears. No Exposure can start in the menu, and its sounds stay audible even when muted. The LCD items are in Italian.</p>
+      <p class="sub" lang="it">Tieni premuto <kbd class="letter">D</kbd>, dai corrente (o premi RESET sulla Mega) e lascia il tasto quando compare <code>MENU SERVIZIO</code> (in inglese <code>SERVICE MENU</code>). Nel menu non si avviano Esposizioni e i suoni restano udibili anche col mute. Le voci sull'LCD sono in italiano o in inglese, secondo la lingua scelta in <code>Lingua/Language</code>.</p>
+      <p class="sub" lang="en">Hold <kbd class="letter">D</kbd>, power up (or press RESET on the Mega) and release the key when <code>SERVICE MENU</code> appears (<code>MENU SERVIZIO</code> in Italian). No Exposure can start in the menu, and its sounds stay audible even when muted. The LCD items are in Italian or English, depending on the language chosen in <code>Lingua/Language</code>; the factory language is Italian.</p>
     </div>
 
     <div class="table-wrap fit">
@@ -718,20 +718,21 @@ git checkout feature/arduino-mega-firmware</pre></div>
 
     <div class="grid menu-items">
       <div class="card" style="--c: var(--cyan)"><span class="lcdlabel">&gt;Info</span><p lang="it">Versione del firmware e data di compilazione: per sapere cosa c'è sulla scheda.</p><p lang="en">Firmware version and build date: to know what is on the board.</p></div>
-      <div class="card" style="--c: var(--cyan)"><span class="lcdlabel">&gt;Contatori</span><p lang="it">Quattro schermate: Accensioni, Reset watchdog, Esposizioni, Ore lampada. Sopravvivono al ripristino di fabbrica.</p><p lang="en">Four screens: power-ons, watchdog resets, Exposures, lamp hours. They survive a factory reset.</p></div>
-      <div class="card" style="--c: var(--cyan)"><span class="lcdlabel">&gt;Salute</span><p lang="it">Loop max e ISR max in µs, Tick persi di Timer1 dall'accensione: il polso del firmware dopo il montaggio.</p><p lang="en">Loop max and ISR max in µs, Timer1 ticks lost since power-on: the firmware's pulse after assembly.</p></div>
-      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test rele</span><p lang="it">Una pressione accende, un'altra spegne; uscendo il relè si spegne. Prova del modulo senza esporre.</p><p lang="en">One press on, another off; leaving turns it off. Checks the module without an exposure.</p></div>
-      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test buzzer</span><p lang="it">Ruota per scegliere uno degli 8 suoni, premi per sentirlo: 1 fine, 2 errore, 3 avviso Focus, 4 avvio, 5 step, 6 preavviso, 7 metronomo, 8 conferma.</p><p lang="en">Turn to pick one of the 8 sounds, press to hear it: 1 end, 2 error, 3 Focus warning, 4 start, 5 step, 6 pre-warning, 7 metronome, 8 confirm.</p></div>
-      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test 7 segmenti</span><p lang="it">Accende tutti i segmenti, <code>888.8</code>: un segmento spento è un difetto del display.</p><p lang="en">Lights every segment, <code>888.8</code>: a dark segment is a display fault.</p></div>
-      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test LCD</span><p lang="it">Riempie tutte le 32 celle con il blocco pieno.</p><p lang="en">Fills all 32 cells with a solid block.</p></div>
-      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test tastierino</span><p lang="it">Mostra l'ultimo tasto premuto; <kbd class="letter">D</kbd> si prova uscendo. Righe e colonne scambiate si vedono subito.</p><p lang="en">Shows the last key pressed; <kbd class="letter">D</kbd> is tested by leaving. Swapped rows and columns show up at once.</p></div>
-      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test encoder</span><p lang="it"><code>M</code> e <code>P</code>: posizione e numero di pressioni dei due encoder. Verso invertito = DT e CLK scambiati.</p><p lang="en"><code>M</code> and <code>P</code>: position and press count of both encoders. Reversed direction = DT and CLK swapped.</p></div>
-      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel">&gt;Test pulsante</span><p lang="it"><code>Premi</code>, <code>Premuto</code>, <code>Rilasciato</code>: verifica il pulsante principale.</p><p lang="en"><code>Premi</code> (press), <code>Premuto</code> (pressed), <code>Rilasciato</code> (released): checks the main button.</p></div>
-      <div class="card" style="--c: var(--green)"><span class="lcdlabel">&gt;Calibrazione</span><p lang="it">Tre schermate: Log calibrazione, Correzione ppm, Durata 600 s. Vedi <a href="#calibrazione">Calibrazione</a>.</p><p lang="en">Three screens: Log calibrazione, Correzione ppm, Durata 600 s. See <a href="#calibrazione">Calibration</a>.</p></div>
-      <div class="card" style="--c: var(--amber)"><span class="lcdlabel">&gt;LCD esposizione</span><p lang="it">Livello dell'LCD durante l'Esposizione, da 1 a 8 (fabbrica 1, il minimo).</p><p lang="en">LCD level during the Exposure, 1 to 8 (factory 1, the minimum).</p></div>
-      <div class="card" style="--c: var(--amber)"><span class="lcdlabel">&gt;Tempo max Focus</span><p lang="it">Minuti prima dello spegnimento automatico del Focus: 3, 5, 10, 15 o 20 (fabbrica 5).</p><p lang="en">Minutes before Focus shuts off by itself: 3, 5, 10, 15 or 20 (factory 5).</p></div>
-      <div class="card" style="--c: var(--red)"><span class="lcdlabel">&gt;Ripristino fabb</span><p lang="it">Dentro la voce una pressione chiede <code>Confermi?</code>, una seconda riporta tutto ai valori di fabbrica, correzione del clock compresa; i contatori restano. <kbd class="letter">D</kbd> annulla.</p><p lang="en">Inside the item one press asks <code>Confermi?</code>, a second restores everything to factory values, clock correction included; counters are kept. <kbd class="letter">D</kbd> cancels.</p></div>
-      <div class="card" style="--c: var(--violet)"><span class="lcdlabel">&gt;Esci</span><p lang="it">Torna all'uso normale senza riavviare, con le impostazioni già salvate.</p><p lang="en">Back to normal use without restarting, with settings already saved.</p></div>
+      <div class="card" style="--c: var(--cyan)"><span class="lcdlabel"><span lang="it">&gt;Contatori</span><span lang="en">&gt;Counters</span></span><p lang="it">Quattro schermate: Accensioni, Reset watchdog, Esposizioni, Ore lampada. Sopravvivono al ripristino di fabbrica.</p><p lang="en">Four screens: Power-ons, Watchdog resets, Exposures, Lamp hours. They survive a factory reset.</p></div>
+      <div class="card" style="--c: var(--cyan)"><span class="lcdlabel"><span lang="it">&gt;Salute</span><span lang="en">&gt;Health</span></span><p lang="it">Loop max e ISR max in µs, Tick persi di Timer1 dall'accensione: il polso del firmware dopo il montaggio.</p><p lang="en">Loop max and ISR max in µs, Lost ticks of Timer1 since power-on: the firmware's pulse after assembly.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel"><span lang="it">&gt;Test rele</span><span lang="en">&gt;Relay test</span></span><p lang="it">Una pressione accende, un'altra spegne; uscendo il relè si spegne. Prova del modulo senza esporre.</p><p lang="en">One press on, another off; leaving turns it off. Checks the module without an exposure.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel"><span lang="it">&gt;Test buzzer</span><span lang="en">&gt;Buzzer test</span></span><p lang="it">Ruota per scegliere uno degli 8 suoni, premi per sentirlo: 1 fine, 2 errore, 3 avviso Focus, 4 avvio, 5 step, 6 preavviso, 7 metronomo, 8 conferma.</p><p lang="en">Turn to pick one of the 8 sounds, press to hear it: 1 end, 2 error, 3 Focus warning, 4 start, 5 step, 6 pre-warning, 7 metronome, 8 confirm.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel"><span lang="it">&gt;Test 7 segmenti</span><span lang="en">&gt;7-segment test</span></span><p lang="it">Accende tutti i segmenti, <code>888.8</code>: un segmento spento è un difetto del display.</p><p lang="en">Lights every segment, <code>888.8</code>: a dark segment is a display fault.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel"><span lang="it">&gt;Test LCD</span><span lang="en">&gt;LCD test</span></span><p lang="it">Riempie tutte le 32 celle con il blocco pieno.</p><p lang="en">Fills all 32 cells with a solid block.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel"><span lang="it">&gt;Test tastierino</span><span lang="en">&gt;Keypad test</span></span><p lang="it">Mostra l'ultimo tasto premuto; <kbd class="letter">D</kbd> si prova uscendo. Righe e colonne scambiate si vedono subito.</p><p lang="en">Shows the last key pressed; <kbd class="letter">D</kbd> is tested by leaving. Swapped rows and columns show up at once.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel"><span lang="it">&gt;Test encoder</span><span lang="en">&gt;Encoder test</span></span><p lang="it"><code>M</code> e <code>P</code>: posizione e numero di pressioni dei due encoder. Verso invertito = DT e CLK scambiati.</p><p lang="en"><code>M</code> and <code>P</code>: position and press count of both encoders. Reversed direction = DT and CLK swapped.</p></div>
+      <div class="card" style="--c: var(--magenta)"><span class="lcdlabel"><span lang="it">&gt;Test pulsante</span><span lang="en">&gt;Button test</span></span><p lang="it"><code>Premi</code>, <code>Premuto</code>, <code>Rilasciato</code>: verifica il pulsante principale.</p><p lang="en"><code>Press</code>, <code>Pressed</code>, <code>Released</code>: checks the main button.</p></div>
+      <div class="card" style="--c: var(--green)"><span class="lcdlabel"><span lang="it">&gt;Calibrazione</span><span lang="en">&gt;Calibration</span></span><p lang="it">Tre schermate: Log calibrazione, Correzione ppm, Durata 600 s. Vedi <a href="#calibrazione">Calibrazione</a>.</p><p lang="en">Three screens: Calibration log, PPM correction, Measured 600 s. See <a href="#calibrazione">Calibration</a>.</p></div>
+      <div class="card" style="--c: var(--amber)"><span class="lcdlabel"><span lang="it">&gt;LCD esposizione</span><span lang="en">&gt;LCD exposure</span></span><p lang="it">Livello dell'LCD durante l'Esposizione, da 1 a 8 (fabbrica 1, il minimo).</p><p lang="en">LCD level during the Exposure, 1 to 8 (factory 1, the minimum).</p></div>
+      <div class="card" style="--c: var(--amber)"><span class="lcdlabel"><span lang="it">&gt;Tempo max Focus</span><span lang="en">&gt;Focus max time</span></span><p lang="it">Minuti prima dello spegnimento automatico del Focus: 3, 5, 10, 15 o 20 (fabbrica 5).</p><p lang="en">Minutes before Focus shuts off by itself: 3, 5, 10, 15 or 20 (factory 5).</p></div>
+      <div class="card" style="--c: var(--amber)"><span class="lcdlabel">&gt;Lingua/Language</span><p lang="it">Lingua dei testi dell'LCD: mostra <code>Italiano</code> o <code>English</code>; ogni pressione passa all'altra, salva subito e dà il beep di conferma. <kbd class="letter">D</kbd> torna all'elenco già nella nuova lingua (fabbrica: italiano).</p><p lang="en">Language of the LCD texts: shows <code>Italiano</code> or <code>English</code>; each press switches to the other, saves at once and gives the confirm beep. <kbd class="letter">D</kbd> returns to the list already in the new language (factory: Italian).</p></div>
+      <div class="card" style="--c: var(--red)"><span class="lcdlabel"><span lang="it">&gt;Ripristino fabb</span><span lang="en">&gt;Factory reset</span></span><p lang="it">Dentro la voce una pressione chiede <code>Confermi?</code>, una seconda riporta tutto ai valori di fabbrica, correzione del clock compresa, e la lingua all'italiano; i contatori restano. <kbd class="letter">D</kbd> annulla.</p><p lang="en">Inside the item one press asks <code>Confirm?</code>, a second restores everything to factory values, clock correction included, and the language to Italian; counters are kept. <kbd class="letter">D</kbd> cancels.</p></div>
+      <div class="card" style="--c: var(--violet)"><span class="lcdlabel"><span lang="it">&gt;Esci</span><span lang="en">&gt;Exit</span></span><p lang="it">Torna all'uso normale senza riavviare, con le impostazioni già salvate.</p><p lang="en">Back to normal use without restarting, with settings already saved.</p></div>
     </div>
   </section>
 
@@ -760,7 +761,7 @@ git checkout feature/arduino-mega-firmware</pre></div>
           <li lang="it">Chiudi ogni programma che usa la porta seriale, anche <code>pio device monitor</code>.</li>
           <li lang="en">Close any program using the serial port, including <code>pio device monitor</code>.</li>
           <li lang="it">Sul timer: Menu di servizio → <code>Calibrazione</code> → schermata <code>Log calibrazione</code>, premi l'encoder. L'LCD mostra <code>Attivo, D: esci</code>.</li>
-          <li lang="en">On the timer: Service menu → <code>Calibrazione</code> → <code>Log calibrazione</code> screen, press the encoder. The LCD shows <code>Attivo, D: esci</code>.</li>
+          <li lang="en">On the timer: Service menu → <code>Calibration</code> → <code>Calibration log</code> screen, press the encoder. The LCD shows <code>Active, D: exit</code>.</li>
           <li lang="it">Sul PC (su Windows ad esempio <code>COM3</code>):</li>
           <li lang="en">On the PC (on Windows e.g. <code>COM3</code>):</li>
         </ol>
@@ -769,7 +770,7 @@ git checkout feature/arduino-mega-firmware</pre></div>
           <li lang="it">Dopo 30 minuti lo script stampa ad esempio <code>Correzione del clock: +23 ppm (1800 righe)</code>.</li>
           <li lang="en">After 30 minutes the script prints e.g. <code>Correzione del clock: +23 ppm (1800 righe)</code>.</li>
           <li lang="it"><kbd class="letter">D</kbd> chiude il log. Rientra in <code>Calibrazione</code>, ruota fino a <code>Correzione ppm</code>, digita <kbd>2</kbd><kbd>3</kbd>, <kbd>*</kbd> se negativo, premi l'encoder per salvare.</li>
-          <li lang="en"><kbd class="letter">D</kbd> closes the log. Enter <code>Calibrazione</code> again, turn to <code>Correzione ppm</code>, type <kbd>2</kbd><kbd>3</kbd>, <kbd>*</kbd> if negative, press the encoder to save.</li>
+          <li lang="en"><kbd class="letter">D</kbd> closes the log. Enter <code>Calibration</code> again, turn to <code>PPM correction</code>, type <kbd>2</kbd><kbd>3</kbd>, <kbd>*</kbd> if negative, press the encoder to save.</li>
         </ol>
         <p class="sub" lang="it">Opzioni: <code>--minutes N</code> cambia la durata; <code>--self-test</code> prova lo script senza scheda. Se all'apertura della porta riappare la schermata iniziale, il timer si è riavviato: Ctrl+C, riapri il Menu di servizio e riparti dal punto 2.</p>
         <p class="sub" lang="en">Options: <code>--minutes N</code> changes the length; <code>--self-test</code> checks the script without a board. If the start screen appears again when the port opens, the timer has restarted: Ctrl+C, open the Service menu again and restart from step 2.</p>
@@ -791,7 +792,7 @@ git checkout feature/arduino-mega-firmware</pre></div>
           <li lang="it">Misura dall'inizio del beep di avvio all'inizio del primo tono di fine; i tick del Metronomo aiutano a orientarsi.</li>
           <li lang="en">Measure from the start of the start beep to the start of the first end tone; the Metronome ticks help you find your way.</li>
           <li lang="it">Riavvia con <kbd class="letter">D</kbd>: <code>Calibrazione</code> → <code>Durata 600 s</code>, digita la durata in centesimi di secondo e premi l'encoder.</li>
-          <li lang="en">Restart holding <kbd class="letter">D</kbd>: <code>Calibrazione</code> → <code>Durata 600 s</code>, type the duration in hundredths of a second and press the encoder.</li>
+          <li lang="en">Restart holding <kbd class="letter">D</kbd>: <code>Calibration</code> → <code>Measured 600 s</code>, type the duration in hundredths of a second and press the encoder.</li>
         </ol>
 
         <div class="calc" id="calc">
@@ -861,7 +862,7 @@ git checkout feature/arduino-mega-firmware</pre></div>
           <span class="pill crit"><span lang="it">tutto ritrovato</span><span lang="en">all restored</span></span></label></li>
         <li><label><input type="checkbox" data-k="sounds">
           <span class="t"><span lang="it">Suoni e comandi</span><span lang="en">Sounds and controls</span></span>
-          <span class="d"><span lang="it">Gli 8 suoni da Test buzzer, distinguibili; pressioni brevi ripetute, pressioni lunghe e combinazioni senza perdite né doppie azioni.</span><span lang="en">The 8 sounds from Test buzzer, distinguishable; repeated short presses, long presses and combinations with nothing lost or doubled.</span></span>
+          <span class="d"><span lang="it">Gli 8 suoni da Test buzzer, distinguibili; pressioni brevi ripetute, pressioni lunghe e combinazioni senza perdite né doppie azioni.</span><span lang="en">The 8 sounds from Buzzer test, distinguishable; repeated short presses, long presses and combinations with nothing lost or doubled.</span></span>
           <span class="pill crit"><span lang="it">a orecchio</span><span lang="en">by ear</span></span></label></li>
       </ul>
     </div>
@@ -886,9 +887,9 @@ git checkout feature/arduino-mega-firmware</pre></div>
           <li lang="it">Retroilluminazione accesa ma niente testo: il controller del testo (<code>0x3E</code>) non risponde, mentre quello della luce (<code>0x60</code>) sì. Fili corti, contatti saldi.</li>
           <li lang="en">Backlight on but no text: the text controller (<code>0x3E</code>) is not answering while the backlight one (<code>0x60</code>) is. Short wires, firm contacts.</li>
           <li lang="it">Troppo scuro: in Focus a lampada spenta <kbd>#</kbd> alza la luminosità. Durante l'Esposizione l'LCD scende di proposito al livello di <code>LCD esposizione</code>.</li>
-          <li lang="en">Too dark: in Focus with the lamp off <kbd>#</kbd> raises the brightness. During the Exposure the LCD drops on purpose to the <code>LCD esposizione</code> level.</li>
+          <li lang="en">Too dark: in Focus with the lamp off <kbd>#</kbd> raises the brightness. During the Exposure the LCD drops on purpose to the <code>LCD exposure</code> level.</li>
           <li lang="it">Contatto intermittente: il log alterna <code>LCD offline</code> e <code>LCD online</code>; al ritorno il driver ridisegna tutto da solo. Prova con <code>Test LCD</code>.</li>
-          <li lang="en">Intermittent contact: the log alternates <code>LCD offline</code> and <code>LCD online</code>; on return the driver redraws everything by itself. Try <code>Test LCD</code>.</li>
+          <li lang="en">Intermittent contact: the log alternates <code>LCD offline</code> and <code>LCD online</code>; on return the driver redraws everything by itself. Try <code>LCD test</code>.</li>
         </ul></div>
       </details>
 
@@ -906,7 +907,7 @@ git checkout feature/arduino-mega-firmware</pre></div>
           <li lang="it">Il firmware parla a 9600 baud, il valore di fabbrica del display: se il display è stato riconfigurato a un'altra velocità non capisce.</li>
           <li lang="en">The firmware talks at 9600 baud, the display's factory rate: if the display was reconfigured to another speed it will not understand.</li>
           <li lang="it">Luminosità al minimo: in Focus a lampada spenta tieni <kbd>0</kbd> e premi <kbd>#</kbd>. <code>Test 7 segmenti</code> deve mostrare <code>888.8</code>.</li>
-          <li lang="en">Brightness at minimum: in Focus with the lamp off hold <kbd>0</kbd> and press <kbd>#</kbd>. <code>Test 7 segmenti</code> must show <code>888.8</code>.</li>
+          <li lang="en">Brightness at minimum: in Focus with the lamp off hold <kbd>0</kbd> and press <kbd>#</kbd>. <code>7-segment test</code> must show <code>888.8</code>.</li>
         </ul></div>
       </details>
 
@@ -926,7 +927,7 @@ git checkout feature/arduino-mega-firmware</pre></div>
           <li lang="it">Tasti sbagliati: righe <code>D33 D31 D29 D27</code>, colonne <code>D41 D39 D37 D35</code>, nell'ordine. Encoder al contrario: DT e CLK scambiati.</li>
           <li lang="en">Wrong keys: rows <code>D33 D31 D29 D27</code>, columns <code>D41 D39 D37 D35</code>, in that order. Encoder backwards: DT and CLK swapped.</li>
           <li lang="it">Isola il componente con <code>Test tastierino</code>, <code>Test encoder</code>, <code>Test pulsante</code> del Menu di servizio.</li>
-          <li lang="en">Isolate the part with <code>Test tastierino</code>, <code>Test encoder</code>, <code>Test pulsante</code> in the Service menu.</li>
+          <li lang="en">Isolate the part with <code>Keypad test</code>, <code>Encoder test</code>, <code>Button test</code> in the Service menu.</li>
         </ul></div>
       </details>
 
@@ -958,9 +959,9 @@ git checkout feature/arduino-mega-firmware</pre></div>
           <li lang="it">La sicurezza ha funzionato: lampada spenta entro 250 ms, riavvio a 500 ms, nessuna Esposizione ripresa. Il messaggio resta 3 s.</li>
           <li lang="en">The safety net worked: lamp off within 250 ms, restart at 500 ms, no Exposure resumed. The message stays 3 s.</li>
           <li lang="it">Il conteggio è in <code>Contatori</code> → <code>Reset watchdog</code>; nel log c'è <code>BOOT reset=WDT</code>.</li>
-          <li lang="en">The count is in <code>Contatori</code> → <code>Reset watchdog</code>; the log shows <code>BOOT reset=WDT</code>.</li>
+          <li lang="en">The count is in <code>Counters</code> → <code>Watchdog resets</code>; the log shows <code>BOOT reset=WDT</code>.</li>
           <li lang="it">Se si ripete: controlla alimentazione e disturbi dalla commutazione della lampada (fili di rete lontani dai 5 V), guarda <code>Salute</code> → <code>Loop max</code>, salva il log USB e apri una issue.</li>
-          <li lang="en">If it repeats: check the supply and interference from lamp switching (mains wires away from the 5 V ones), look at <code>Salute</code> → <code>Loop max</code>, save the USB log and open an issue.</li>
+          <li lang="en">If it repeats: check the supply and interference from lamp switching (mains wires away from the 5 V ones), look at <code>Health</code> → <code>Loop max</code>, save the USB log and open an issue.</li>
         </ul></div>
       </details>
     </div>
@@ -1011,8 +1012,8 @@ git checkout feature/arduino-mega-firmware</pre></div>
   </section>
 </main>
 <footer class="site">
-  <span lang="it">R080 Timer · firmware v2.0.0 · Arduino Mega 2560 · fonti: DOCS-IT.md, PINOUT.md, TECNICO.md, tools/calibrate.py · licenza <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.it">CC BY-NC-SA 4.0</a></span>
-  <span lang="en">R080 Timer · firmware v2.0.0 · Arduino Mega 2560 · sources: DOCS.md, PINOUT.md, TECNICO.md, tools/calibrate.py · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> licence</span>
+  <span lang="it">R080 Timer · firmware v2.1.0 · Arduino Mega 2560 · fonti: DOCS-IT.md, PINOUT.md, TECNICO.md, tools/calibrate.py · licenza <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.it">CC BY-NC-SA 4.0</a></span>
+  <span lang="en">R080 Timer · firmware v2.1.0 · Arduino Mega 2560 · sources: DOCS.md, PINOUT.md, TECNICO.md, tools/calibrate.py · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> licence</span>
 </footer>
 <script src="assets/site.js"></script>
 <script>
@@ -1056,7 +1057,7 @@ git checkout feature/arduino-mega-firmware</pre></div>
   });
 
   /* ---------- first boot simulator (texts from Screen.cpp) ---------- */
-  const SPLASH = [" - R080 Timer - ", "     v2.0.0     "];
+  const SPLASH = [" - R080 Timer - ", "     v2.1.0     "];
   const MAIN = ["COUNTDOWN  [S]  ", " 1s      Ch:A ♪⚡"];
   const WDT = ["RESET: WDT      ", "                "];
   const SCN = {
@@ -1126,7 +1127,7 @@ git checkout feature/arduino-mega-firmware</pre></div>
     out.innerHTML =
       `<span class="res">${signed} ppm</span>` +
       `<span>${bi(`Durata ${fmt(sec, 2)} s: ${slow}.`, `Duration ${fmt(sec, 2)} s: ${slow}.`)}</span>` +
-      `<span class="keys">${bi("Da digitare in <code>Durata 600 s</code>:", "Type in <code>Durata 600 s</code>:")} ${keys} ${bi("poi l'encoder.", "then the encoder.")}</span>` +
+      `<span class="keys">${bi("Da digitare in <code>Durata 600 s</code>:", "Type in <code>Measured 600 s</code>:")} ${keys} ${bi("poi l'encoder.", "then the encoder.")}</span>` +
       (Math.abs(ppm) === 1000 ? `<span class="bad">${bi("Al limite di ±1000 ppm: ricontrolla la misura.", "At the ±1000 ppm limit: check the measurement.")}</span>` : "");
   }
   mIn.addEventListener("input", calc);

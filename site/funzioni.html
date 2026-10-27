@@ -429,10 +429,10 @@ dd .seg7.mini { display: block; margin: 6px 0 2px; }
 }
 </style>
 </head>
-<body data-page="funzioni.html">
+<body data-page="funzioni">
 <main class="page">
   <header class="page-head">
-    <span class="eyebrow"><span lang="it">Manuale d'uso · firmware v2.0.0</span><span lang="en">User manual · firmware v2.0.0</span></span>
+    <span class="eyebrow"><span lang="it">Manuale d'uso · firmware v2.1.0</span><span lang="en">User manual · firmware v2.1.0</span></span>
     <h1><span lang="it">Funzioni e comandi</span><span lang="en">Features and controls</span></h1>
     <p class="lede" lang="it">Tutto quello che serve in camera oscura: le tre <b>Modalità</b>, la precisione in <b>Secondi</b> o <b>F-Stop</b>, i tre <b>Canali</b> con memoria, cosa mostrano i display e cosa fa ogni tasto. I tempi si leggono e si inseriscono in decimi di secondo, da 0,1 a 999,9 s.</p>
     <p class="lede" lang="en">Everything you need in the darkroom: the three <b>modes</b>, precision in <b>Seconds</b> or <b>F-Stop</b>, the three <b>Channels</b> with memory, what the displays show and what every key does. Times are read and entered in tenths of a second, from 0.1 to 999.9 s.</p>
@@ -619,8 +619,8 @@ dd .seg7.mini { display: block; margin: 6px 0 2px; }
 
     <div class="panel">
       <h3><span lang="it">Test strip: Avanzamento continuo e passo-passo</span><span lang="en">Test strip: continuous and step-by-step advance</span></h3>
-      <p class="muted" lang="it">Si sceglie premendo l'encoder della Modalità in Test strip; la riga 1 dell'LCD mostra <code>CO</code> o <code>PP</code>. Esempio in Secondi: tempo impostato 5,0 s, precisione 5 s → Step a 5, 10, 15, 20 s.</p>
-      <p class="muted" lang="en">Chosen by pressing the mode encoder in Test strip; LCD row 1 shows <code>CO</code> or <code>PP</code>. Example in Seconds: set time 5.0 s, precision 5 s → Steps at 5, 10, 15, 20 s.</p>
+      <p class="muted" lang="it">Si sceglie premendo l'encoder della Modalità in Test strip; la riga 1 dell'LCD mostra <code>CO</code> o <code>PP</code> (in inglese <code>CO</code> o <code>SS</code>). Esempio in Secondi: tempo impostato 5,0 s, precisione 5 s → Step a 5, 10, 15, 20 s.</p>
+      <p class="muted" lang="en">Chosen by pressing the mode encoder in Test strip; LCD row 1 shows <code>CO</code> or <code>SS</code> (<code>PP</code> in Italian). Example in Seconds: set time 5.0 s, precision 5 s → Steps at 5, 10, 15, 20 s.</p>
       <div class="tl-wrap">
         <div class="tl-grid">
           <div class="tl-line">
@@ -633,7 +633,7 @@ dd .seg7.mini { display: block; margin: 6px 0 2px; }
             </div>
           </div>
           <div class="tl-line">
-            <span><span lang="it">Passo-passo</span><span lang="en">Step-by-step</span> · PP</span>
+            <span><span lang="it">Passo-passo</span><span lang="en">Step-by-step</span> · <span lang="it">PP</span><span lang="en">SS</span></span>
             <div class="tl pp">
               <div class="tl-seg">St:1 · 0 → 5,0</div><div class="tl-step"></div>
               <span class="tl-pause"><span lang="it">pausa</span><span lang="en">pause</span></span>
@@ -658,7 +658,7 @@ dd .seg7.mini { display: block; margin: 6px 0 2px; }
           <p lang="en">The lamp stays on from one Step to the next: at each step beep you cover one more strip. The main button cancels the strip.</p>
         </div>
         <div class="card" style="--c: var(--amber)">
-          <span class="tag">PP</span>
+          <span class="tag"><span lang="it">PP</span><span lang="en">SS</span></span>
           <p lang="it">A ogni Step la lampada si spegne (al millisecondo) e il timer attende, mostrando il tempo cumulativo dello Step successivo. Sposti la carta, premi il pulsante: la lampada si riaccende solo per l'incremento. In pausa <kbd class="letter">D</kbd> conclude la prova (Suono di fine); <kbd class="letter">A</kbd> <kbd class="letter">B</kbd> <kbd class="letter">C</kbd> la concludono e passano a quel Canale; ruotare l'encoder della Modalità la conclude e cambia Modalità. Gli altri comandi sono ignorati.</p>
           <p lang="en">At each Step the lamp goes off (to the millisecond) and the timer waits, showing the cumulative time of the next Step. Move the paper, press the button: the lamp comes back on only for the increment. While paused <kbd class="letter">D</kbd> ends the strip (end sound); <kbd class="letter">A</kbd> <kbd class="letter">B</kbd> <kbd class="letter">C</kbd> end it and switch to that Channel; turning the mode encoder ends it and changes mode. Other controls are ignored.</p>
         </div>
@@ -766,7 +766,7 @@ dd .seg7.mini { display: block; margin: 6px 0 2px; }
           <span class="pill"><span lang="it">Modalità</span><span lang="en">Mode</span></span>
           <span class="pill"><span lang="it">Tipo di precisione</span><span lang="en">Precision type</span></span>
           <span class="pill"><span lang="it">Valore di precisione</span><span lang="en">Precision value</span></span>
-          <span class="pill"><span lang="it">Avanzamento CO/PP</span><span lang="en">Advance CO/PP</span></span>
+          <span class="pill"><span lang="it">Avanzamento CO/PP</span><span lang="en">Advance CO/SS</span></span>
           <span class="pill"><span lang="it">Tempo impostato</span><span lang="en">Set time</span></span>
           <span class="pill"><span lang="it">Tempo base</span><span lang="en">Base time</span></span>
           <span class="pill">Offset</span>
@@ -789,25 +789,25 @@ dd .seg7.mini { display: block; margin: 6px 0 2px; }
         <p lang="en">Everything saves itself 2 s after the last change and at the start of every exposure: active Channel, the three Channels, mute, brightness and service-menu settings. At power-on everything is as you left it.</p>
       </div>
     </div>
-    <div class="note"><strong><span lang="it">Fabbrica</span><span lang="en">Factory</span></strong><p lang="it">Ogni Canale: Countdown, Secondi 1 s, Avanzamento continuo, 10,0 s, Abilitazione relè attiva. Globali: Canale A, mute spento, LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus massimo 5 minuti. Alla prima accensione con la v2.0.0 le impostazioni della versione precedente non vengono lette.</p><p lang="en">Each Channel: Countdown, Seconds 1 s, continuous advance, 10.0 s, relay enable on. Global: Channel A, mute off, LCD level 3, 7-segment level 3, LCD during exposure level 1, Focus maximum 5 minutes. At the first power-on with v2.0.0 the settings of the previous version are not read.</p></div>
+    <div class="note"><strong><span lang="it">Fabbrica</span><span lang="en">Factory</span></strong><p lang="it">Ogni Canale: Countdown, Secondi 1 s, Avanzamento continuo, 10,0 s, Abilitazione relè attiva. Globali: Canale A, mute spento, LCD livello 3, 7 segmenti livello 3, LCD in esposizione livello 1, Focus massimo 5 minuti, lingua italiana. Alla prima accensione con la v2.1.0 le impostazioni della v1 e della v2.0.0 non vengono lette.</p><p lang="en">Each Channel: Countdown, Seconds 1 s, continuous advance, 10.0 s, relay enable on. Global: Channel A, mute off, LCD level 3, 7-segment level 3, LCD during exposure level 1, Focus maximum 5 minutes, language Italian. At the first power-on with v2.1.0 the settings of v1 and v2.0.0 are not read.</p></div>
   </section>
 
   <!-- ======================= displays ======================= -->
   <section id="display">
     <h2><span lang="it">Display e luci in camera oscura</span><span lang="en">Displays and darkroom lights</span></h2>
-    <p class="sub" lang="it">LCD a due righe da 16 caratteri, retroilluminazione sempre e solo rossa. Ecco cosa c'è in ogni colonna.</p>
-    <p class="sub" lang="en">Two-row, 16-character LCD with an always-red backlight. Here is what each column holds.</p>
+    <p class="sub" lang="it">LCD a due righe da 16 caratteri, retroilluminazione sempre e solo rossa. I testi sono in italiano o in inglese, secondo la voce <code>Lingua/Language</code> del Menu di servizio; nomi delle Modalità e numeri non cambiano. Ecco cosa c'è in ogni colonna.</p>
+    <p class="sub" lang="en">Two-row, 16-character LCD with an always-red backlight. Its texts are in Italian or English, as set in the service-menu <code>Lingua/Language</code> item; mode names and numbers stay the same. Here is what each column holds.</p>
     <div class="panel">
       <div class="anat-wrap"><div class="anat" id="anat"></div></div>
       <p class="muted" lang="it">Riga 1: Modalità, tipo di precisione (<code>[S]</code> Secondi, <code>[F]</code> F-Stop, assente in Focus), Avanzamento (<code>CO</code>/<code>PP</code>, solo Test strip). Riga 2: precisione senza prefisso (<code> 5s</code>, <code>20s</code>, <code>1/3 +02</code>, <code>1/12-01</code>) oppure <code>St:n</code> durante il Test strip, Canale, ♪ suoni attivi (sparisce col mute), ⚡&#xFE0E; Abilitazione relè.</p>
-      <p class="muted" lang="en">Row 1: mode, precision type (<code>[S]</code> Seconds, <code>[F]</code> F-Stop, absent in Focus), advance (<code>CO</code>/<code>PP</code>, test strip only). Row 2: precision with no prefix (<code> 5s</code>, <code>20s</code>, <code>1/3 +02</code>, <code>1/12-01</code>) or <code>St:n</code> during a test strip, Channel, ♪ sounds on (gone when muted), ⚡&#xFE0E; relay enable.</p>
+      <p class="muted" lang="en">Row 1: mode, precision type (<code>[S]</code> Seconds, <code>[F]</code> F-Stop, absent in Focus), advance (<code>CO</code>/<code>SS</code>, test strip only). Row 2: precision with no prefix (<code> 5s</code>, <code>20s</code>, <code>1/3 +02</code>, <code>1/12-01</code>) or <code>St:n</code> during a test strip, Channel, ♪ sounds on (gone when muted), ⚡&#xFE0E; relay enable.</p>
     </div>
     <div class="lcd-examples">
       <figure><div class="lcd sm" data-lcd="COUNTDOWN  [S]  |20s      Ch:A ♪ϟ"></div><figcaption><span lang="it">Secondi, precisione 20 s</span><span lang="en">Seconds, precision 20 s</span></figcaption></figure>
       <figure><div class="lcd sm" data-lcd="COUNTDOWN  [F]  |1/12-01  Ch:B  ϟ"></div><figcaption><span lang="it">F-Stop 1/12, Offset −1, mute attivo</span><span lang="en">F-Stop 1/12, Offset −1, mute on</span></figcaption></figure>
-      <figure><div class="lcd sm" data-lcd="TEST STRIP [F]PP|St:3     Ch:C ♪ϟ"></div><figcaption><span lang="it">Test strip passo-passo, Step 3</span><span lang="en">Step-by-step test strip, Step 3</span></figcaption></figure>
+      <figure><div class="lcd sm" lang="it" data-lcd="TEST STRIP [F]PP|St:3     Ch:C ♪ϟ"></div><div class="lcd sm" lang="en" data-lcd="TEST STRIP [F]SS|St:3     Ch:C ♪ϟ"></div><figcaption><span lang="it">Test strip passo-passo, Step 3</span><span lang="en">Step-by-step test strip, Step 3</span></figcaption></figure>
       <figure><div class="lcd sm" data-lcd="FOCUS           |         Ch:A ♪ "></div><figcaption><span lang="it">Focus, Abilitazione relè spenta</span><span lang="en">Focus, relay enable off</span></figcaption></figure>
-      <figure><div class="lcd sm" data-lcd=" - R080 Timer - |     v2.0.0"></div><figcaption><span lang="it">All'accensione, per 1,5 s</span><span lang="en">At power-on, for 1.5 s</span></figcaption></figure>
+      <figure><div class="lcd sm" data-lcd=" - R080 Timer - |     v2.1.0"></div><figcaption><span lang="it">All'accensione, per 1,5 s</span><span lang="en">At power-on, for 1.5 s</span></figcaption></figure>
       <figure><div class="lcd sm" data-lcd="RESET: WDT|"></div><figcaption><span lang="it">Dopo un reset da watchdog, per 3 s</span><span lang="en">After a watchdog reset, for 3 s</span></figcaption></figure>
     </div>
 
@@ -898,7 +898,7 @@ dd .seg7.mini { display: block; margin: 6px 0 2px; }
     </div>
   </section>
 </main>
-<footer class="site"><span lang="it">R080 Timer · firmware v2.0.0 · dal manuale d'uso e dal codice del firmware</span><span lang="en">R080 Timer · firmware v2.0.0 · from the user manual and the firmware code</span></footer>
+<footer class="site"><span lang="it">R080 Timer · firmware v2.1.0 · dal manuale d'uso e dal codice del firmware</span><span lang="en">R080 Timer · firmware v2.1.0 · from the user manual and the firmware code</span></footer>
 <script src="assets/site.js"></script>
 <script>
 (function () {
@@ -951,8 +951,8 @@ dd .seg7.mini { display: block; margin: 6px 0 2px; }
     const chars = (r) => [...r].map((c) => `<span>${c === " " ? "&nbsp;" : c}</span>`).join("");
     el.innerHTML =
       `<div class="anat-idx">${Array.from({ length: 16 }, (_, i) => `<span>${i}</span>`).join("")}</div>` +
-      `<div class="anat-chars">${chars("TEST STRIP [F]PP")}</div>` +
-      `<div class="anat-zones">${zone(0, 9, "magenta", "Modalità", "Mode")}${zone(11, 13, "cyan", "Tipo", "Type")}${zone(14, 15, "amber", "CO/PP", "CO/PP")}</div>` +
+      `<div class="anat-chars" lang="it">${chars("TEST STRIP [F]PP")}</div><div class="anat-chars" lang="en">${chars("TEST STRIP [F]SS")}</div>` +
+      `<div class="anat-zones">${zone(0, 9, "magenta", "Modalità", "Mode")}${zone(11, 13, "cyan", "Tipo", "Type")}${zone(14, 15, "amber", "CO/PP", "CO/SS")}</div>` +
       `<div class="anat-chars">${chars("1/3 +02  Ch:A ♪ϟ")}</div>` +
       `<div class="anat-zones">${zone(0, 3, "cyan", "Precisione", "Precision")}${zone(4, 6, "violet", "Offset", "Offset")}${zone(9, 12, "magenta", "Canale", "Channel")}${zone(14, 14, "green", "♪", "♪")}${zone(15, 15, "amber", "⚡&#xFE0E;", "⚡&#xFE0E;")}</div>`;
   })();
@@ -1072,7 +1072,7 @@ dd .seg7.mini { display: block; margin: 6px 0 2px; }
   function compose() {
     const c = S.c[S.ch];
     const r1 = [...["FOCUS           ", "COUNTDOWN  [S]  ", "TEST STRIP [S]CO"][c.mode]];
-    if (c.mode === 2 && c.adv) { r1[14] = "P"; r1[15] = "P"; }
+    if (c.mode === 2 && c.adv) r1[14] = r1[15] = isEn() ? "S" : "P";  // PP in Italian, SS in English
     if (c.mode !== 0 && c.kind) r1[12] = "F";
     const r2 = Array(16).fill(" ");
     const put = (col, s) => [...s].forEach((ch, i) => { r2[col + i] = ch; });
@@ -1109,7 +1109,7 @@ dd .seg7.mini { display: block; margin: 6px 0 2px; }
     const pill = (lbl, val) => `<span class="pill">${lbl} <b>${val}</b></span>`;
     stateEl.innerHTML =
       pill(L("Canale", "Channel"), "ABC"[S.ch]) +
-      pill(L("Modalità", "Mode"), MODES[c.mode] + (c.mode === 2 ? (c.adv ? " PP" : " CO") : "")) +
+      pill(L("Modalità", "Mode"), MODES[c.mode] + (c.mode === 2 ? (c.adv ? L(" PP", " SS") : " CO") : "")) +
       pill(L("Precisione", "Precision"), prec) +
       pill(L("Tempo", "Time"), fmt(c.time) + " s") +
       (c.kind ? pill(L("Tempo base", "Base time"), fmt(c.base) + " s") + pill("Offset", (c.off > 0 ? "+" : "") + c.off) : "") +
@@ -1185,8 +1185,8 @@ dd .seg7.mini { display: block; margin: 6px 0 2px; }
     modeEnc: {
       tag: "Encoder", title: L("Encoder della Modalità", "Mode encoder"),
       rows: [["turn", L("Modalità successiva o precedente, in ciclo: Focus → Countdown → Test strip. Il tempo del Canale non cambia.", "Next or previous mode, cycling: Focus → Countdown → Test strip. The Channel's time does not change.")],
-        ["press", L("Solo in Test strip: alterna Avanzamento continuo (CO) e passo-passo (PP).", "Test strip only: toggles continuous (CO) and step-by-step (PP) advance.")]],
-      modes: [L("Pressione senza effetto.", "Press has no effect."), L("Pressione senza effetto.", "Press has no effect."), L("Pressione: CO ↔ PP.", "Press: CO ↔ PP.")],
+        ["press", L("Solo in Test strip: alterna Avanzamento continuo (CO) e passo-passo (PP).", "Test strip only: toggles continuous (CO) and step-by-step (SS) advance.")]],
+      modes: [L("Pressione senza effetto.", "Press has no effect."), L("Pressione senza effetto.", "Press has no effect."), L("Pressione: CO ↔ PP.", "Press: CO ↔ SS.")],
       exp: IGN,
       pause: L("La rotazione conclude la prova (Suono di fine) e cambia Modalità; la pressione è ignorata.", "Turning ends the strip (end sound) and changes mode; pressing is ignored."),
       tries: [["◀", "modeTurn", -1], ["▶", "modeTurn", 1], [L("Premi", "Press"), "modeClick"]]

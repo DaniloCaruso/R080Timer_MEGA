@@ -1,14 +1,14 @@
 // R080 Timer site — shared top bar, menu and IT/EN language switch.
 (function () {
   const PAGES = [
-    ["index.html", "Panoramica", "Overview"],
-    ["pinout.html", "Pinout", "Pinout"],
-    ["funzioni.html", "Funzioni e comandi", "Features and controls"],
-    ["flussi.html", "Flussi", "Flows"],
-    ["installazione.html", "Installazione", "Setup"]
+    ["./", "Panoramica", "Overview"],
+    ["pinout", "Pinout", "Pinout"],
+    ["funzioni", "Funzioni e comandi", "Features and controls"],
+    ["flussi", "Flussi", "Flows"],
+    ["installazione", "Installazione", "Setup"]
   ];
   const root = document.documentElement;
-  const here = document.body.dataset.page || "index.html";
+  const here = document.body.dataset.page || "./";
 
   function stored() {
     try { return localStorage.getItem("r080-lang"); } catch (e) { return null; }
@@ -31,7 +31,7 @@
   bar.className = "topbar";
   bar.innerHTML =
     '<div class="topbar-in">' +
-    '<a class="brand" href="index.html"><span class="dot" aria-hidden="true"></span>R080 Timer</a>' +
+    '<a class="brand" href="./"><span class="dot" aria-hidden="true"></span>R080 Timer</a>' +
     '<ul class="menu">' +
     PAGES.map(([href, it, en]) =>
       `<li><a href="${href}"${href === here ? ' aria-current="page"' : ""}><span lang="it">${it}</span><span lang="en">${en}</span></a></li>`
