@@ -12,10 +12,10 @@
 
 <p align="center">
   <b><a href="https://danilocaruso.github.io/R080Timer_MEGA/">Sito</a></b> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/pinout.html">Pinout</a> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/funzioni.html">Funzioni e comandi</a> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/flussi.html">Flussi</a> ·
-  <a href="https://danilocaruso.github.io/R080Timer_MEGA/installazione.html">Installazione</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/pinout">Pinout</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/funzioni">Funzioni e comandi</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/flussi">Flussi</a> ·
+  <a href="https://danilocaruso.github.io/R080Timer_MEGA/installazione">Installazione</a> ·
   <a href="README.md">English</a>
 </p>
 
