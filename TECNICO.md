@@ -124,7 +124,7 @@ Durante un'Esposizione `Controller::lcdLevel()` restituisce il livello "LCD espo
 
 ## 6. Suoni
 
-`SoundScheduler` suona sequenze di note da una sola tabella (`SoundScheduler.cpp`), avanzando nel loop senza attese; `tone()` ferma da sé ogni nota. Una sequenza nuova interrompe quella in corso solo se ha priorità maggiore o uguale. Priorità dalla più alta: fine, errore, avviso Focus, avvio, step, preavviso, metronomo, conferma.
+`SoundScheduler` suona sequenze di note da una sola tabella (`SoundScheduler.cpp`), avanzando nel loop senza attese; `tone()` ferma da sé ogni nota. Una sequenza nuova interrompe quella in corso solo se ha priorità maggiore o uguale. Priorità dalla più alta: fine e avvio (alla pari: si interrompono a vicenda, così una nuova Esposizione ha il suo beep anche durante il Suono di fine della precedente), errore, avviso Focus, step, preavviso, metronomo, conferma.
 
 | Suono | Note (Hz/ms; 0 = pausa) |
 |---|---|
