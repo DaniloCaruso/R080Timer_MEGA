@@ -191,7 +191,7 @@ At the first power-on with v2.1.0 the settings of the previous versions (v1 and 
 
 - The LCD is always and only red. 8 brightness levels for the LCD and 8 for the 7-segment, denser at the low end.
 - In Focus, lamp off: `*`/`#` dim/brighten the LCD; holding `0`, `*`/`#` dim/brighten the 7-segment.
-- During every Exposure (including Focus on) the LCD drops to the "LCD exposure" level of the Service menu (factory 1, the minimum) and returns to the normal level at the end. The 7-segment stays at the chosen level.
+- During every Exposure (including Focus on, and the pauses of a step-by-step test strip) the LCD drops to the "LCD exposure" level of the Service menu (factory 1, the minimum) and returns to the normal level at the end. The 7-segment stays at the chosen level.
 
 ## 9. Power-on and safety
 

@@ -1963,6 +1963,20 @@ static void test_stepped_strip_counts_one_exposure_and_lamp_time_only() {
   TEST_ASSERT_EQUAL_STRING("END ms=5000 measured=6000", t.log.last);
 }
 
+// REQ-7.3: nella pausa del passo-passo la carta è ancora sotto l'ingranditore: l'LCD resta alla
+// luminosità di esposizione finché la prova non si conclude.
+static void test_lcd_stays_dim_during_stepped_strip_pause() {
+  Timer t;
+  t.settle();
+  pauseAtSecondStep(t);
+  TEST_ASSERT_EQUAL_UINT8(1, t.lcd.level);
+  t.advance(5000);
+  TEST_ASSERT_EQUAL_UINT8(1, t.lcd.level);
+  t.keyD();
+  t.advance(2);
+  TEST_ASSERT_EQUAL_UINT8(3, t.lcd.level);
+}
+
 // Un Countdown che finisce nella ISR subito dopo la raccolta degli eventi: la pressione avvia
 // il successivo, e la fine del primo non chiude il secondo.
 static void test_exposure_ending_just_before_press_does_not_close_the_next() {
@@ -2120,6 +2134,7 @@ int main() {
   RUN_TEST(test_exposure_ending_just_before_press_does_not_close_the_next);
   RUN_TEST(test_exposure_ending_during_cancel_is_counted_once);
   RUN_TEST(test_stepped_strip_counts_one_exposure_and_lamp_time_only);
+  RUN_TEST(test_lcd_stays_dim_during_stepped_strip_pause);
   RUN_TEST(test_key_d_at_power_on_opens_service_menu_and_exit_returns_to_normal_use);
   RUN_TEST(test_service_info_shows_version_and_build_date);
   RUN_TEST(test_service_counters_count_power_ons_resets_exposures_and_lamp_time);
