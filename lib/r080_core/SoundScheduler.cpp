@@ -32,8 +32,13 @@ static constexpr Sequence kSounds[] = {
 static_assert(sizeof kSounds / sizeof kSounds[0] == static_cast<uint8_t>(Sound::Confirm) + 1,
               "kSounds e Sound non allineati");
 
+// Priorità: l'ordine di enum Sound, ma l'avvio vale quanto la fine. Una nuova Esposizione suona
+// anche mentre finisce il Suono di fine della precedente, e un Annullamento subito dopo l'avvio
+// suona comunque il Suono di fine (REQ-8.1, REQ-8.4).
+static uint8_t rank(Sound s) { return s == Sound::Start ? uint8_t(Sound::End) : uint8_t(s); }
+
 void SoundScheduler::play(Sound s) {
-  if (step_ != IDLE && s > cur_) return;
+  if (step_ != IDLE && rank(s) > rank(cur_)) return;
   cur_ = s;
   step_ = 0;
   startNow_ = true;

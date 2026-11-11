@@ -1,12 +1,13 @@
 // Suoni del timer: sequenze di note dalla tabella kSounds (SoundScheduler.cpp),
 // suonate senza attese dal loop. Una sequenza ne interrompe una di priorità
-// minore o uguale.
+// minore o uguale; avvio e fine hanno la stessa priorità (SoundScheduler.cpp).
 #pragma once
 
 #include <stdint.h>
 #include "Hal.h"
 
-// In ordine di priorità, dalla più alta.
+// In ordine di priorità, dalla più alta (Start vale quanto End). L'ordine è anche quello del
+// test del buzzer nel Menu di servizio.
 enum class Sound : uint8_t { End, Error, FocusWarn, Start, Step, PreWarn, Metronome, Confirm };
 
 class SoundScheduler {

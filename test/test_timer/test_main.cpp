@@ -314,6 +314,34 @@ static void assertEndSound(const Timer& t, uint8_t first, uint32_t atMs) {
   assertNote(t, first + 2, atMs + 460, 300, 150);
 }
 
+// REQ-8.1: ripartendo durante il Suono di fine il beep di avvio suona subito e il resto del
+// Suono di fine non riprende: avvio e fine si interrompono a vicenda (#40).
+static void test_start_beeps_when_restarting_during_end_sound() {
+  Timer t;
+  t.type("100");
+  t.press();          // avvio a 0
+  t.advance(500);
+  t.press();          // Annullamento a 500: Suono di fine
+  t.advance(300);     // secondo tono a 730
+  t.press();          // nuova Esposizione a 800
+  t.advance(1000);
+  TEST_ASSERT_EQUAL_UINT8(5, t.buzzer.count);
+  assertNote(t, 2, 730, 450, 150);
+  assertNote(t, 3, 800, 1000, 60);
+  assertNote(t, 4, 1800, 300, 80);  // Metronomo, nessun terzo tono del Suono di fine
+}
+
+// REQ-8.4: un Annullamento subito dopo l'avvio interrompe il beep di avvio con il Suono di fine intero.
+static void test_cancel_right_after_start_plays_whole_end_sound() {
+  Timer t;
+  t.type("100");
+  t.press();
+  t.advance(30);
+  t.press();
+  t.advance(1000);
+  assertEndSound(t, 1, 30);
+}
+
 // REQ-8.4, REQ-8.7: tre toni discendenti alla fine del Countdown.
 static void test_end_of_countdown_plays_end_sound() {
   Timer t;
@@ -2223,6 +2251,8 @@ int main() {
   RUN_TEST(test_start_beeps);
   RUN_TEST(test_metronome_ticks_every_second_of_countdown);
   RUN_TEST(test_end_of_countdown_plays_end_sound);
+  RUN_TEST(test_start_beeps_when_restarting_during_end_sound);
+  RUN_TEST(test_cancel_right_after_start_plays_whole_end_sound);
   RUN_TEST(test_cancel_plays_end_sound);
   RUN_TEST(test_holding_star_toggles_mute_with_confirm_beep);
   RUN_TEST(test_mute_silences_everything_but_end_sound);
