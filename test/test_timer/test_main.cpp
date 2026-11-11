@@ -2037,6 +2037,29 @@ static void test_every_text_exists_fits_and_is_printable_in_every_language() {
   TEST_ASSERT_EQUAL_STRING("English", languageName(LANG_EN));
 }
 
+// I formati tradotti (`%ld,%02ld s`, `Level 1-8: %d`) hanno in ogni lingua le stesse conversioni,
+// nello stesso ordine: una traduzione non può chiedere argomenti che il codice non passa (#39).
+static void conversions(const char* s, char* out) {
+  for (s = strchr(s, '%'); s; s = strchr(s, '%')) {
+    *out++ = *s++;                                            // `%`
+    while (*s && !strchr("diuxcs%", *s)) *out++ = *s++;  // flag, ampiezza, `l`
+    if (*s) *out++ = *s++;                                    // conversione
+  }
+  *out = '\0';
+}
+
+static void test_translated_formats_have_the_same_conversions_in_every_language() {
+  char it[32], other[32], msg[48];
+  for (uint8_t id = 0; id < TEXT_COUNT; id++) {
+    conversions(text(TextId(id), LANG_IT), it);
+    for (uint8_t lang = 1; lang < LANG_COUNT; lang++) {
+      conversions(text(TextId(id), lang), other);
+      snprintf(msg, sizeof msg, "testo %u, lingua %u", id, lang);
+      TEST_ASSERT_EQUAL_STRING_MESSAGE(it, other, msg);
+    }
+  }
+}
+
 // Una lingua sconosciuta vale l'italiano.
 static void test_unknown_language_reads_italian_texts() {
   TEST_ASSERT_EQUAL_STRING("MENU SERVIZIO", text(T_MENU_TITLE, LANG_COUNT));
@@ -2254,6 +2277,7 @@ int main() {
   RUN_TEST(test_channel_in_pause_concludes_stepped_strip_and_switches_channel);
   RUN_TEST(test_mode_turn_in_pause_concludes_stepped_strip_and_changes_mode);
   RUN_TEST(test_every_text_exists_fits_and_is_printable_in_every_language);
+  RUN_TEST(test_translated_formats_have_the_same_conversions_in_every_language);
   RUN_TEST(test_unknown_language_reads_italian_texts);
   RUN_TEST(test_version_1_block_loads_factory_defaults);
   RUN_TEST(test_factory_language_is_italian);
