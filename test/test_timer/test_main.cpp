@@ -156,6 +156,20 @@ static void test_seven_seg_returns_to_set_time_after_end() {
   TEST_ASSERT_EQUAL_UINT16(125, t.seg.shown);
 }
 
+// REQ-3.7: un Countdown che finisce nella ISR fra la lettura di running() e quella del residuo
+// passa da 000.1 al tempo impostato, senza mostrare 000.0 per un giro.
+static void test_seven_seg_never_shows_zero_when_countdown_ends_between_reads() {
+  Timer t;
+  t.type("10");
+  t.press();
+  t.advance(999);
+  TEST_ASSERT_EQUAL_UINT16(1, t.seg.shown);
+  t.clock.isrAfterRunning = 1;  // update() legge running() vero, poi la ISR conclude
+  t.loop();
+  TEST_ASSERT_FALSE(t.clock.running());
+  TEST_ASSERT_EQUAL_UINT16(10, t.seg.shown);
+}
+
 // REQ-3.7
 static void test_seven_seg_returns_to_set_time_after_cancel() {
   Timer t;
@@ -2172,6 +2186,7 @@ int main() {
   RUN_TEST(test_second_press_cancels_the_countdown);
   RUN_TEST(test_seven_seg_counts_down_during_countdown);
   RUN_TEST(test_seven_seg_returns_to_set_time_after_end);
+  RUN_TEST(test_seven_seg_never_shows_zero_when_countdown_ends_between_reads);
   RUN_TEST(test_seven_seg_returns_to_set_time_after_cancel);
   RUN_TEST(test_first_digit_after_exposure_starts_a_new_time);
   RUN_TEST(test_first_digit_after_cancel_starts_a_new_time);

@@ -193,8 +193,10 @@ void Controller::update() {
     ds = msToDs(timing_.elapsedMs());
     if (ds > DS_MAX) ds = MIN_SEC | (ds / 600 * 100 + ds / 10 % 60);
   } else if (running) {
-    // Countdown: residuo arrotondato per eccesso, non mostra 0000 prima della fine.
-    ds = msToDs(timing_.remainingMs() + MS_PER_DS - 1);
+    // Countdown: residuo arrotondato per eccesso, non mostra 0000 prima della fine. Residuo zero:
+    // la ISR ha concluso dopo la lettura di running(), si mostra già il tempo impostato (REQ-3.7).
+    uint32_t left = timing_.remainingMs();
+    if (left) ds = msToDs(left + MS_PER_DS - 1);
   }
   if (menu_.sevenSegTest()) ds = 8888;  // REQ-9.5: tutti i segmenti delle cifre e il punto decimale
   if (ds != shownDs_) {
