@@ -29,7 +29,7 @@ Le modifiche comuni (documentazione, configurazione agenti) vanno su `main`; i d
 
 Firmware C++ su **Arduino Mega 2560** con **PlatformIO** (env `megaatmega2560`). Non generare codice MicroPython su questo branch: quello vive su `feature/esp32-micropython-firmware`.
 
-Il firmware è in riscrittura (feature `firmware-rewrite`): requisiti in `docs/firmware-rewrite/requirements-docs/EARS.it.md`, modifiche in `TECHNICAL.it.md`, decisioni in `docs/firmware-rewrite/decisions.md`. Il firmware precedente è stato rimosso e resta consultabile solo al tag `pre-rewrite`.
+Il firmware v2 nasce dalla feature `firmware-rewrite`: requisiti in `docs/firmware-rewrite/requirements-docs/EARS.it.md`, decisioni in `docs/firmware-rewrite/decisions.md`. **L'architettura attuale è in `TECNICO.md`**: `TECHNICAL.it.md` è il progetto esecutivo della riscrittura, non segue più il codice e cita moduli che non esistono. Ogni feature successiva ha la sua cartella in `docs/` (per esempio `docs/ui-languages/`). Il firmware precedente è stato rimosso e resta consultabile solo al tag `pre-rewrite`; `docs/refactoring-timing/` è l'archivio di un tentativo ancora più vecchio e non dà istruzioni valide.
 
 ### Comandi
 
@@ -37,6 +37,7 @@ Il firmware è in riscrittura (feature `firmware-rewrite`): requisiti in `docs/f
 pio run                      # compila per il Mega (env megaatmega2560)
 pio test -e native           # test della libreria di dominio sul PC
 pio run -t upload            # compila e carica sulla scheda
+pio run -e wdt_test -t upload  # build di prova del watchdog (solo collaudo, TECNICO §11)
 pio device monitor           # monitor seriale
 ```
 
