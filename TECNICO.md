@@ -185,7 +185,9 @@ Oltre al CRC, `load()` controlla che indici e valori siano nei limiti (Correzion
 | `test/test_timing_core/` | `TimingCore` da solo, tick per tick: bordi al millisecondo e Correzione del clock |
 | `test/test_time/` | Unità di tempo |
 
-La CI (`.github/workflows/firmware.yml`) a ogni push verifica che `lib/r080_core/` non includa header Arduino o AVR, compila per il Mega ed esegue i test native. Driver e misure reali si verificano sulla scheda con la Checklist di collaudo.
+La CI (`.github/workflows/firmware.yml`) a ogni push verifica che `lib/r080_core/` non includa header Arduino o AVR, compila per il Mega (anche la build di prova `wdt_test`) ed esegue i test native, che falliscono se un testo tradotto fa da formato senza argomenti (`-Werror=format-security`). Driver e misure reali si verificano sulla scheda con la Checklist di collaudo.
+
+Per la prova del watchdog sulla scheda (REQ-2.2): `pio run -e wdt_test -t upload` carica un firmware che blocca il loop 3 s dopo l'avvio di un'Esposizione. Atteso: relè spento entro 250 ms dal blocco, reset entro 500 ms, `RESET: WDT` per 3 s, contatore dei reset da watchdog +1. Poi ricaricare il firmware normale con `pio run -t upload`.
 
 La versione è `FW_VERSION` in `platformio.ini` (mostrata all'avvio e in Info). Ogni versione va in [CHANGELOG.md](CHANGELOG.md); il rilascio è un tag `vX.Y.Z` sul commit collaudato.
 

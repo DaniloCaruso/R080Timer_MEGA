@@ -51,6 +51,13 @@ void loop() {
   inputs.poll();
   controller.update();
   uint32_t now = millis();
+#ifdef WDT_TEST
+  // Build di prova del watchdog (pio run -e wdt_test, #43): 3 s dopo l'avvio di un'Esposizione il
+  // loop si blocca. Sulla scheda: relè spento entro 250 ms, reset entro 500 ms, poi `RESET: WDT`.
+  static uint32_t idleMs = 0;
+  if (!timing.running()) idleMs = now;
+  else if (now - idleMs > 3000) for (;;) {}
+#endif
   sound.tick(now);
   screen.render(now);
   settings.service(now);
