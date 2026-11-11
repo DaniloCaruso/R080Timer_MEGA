@@ -5,7 +5,8 @@
 #include "ClockCorrection.h"
 #include "Texts.h"
 
-// Testi nella lingua scelta (Texts.h), in flash: le righe si compongono con fsnprintf e putF.
+// Testi nella lingua scelta (Texts.h), in flash: i testi fissi si copiano con putF, i formati con
+// argomenti si compongono con fsnprintf (mai un testo tradotto come formato senza argomenti).
 // Le voci T_* sono i test hardware (REQ-9.5), contigue fra T_RELAY e T_MAIN_BUTTON.
 enum : uint8_t { INFO, COUNTERS, HEALTH, T_RELAY, T_BUZZER, T_SEVEN_SEG, T_LCD, T_KEYPAD, T_ENCODERS,
                  T_MAIN_BUTTON, CALIBRATION, LCD_EXPOSURE, FOCUS_LIMIT, LANGUAGE, FACTORY, EXIT, ITEM_COUNT };
@@ -174,6 +175,7 @@ void ServiceMenu::compose(char rows[2][16]) const {
   char b[24];  // le righe oltre 16 caratteri (encoder) le taglia put()
   const CounterRecord& c = cnt_.d;
   const char* title = textAt(kItems, item_, lang);
+  const char* fixed = nullptr;  // riga 2 senza numeri: copiata da flash, mai usata come formato (#39)
   switch (item_) {
     case INFO:  // REQ-9.2
       fsnprintf(b, sizeof b, FSTR("R080 v%s"), version_);
@@ -196,7 +198,7 @@ void ServiceMenu::compose(char rows[2][16]) const {
       break;
     case CALIBRATION:
       title = textAt(kCalTitles, page_, lang);
-      if (page_ == CAL_LOG) fsnprintf(b, sizeof b, text(log_ ? T_LOG_ACTIVE : T_CLICK_START, lang));
+      if (page_ == CAL_LOG) fixed = text(log_ ? T_LOG_ACTIVE : T_CLICK_START, lang);
       else if (page_ == CAL_PPM) fsnprintf(b, sizeof b, FSTR("ppm: %+ld"), (long)value_);
       else fsnprintf(b, sizeof b, text(T_DURATION_FMT, lang), (long)(value_ / 100), (long)(value_ % 100));
       break;
@@ -207,13 +209,13 @@ void ServiceMenu::compose(char rows[2][16]) const {
       fsnprintf(b, sizeof b, text(T_MINUTES_FMT, lang), (long)value_);
       break;
     case T_RELAY:
-      fsnprintf(b, sizeof b, text(hw_[0] ? T_RELAY_ON : T_RELAY_OFF, lang));
+      fixed = text(hw_[0] ? T_RELAY_ON : T_RELAY_OFF, lang);
       break;
     case T_BUZZER:
       fsnprintf(b, sizeof b, text(T_SOUND_FMT, lang), hw_[0] + 1);
       break;
     case T_SEVEN_SEG:
-      fsnprintf(b, sizeof b, text(T_SEG_ALL, lang));
+      fixed = text(T_SEG_ALL, lang);
       break;
     case T_KEYPAD:
       fsnprintf(b, sizeof b, text(T_KEY_FMT, lang), hw_[0] ? hw_[0] : '-');
@@ -222,20 +224,21 @@ void ServiceMenu::compose(char rows[2][16]) const {
       fsnprintf(b, sizeof b, FSTR("M%+d c%u  P%+d c%u"), hw_[0], uint8_t(hw_[1]), hw_[2], uint8_t(hw_[3]));
       break;
     case T_MAIN_BUTTON:
-      fsnprintf(b, sizeof b, text(hw_[0] == 1 ? T_PRESSED : hw_[0] == 2 ? T_RELEASED : T_PRESS, lang));
+      fixed = text(hw_[0] == 1 ? T_PRESSED : hw_[0] == 2 ? T_RELEASED : T_PRESS, lang);
       break;
     case FACTORY:
       if (page_) title = text(T_CONFIRM_Q, lang);
-      fsnprintf(b, sizeof b, text(page_ ? T_YES_NO : T_CLICK_RESET, lang));
+      fixed = text(page_ ? T_YES_NO : T_CLICK_RESET, lang);
       break;
     case LANGUAGE:  // ui-languages REQ-2.2: il nome nella sua lingua
       title = text(T_LANGUAGE, lang);
-      fsnprintf(b, sizeof b, languageName(lang));
+      fixed = languageName(lang);
       break;
     default:
-      fsnprintf(b, sizeof b, text(T_CLICK_CONFIRM, lang));
+      fixed = text(T_CLICK_CONFIRM, lang);
       break;
   }
   putF(rows[0], title);
-  put(rows[1], b);
+  if (fixed) putF(rows[1], fixed);
+  else put(rows[1], b);
 }
