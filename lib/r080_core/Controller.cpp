@@ -101,7 +101,7 @@ void Controller::onInput(Input in, int8_t arg) {
       int8_t dir = in == Input::Hash ? 1 : -1;
       if (c.mode == FOCUS) stepLevel(g().lcdLevel, dir);  // REQ-5.7
       else if (c.precisionKind) stepFStop(c, dir);
-      else c.timeDs = clampDs(shiftedDs(c, dir));
+      else if (c.timeDs || dir > 0) c.timeDs = clampDs(shiftedDs(c, dir));  // REQ-4.2: da zero `*` non crea un tempo
       break;
     }
     case Input::ZeroStar:

@@ -420,6 +420,17 @@ static void test_seconds_step_stays_within_limits() {
   TEST_ASSERT_EQUAL_UINT16(9999, t.seg.shown);
 }
 
+// REQ-4.2: da tempo zero `*` non crea un tempo; `#` aggiunge la precisione (#41).
+static void test_star_at_zero_time_leaves_zero() {
+  Timer t;
+  t.keyD();
+  TEST_ASSERT_EQUAL_UINT16(0, t.seg.shown);
+  t.star();
+  TEST_ASSERT_EQUAL_UINT16(0, t.seg.shown);
+  t.hash();
+  TEST_ASSERT_EQUAL_UINT16(10, t.seg.shown);
+}
+
 // REQ-5.2: dopo */# la prima cifra inizia un tempo nuovo.
 static void test_first_digit_after_star_starts_a_new_time() {
   Timer t;
@@ -2258,6 +2269,7 @@ int main() {
   RUN_TEST(test_mute_silences_everything_but_end_sound);
   RUN_TEST(test_star_hash_step_by_seconds_precision);
   RUN_TEST(test_seconds_step_stays_within_limits);
+  RUN_TEST(test_star_at_zero_time_leaves_zero);
   RUN_TEST(test_first_digit_after_star_starts_a_new_time);
   RUN_TEST(test_precision_encoder_walks_the_seconds_list);
   RUN_TEST(test_star_hash_use_selected_seconds_precision);
