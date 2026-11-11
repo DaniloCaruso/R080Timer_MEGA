@@ -108,7 +108,7 @@ Precision is the step by which `*`/`#` and the Test strip move the time. It has 
 | Seconds | 1, 2, 3, 4, 5, 6, 7, 8, 10, 15, 20 s |
 | F-Stop | 1/1, 1/2, 1/3, 1/4, 1/6, 1/8, 1/12, 1/16, 1/24, 1/32, 1/64 of a stop |
 
-**Seconds.** `#` adds the precision value to the time, `*` subtracts it, within 0.1–999.9 s.
+**Seconds.** `#` adds the precision value to the time, `*` subtracts it, within 0.1–999.9 s. With the time at zero, `*` does nothing.
 
 **F-Stop.** The time is computed from the Base time: time = Base time × 2^(Offset / p), where 1/p is the precision, rounded to the tenth. `#` and `*` move the Offset by one (up to ±99); the Offset stays visible on row 2 (`+02`, `-01`, ` 00`). The step is refused if the time would leave 0.1–999.9 s or if the Base time is zero.
 

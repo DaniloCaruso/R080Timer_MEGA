@@ -106,7 +106,7 @@ La precisione è il passo con cui `*`/`#` e il Test strip spostano il tempo. Ha 
 | Secondi | 1, 2, 3, 4, 5, 6, 7, 8, 10, 15, 20 s |
 | F-Stop | 1/1, 1/2, 1/3, 1/4, 1/6, 1/8, 1/12, 1/16, 1/24, 1/32, 1/64 di stop |
 
-**Secondi.** `#` aggiunge il valore di precisione al tempo, `*` lo toglie, entro 0,1–999,9 s.
+**Secondi.** `#` aggiunge il valore di precisione al tempo, `*` lo toglie, entro 0,1–999,9 s. Con il tempo a zero `*` non fa nulla.
 
 **F-Stop.** Il tempo è calcolato dal Tempo base: tempo = Tempo base × 2^(Offset / p), dove 1/p è la precisione, arrotondato al decimo. `#` e `*` spostano l'Offset di uno (fino a ±99); l'Offset resta visibile sulla riga 2 (`+02`, `-01`, ` 00`). Il passo non avviene se il tempo uscirebbe da 0,1–999,9 s o se il Tempo base è zero.
 
