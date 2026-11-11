@@ -189,7 +189,7 @@ Alla prima accensione con la v2.1.0 le impostazioni delle versioni precedenti (v
 
 - L'LCD è sempre e solo rosso. 8 livelli di luminosità per l'LCD e 8 per il 7 segmenti, più fitti ai livelli bassi.
 - In Focus, a lampada spenta: `*`/`#` abbassano/alzano l'LCD; tenendo premuto `0`, `*`/`#` abbassano/alzano il 7 segmenti.
-- Durante ogni Esposizione (Focus acceso compreso) l'LCD scende al livello "LCD esposizione" del Menu di servizio (di fabbrica 1, il minimo) e torna al livello normale alla fine. Il 7 segmenti resta al livello scelto.
+- Durante ogni Esposizione (Focus acceso compreso, e pause del test strip passo-passo) l'LCD scende al livello "LCD esposizione" del Menu di servizio (di fabbrica 1, il minimo) e torna al livello normale alla fine. Il 7 segmenti resta al livello scelto.
 
 ## 9. Accensione e sicurezza
 

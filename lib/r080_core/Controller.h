@@ -25,8 +25,8 @@ class Controller {
   bool muted() const { return g().mute; }
   uint8_t channelIndex() const { return g().activeChannel; }
   const ChannelRecord& channel() const { return set_.active(); }
-  // REQ-7.3: durante l'Esposizione l'LCD scende al livello di esposizione.
-  uint8_t lcdLevel() const { return timing_.running() ? g().lcdExposureLevel : g().lcdLevel; }
+  // REQ-7.3: durante l'Esposizione, e nella pausa del passo-passo, l'LCD scende al livello di esposizione.
+  uint8_t lcdLevel() const { return timing_.running() || paused_ ? g().lcdExposureLevel : g().lcdLevel; }
   uint16_t stripStep() const { return stripShown_; }  // Step in corso da 1, 0 fuori dal test strip
   const ServiceMenu* service() const { return menu_.active() ? &menu_ : nullptr; }  // aperto o nullptr
   uint8_t language() const { return g().language; }  // lingua dei testi dell'LCD (Texts.h)

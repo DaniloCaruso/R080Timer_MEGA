@@ -211,7 +211,7 @@ The system **shall** always light the LCD in red only.
 The system **shall** manage separate, persistent brightness levels for the LCD and the 7-segment display.
 
 ### REQ-7.3 (State-driven)
-**While** an Exposure is running, the system **shall** set the LCD to the exposure brightness configured in the Service menu (default: minimum visible) and restore it at the end.
+**While** an Exposure is running or a step-by-step test strip is paused between two Steps, the system **shall** set the LCD to the exposure brightness configured in the Service menu (default: minimum visible) and restore it at the end.
 
 ### REQ-7.4 (State-driven)
 **While** an Exposure is running, the system **shall** keep the 7-segment display at the brightness chosen by the user.
