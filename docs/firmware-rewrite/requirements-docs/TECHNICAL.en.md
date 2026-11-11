@@ -1,5 +1,7 @@
 # TECHNICAL — R080 Timer firmware rewrite
 
+> **Historical document.** This is the implementation plan approved on 2026-10-18, before the code was written, and it is no longer updated. During implementation some modules were merged or renamed (`KeyEntry`, `TestStripPlan`, `Diagnostics`, `SettingsCodec`, `EV_FRAME`, `Time.h` do not exist). The current architecture is in [`TECNICO.md`](../../../TECNICO.md) (Italian); the requirements in `EARS.en.md` still apply.
+
 - **Feature:** `firmware-rewrite`
 - **Date:** 2026-10-18
 - **Source of decisions:** grilling session of 2026-10-18; `docs/firmware-rewrite/decisions.md`; `GLOSSARY.md`; requirements in `EARS.en.md`.

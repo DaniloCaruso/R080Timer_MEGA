@@ -1,5 +1,7 @@
 # TECHNICAL — Riscrittura del firmware R080 Timer
 
+> **Documento storico.** È il progetto esecutivo approvato il 2026-10-18, prima di scrivere il codice, e non viene più aggiornato. Durante l'implementazione alcuni moduli sono stati accorpati o rinominati (`KeyEntry`, `TestStripPlan`, `Diagnostics`, `SettingsCodec`, `EV_FRAME`, `Time.h` non esistono). L'architettura attuale è in [`TECNICO.md`](../../../TECNICO.md); i requisiti validi restano in `EARS.it.md`.
+
 - **Feature:** `firmware-rewrite`
 - **Data:** 2026-10-18
 - **Fonte delle decisioni:** sessione di grilling del 2026-10-18; `docs/firmware-rewrite/decisions.md`; `GLOSSARY.md`; requisiti in `EARS.it.md`.

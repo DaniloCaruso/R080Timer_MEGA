@@ -196,4 +196,5 @@ La versione è `FW_VERSION` in `platformio.ini` (mostrata all'avvio e in Info). 
 Build v2.1.0: RAM 1629 byte su 8192 (20 %), Flash 30070 byte su 253952 (12 %); la tabella dei testi in due lingue (`Texts`) sta tutta in flash.
 
 - Testi dell'LCD, formati e righe del log stanno in flash (`Flash.h`); in RAM restano solo la tabella dei suoni, le piccole tabelle numeriche, versione e data di compilazione.
+- Il blocco dei contatori si scrive a ogni avvio: un firmware che facesse scattare il watchdog subito dopo ogni avvio consumerebbe la cella del CRC in circa 14 ore di riavvii continui (decisioni, "Contatori scritti a ogni avvio").
 - Il 7 segmenti ha quattro cifre: un Focus oltre 999,9 s (possibile con il limite di 20 minuti) passa a minuti.secondi (`SevenSeg::showMinSec()`, punto dopo la seconda cifra).
