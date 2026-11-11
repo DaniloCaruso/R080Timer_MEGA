@@ -21,27 +21,35 @@ static OneButton modeButton;
 static Encoder precEncoder(ENC_PREC_DT_PIN, ENC_PREC_CLK_PIN);
 static Encoder modeEncoder(ENC_MODE_DT_PIN, ENC_MODE_CLK_PIN);
 static int32_t precLast = 0, modeLast = 0;  // ultime posizioni già tradotte in tacche
-static bool held[2];  // HOLD già scattato per `#` [0] e `*` [1]: Keypad manda sempre un RELEASED dopo l'HOLD
+static bool held[2];   // HOLD già scattato per `#` [0] e `*` [1]: Keypad manda sempre un RELEASED dopo l'HOLD
+static bool combo[2];  // `#` [0] / `*` [1] premuto insieme a `0`: al rilascio è la combinazione
 static bool zeroDown = false, zeroUsed = false;  // `0` premuto; già usato come cifra o in combinazione
 static bool mainDown = false;  // pulsante principale premuto, dopo l'antirimbalzo
 
 // Un cambio di stato di un tasto (C-20). `*` e `#` agiscono al rilascio e solo se non è scattato
-// l'HOLD; rilasciati con `0` premuto fanno la combinazione. `0` agisce al rilascio, per non
-// inserire la cifra quando fa parte di una combinazione.
+// l'HOLD. Se `0` è premuto alla pressione, all'HOLD o al rilascio di `*`/`#`, il tasto fa la
+// combinazione, qualunque sia l'ordine dei rilasci, e il suo HOLD non cambia mute né relè (#42).
+// `0` agisce al rilascio, per non inserire la cifra quando fa parte di una combinazione.
 static void onKey(Controller& ctl, char key, KeyState s) {
   if (key == '*' || key == '#') {
     bool star = key == '*';
-    if (s == HOLD && !zeroDown) {
+    if (s != RELEASED && zeroDown) {  // pressione o HOLD con `0` premuto
+      combo[star] = true;
+      zeroUsed = true;
+    }
+    if (s == HOLD && !combo[star]) {
       held[star] = true;
       ctl.onInput(star ? Input::StarHold : Input::HashHold, 0);
     } else if (s == RELEASED) {
-      if (!held[star] && zeroDown) {
+      if (held[star]) {
+        // l'HOLD ha già agito
+      } else if (combo[star] || zeroDown) {
         zeroUsed = true;
         ctl.onInput(star ? Input::ZeroStar : Input::ZeroHash, 0);
-      } else if (!held[star]) {
+      } else {
         ctl.onInput(star ? Input::Star : Input::Hash, 0);
       }
-      held[star] = false;
+      held[star] = combo[star] = false;
     }
     return;
   }

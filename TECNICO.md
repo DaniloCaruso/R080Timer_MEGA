@@ -102,7 +102,7 @@ stateDiagram-v2
 
 **Input** (`InputDevices`). Pulsanti con OneButton e antirimbalzo 20 ms: il principale agisce alla pressione (`attachPress`), quelli degli encoder al clic. Encoder letti come variazioni relative, una tacca ogni 4 conteggi. Tastierino letto con `getKeys()` per vedere più tasti insieme:
 
-- `*` e `#` agiscono al rilascio, solo se non è scattato l'HOLD (1000 ms); rilasciati con `0` premuto danno le combinazioni `0`+`*` / `0`+`#`.
+- `*` e `#` agiscono al rilascio, solo se non è scattato l'HOLD (1000 ms). Se `0` è premuto alla loro pressione, al loro HOLD o al loro rilascio danno le combinazioni `0`+`*` / `0`+`#`, qualunque sia l'ordine dei rilasci; in combinazione l'HOLD non cambia mute né relè e lo `0` non entra come cifra.
 - `0` agisce al rilascio, se non è stato usato in una combinazione; un'altra cifra premuta mentre `0` è giù fa entrare prima lo `0`.
 
 **7 segmenti.** Il valore mostrato si sceglie in `update()` (tempo impostato, residuo arrotondato per eccesso, trascorso, cumulativo, prossimo Step, `8888` nel test) e si invia solo quando cambia.
