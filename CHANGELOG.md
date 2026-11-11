@@ -14,12 +14,22 @@ Testi dell'LCD in italiano e in inglese, con la lingua scelta dal Menu di serviz
 
 - Voce `Lingua/Language` nel Menu di servizio, prima del ripristino di fabbrica: ogni pressione passa da italiano a inglese e viceversa, la scelta vale subito e si salva.
 - Tutti i testi dell'LCD in italiano e in inglese: schermata principale (Avanzamento `CO`/`PP`, in inglese `CO`/`SS`), messaggio `RESET: WDT`, Menu di servizio completo. Nomi delle Modalità, schermata di avvio e numeri restano uguali; il log su USB resta in inglese.
-- Test sul PC che bloccano traduzioni mancanti, troppo lunghe per la loro posizione o con caratteri che l'LCD non mostra.
+- Test sul PC che bloccano traduzioni mancanti, troppo lunghe per la loro posizione o con caratteri che l'LCD non mostra, e formati tradotti con conversioni diverse da una lingua all'altra.
+- Build di prova `wdt_test` per verificare il watchdog sulla scheda: il loop si blocca 3 s dopo l'avvio di un'Esposizione (TECNICO §11).
 
 ### Modificato
 
 - Il ripristino di fabbrica riporta anche la lingua all'italiano.
 - README rinnovati con banner, badge e link al sito.
+- Nella pausa del test strip passo-passo l'LCD resta alla luminosità di esposizione: la carta è ancora sotto l'ingranditore (REQ-7.3).
+
+### Corretto
+
+- Il beep di avvio si sente anche ripartendo mentre suona il Suono di fine dell'Esposizione precedente.
+- A fine Countdown il 7 segmenti non mostra più `000.0` per un istante prima del tempo impostato.
+- In Secondi, `*` con il tempo a zero non imposta più 0,1 s.
+- La combinazione `0` + `*`/`#` vale qualunque sia l'ordine dei rilasci: rilasciando prima lo `0` non entra più la cifra 0 seguita dall'azione di `*`/`#`, anche dopo una pressione lunga.
+- Le righe fisse del Menu di servizio non usano più un testo tradotto come formato di `printf`.
 
 ## [2.0.0] — in collaudo
 

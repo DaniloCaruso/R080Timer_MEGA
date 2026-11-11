@@ -222,3 +222,7 @@ Pausa e ripresa dell'esposizione; soglia di brown-out a 4,3 V via ISP con ricono
 ## LCD nella pausa del passo-passo
 
 **Decisione:** nella pausa tra due Step del test strip passo-passo l'LCD resta alla luminosità di esposizione, anche se la lampada è spenta: la carta è ancora sotto l'ingranditore e la prova non è conclusa. Torna al livello normale quando la prova si conclude (Annullamento, `D`, `A`/`B`/`C`, cambio di Modalità, 999,9 s). Revisione v2.1.0, #37.
+
+## Contatori scritti a ogni avvio
+
+**Decisione:** il blocco dei contatori si salva in `setup()` a ogni avvio (accensioni e, dopo un watchdog, reset da watchdog), così nessun reset va perso. Si accetta il limite: se un difetto del firmware facesse scattare il watchdog subito dopo ogni avvio, la scheda si riavvierebbe circa ogni 0,5 s e la cella del CRC (100.000 scritture garantite) si consumerebbe in circa 14 ore. Salvare i contatori qualche secondo dopo l'avvio proteggerebbe la EEPROM ma perderebbe proprio i reset da contare. La build di prova `wdt_test` blocca il loop solo dopo l'avvio di un'Esposizione, quindi non crea questo ciclo. Revisione v2.1.0, #44.
