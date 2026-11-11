@@ -121,7 +121,7 @@ In a test strip with F-Stop precision 1/p, the system **shall** place the k-th S
 The system **shall** offer the F-Stop precision values 1/1, 1/2, 1/3, 1/4, 1/6, 1/8, 1/12, 1/16, 1/24, 1/32, 1/64 and the Seconds values 1, 2, 3, 4, 5, 6, 7, 8, 10, 15, 20.
 
 ### REQ-4.2 (Event-driven)
-**When** `*` or `#` is pressed in Countdown or Test strip with precision in Seconds, the system **shall** decrease or increase the set time by the precision value, within the limits 0.1–999.9 s.
+**When** `*` or `#` is pressed in Countdown or Test strip with precision in Seconds, the system **shall** decrease or increase the set time by the precision value, within the limits 0.1–999.9 s; with the set time at zero, `*` leaves it at zero.
 
 ### REQ-4.3 (Event-driven)
 **When** `*` or `#` is pressed in Countdown or Test strip with F-Stop precision 1/p, the system **shall** decrease or increase the Offset by one and set the time to Base time·2^(Offset/p), rounded to the tenth and limited to 0.1–999.9 s.
