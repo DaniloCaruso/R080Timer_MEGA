@@ -211,7 +211,7 @@ Il sistema **shall** illuminare l'LCD sempre e solo in rosso.
 Il sistema **shall** gestire luminosità separate e persistenti per LCD e 7 segmenti.
 
 ### REQ-7.3 (State-driven)
-**While** un'Esposizione è in corso, il sistema **shall** portare l'LCD alla luminosità di esposizione configurata nel Menu di servizio (default: minimo visibile) e ripristinarla alla fine.
+**While** un'Esposizione è in corso o un test strip passo-passo è in pausa tra due Step, il sistema **shall** portare l'LCD alla luminosità di esposizione configurata nel Menu di servizio (default: minimo visibile) e ripristinarla alla fine.
 
 ### REQ-7.4 (State-driven)
 **While** un'Esposizione è in corso, il sistema **shall** mantenere il 7 segmenti alla luminosità scelta dall'utente.

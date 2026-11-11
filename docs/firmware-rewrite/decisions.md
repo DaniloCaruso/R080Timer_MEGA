@@ -218,3 +218,7 @@ Pausa e ripresa dell'esposizione; soglia di brown-out a 4,3 V via ISP con ricono
 - Il beep di conferma del mute suona solo quando il mute si spegne; attivarlo è silenzioso. Con il mute restano udibili il Suono di fine e i suoni del Menu di servizio (REQ-5.5, REQ-8.5).
 - Focus oltre 999,9 s: il 7 segmenti passa a minuti.secondi (`17.05` = 17 min 05 s) invece di fermarsi a `999.9` (REQ-3.2).
 - "Esci" del Menu di servizio torna all'uso normale senza riavviare la scheda, con le impostazioni già salvate (REQ-9.14).
+
+## LCD nella pausa del passo-passo
+
+**Decisione:** nella pausa tra due Step del test strip passo-passo l'LCD resta alla luminosità di esposizione, anche se la lampada è spenta: la carta è ancora sotto l'ingranditore e la prova non è conclusa. Torna al livello normale quando la prova si conclude (Annullamento, `D`, `A`/`B`/`C`, cambio di Modalità, 999,9 s). Revisione v2.1.0, #37.
