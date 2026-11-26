@@ -47,12 +47,12 @@ Used by `/wayfinder`. The **map** is a single issue with **child** issues as tic
 
 ## Platform labels
 
-This repo has two development lines branching from `main`, and they share one issue tracker:
+This repo has two development lines, the Arduino Mega firmware on `main` and the ESP32 port branching from it, and they share one issue tracker:
 
 | Label | Branch | Platform |
 | --- | --- | --- |
 | `esp32` | `feature/esp32-micropython-firmware` | MicroPython on ESP32-WROOM-32 |
-| `arduino` | `feature/arduino-mega-firmware` | C++/PlatformIO on Arduino Mega 2560 |
+| `arduino` | `main` | C++/PlatformIO on Arduino Mega 2560 |
 
 - Every issue gets exactly one platform label. Issues that apply to both lines (shared behaviour, docs on `main`) get both.
 - When creating an issue, apply the label of the branch you are working on (`git branch --show-current`).

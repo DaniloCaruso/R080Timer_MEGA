@@ -14,18 +14,18 @@ Lo sviluppatore è italiano: stringhe UI e commenti in parte in italiano. Preser
 
 ## 2. Branch
 
-`main` contiene il timer Arduino originale. Da `main` partono due linee di sviluppo indipendenti, ognuna con il proprio `CLAUDE.md` che estende questo:
+`main` contiene il firmware Arduino Mega (il vecchio branch `feature/arduino-mega-firmware` è stato fuso in `main` con la PR #46). Da `main` parte la linea ESP32, con il proprio `CLAUDE.md`:
 
 | Branch | Piattaforma | Etichetta issue |
 |---|---|---|
+| `main` | C++/PlatformIO su Arduino Mega 2560 | `arduino` |
 | `feature/esp32-micropython-firmware` | MicroPython su ESP32-WROOM-32 | `esp32` |
-| `feature/arduino-mega-firmware` | C++/PlatformIO su Arduino Mega 2560 | `arduino` |
 
-Le modifiche comuni (documentazione, configurazione agenti) vanno su `main`; i due branch vengono poi ribasati su `main`.
+Le modifiche comuni (documentazione, configurazione agenti) vanno su `main`; il branch ESP32 viene poi ribasato su `main`.
 
 ---
 
-## 3. Questo branch: Arduino Mega 2560
+## 3. Arduino Mega 2560 (`main`)
 
 Firmware C++ su **Arduino Mega 2560** con **PlatformIO** (env `megaatmega2560`). Non generare codice MicroPython su questo branch: quello vive su `feature/esp32-micropython-firmware`.
 
@@ -41,7 +41,7 @@ pio run -e wdt_test -t upload  # build di prova del watchdog (solo collaudo, TEC
 pio device monitor           # monitor seriale
 ```
 
-La CI (`.github/workflows/firmware.yml`) esegue compilazione Mega e test native a ogni push.
+La CI (`.github/workflows/firmware.yml`) esegue compilazione Mega e test native a ogni push, tranne sul branch ESP32 che ha il suo workflow (`esp32.yml`, pytest).
 
 ### Invarianti
 
