@@ -1,0 +1,19 @@
+name: esp32
+
+on:
+  push:
+    branches: [feature/esp32-micropython-firmware]
+  pull_request:
+    branches: [feature/esp32-micropython-firmware]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      # Test su host con gli stub di machine/esp32/uasyncio (tests/stubs)
+      - run: make test
