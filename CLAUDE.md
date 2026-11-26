@@ -8,7 +8,7 @@ Guida per agenti Claude Code. Per pinout, installazione e comportamento utente, 
 
 **R080 Timer** — firmware per timer da camera oscura (ingranditore fotografico). 3 modalità (Focus, Countdown, Test Strip), navigazione F-Stop, 3 canali con memoria, persistenza impostazioni, suoni non bloccanti.
 
-Su questo branch (`feature/esp32-micropython-firmware`) è scritto in **MicroPython** per **ESP32-WROOM-32**. NON è Arduino, NON usa PlatformIO. Non generare mai codice C++/Arduino su questo branch: la versione Arduino vive su `main` e su `feature/arduino-mega-firmware` (vedi §14).
+Su questo branch (`feature/esp32-micropython-firmware`) è scritto in **MicroPython** per **ESP32-WROOM-32**. NON è Arduino, NON usa PlatformIO. Non generare mai codice C++/Arduino su questo branch: la versione Arduino vive su `main` (vedi §14).
 
 Lo sviluppatore è italiano: stringhe UI e commenti in parte in italiano (`"PRONTO"`, `"Ch:A"`, ecc.). Preservarli. **Rispondere all'utente in italiano.**
 
@@ -216,14 +216,14 @@ Per il comportamento utente (cosa fa ogni tasto, ogni modalità, ogni encoder) v
 
 ## 14. Branch
 
-`main` contiene il timer Arduino originale. Da `main` partono due linee di sviluppo indipendenti:
+`main` contiene il firmware Arduino Mega (il vecchio branch `feature/arduino-mega-firmware` è stato fuso in `main` con la PR #46). Questo branch parte da `main`:
 
 | Branch | Piattaforma | Etichetta issue |
 |---|---|---|
+| `main` | C++/PlatformIO su Arduino Mega 2560 | `arduino` |
 | `feature/esp32-micropython-firmware` (questo) | MicroPython su ESP32-WROOM-32 | `esp32` |
-| `feature/arduino-mega-firmware` | C++/PlatformIO su Arduino Mega 2560 | `arduino` |
 
-Le modifiche comuni (documentazione, configurazione agenti) vanno su `main`; i due branch vengono poi ribasati su `main`.
+Le modifiche comuni (documentazione, configurazione agenti) vanno su `main`; questo branch viene poi ribasato su `main`. I file del Mega (`lib/`, `src/`, `test/`, `TECNICO.md`, ...) arrivano col rebase e restano: toglierli farebbe andare in conflitto ogni rebase. Qui la CI gira solo `esp32.yml` (pytest).
 
 ---
 
