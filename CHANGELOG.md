@@ -28,6 +28,7 @@ Testi dell'LCD in italiano e in inglese, con la lingua scelta dal Menu di serviz
 - Il beep di avvio si sente anche ripartendo mentre suona il Suono di fine dell'Esposizione precedente.
 - A fine Countdown il 7 segmenti non mostra più `000.0` per un istante prima del tempo impostato.
 - In Secondi, `*` con il tempo a zero non imposta più 0,1 s.
+- Il 7 segmenti non mostra più le cifre spostate (decimi prima del punto) se perde dei byte all'accensione.
 - La combinazione `0` + `*`/`#` vale qualunque sia l'ordine dei rilasci: rilasciando prima lo `0` non entra più la cifra 0 seguita dall'azione di `*`/`#`, anche dopo una pressione lunga.
 - Le righe fisse del Menu di servizio non usano più un testo tradotto come formato di `printf`.
 
