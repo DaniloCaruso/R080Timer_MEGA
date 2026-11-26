@@ -44,9 +44,9 @@ Arduino Mega 2560, Waveshare 1602 RGB LCD (I²C), serial 7-segment display, 4x4 
 | LCD (I²C) | SDA D20, SCL D21 |
 | 7-segment (display RX) | D14 (TX3) |
 | Keypad rows / columns | D33, D31, D29, D27 / D41, D39, D37, D35 |
-| Mode encoder DT / CLK / SW | D3 / D4 / D17 |
-| Precision encoder DT / CLK / SW | D18 / D19 / D16 |
-| Main button | D2 (to GND) |
+| Mode encoder DT / CLK / SW | D3 / D2 / D4 |
+| Precision encoder DT / CLK / SW | D18 / D19 / D17 |
+| Main button | D5 (to GND) |
 | Buzzer | D49 |
 | Lamp relay | D47, with a 10 kΩ resistor to GND |
 

@@ -9,6 +9,7 @@ Testi dell'LCD in italiano e in inglese, con la lingua scelta dal Menu di serviz
 ### Da fare per aggiornare dalla v2.0.0
 
 - Le impostazioni della v2.0.0 non vengono lette (blocco impostazioni alla versione 2): alla prima accensione il timer parte dai valori di fabbrica, in italiano.
+- Spostare quattro fili (PINOUT.md): CLK dell'encoder della Modalità da D4 a D2, il suo pulsante da D17 a D4, il pulsante principale da D2 a D5, il pulsante dell'encoder della precisione da D16 a D17. Con il cablaggio vecchio encoder e pulsanti non funzionano.
 
 ### Aggiunto
 
@@ -21,6 +22,7 @@ Testi dell'LCD in italiano e in inglese, con la lingua scelta dal Menu di serviz
 
 - Il ripristino di fabbrica riporta anche la lingua all'italiano.
 - README rinnovati con banner, badge e link al sito.
+- Pin degli encoder raggruppati: ogni encoder ha i suoi tre fili su pin consecutivi (Modalità D2-D4, precisione D17-D19), il pulsante principale passa a D5. L'encoder della Modalità ha ora entrambi i segnali su pin con interrupt.
 - Nella pausa del test strip passo-passo l'LCD resta alla luminosità di esposizione: la carta è ancora sotto l'ingranditore (REQ-7.3).
 
 ### Corretto

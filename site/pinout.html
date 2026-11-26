@@ -553,7 +553,7 @@ section > .sub { margin-top: -8px; }
   <section class="panel" aria-labelledby="free">
     <h3 id="free"><span lang="it">Pin liberi</span><span lang="en">Free pins</span></h3>
     <div class="free">
-      <span>D5–D13</span><span>D22–D26</span><span>D28</span><span>D30</span><span>D32</span><span>D34</span><span>D36</span><span>D38</span><span>D40</span><span>D42–D46</span><span>D48</span><span>D50–D53</span><span>A0–A15</span>
+      <span>D6–D13</span><span>D16</span><span>D22–D26</span><span>D28</span><span>D30</span><span>D32</span><span>D34</span><span>D36</span><span>D38</span><span>D40</span><span>D42–D46</span><span>D48</span><span>D50–D53</span><span>A0–A15</span>
     </div>
   </section>
 </main>
@@ -609,7 +609,7 @@ section > .sub { margin-top: -8px; }
   const POWER = ["IOREF", "RST", "3V3", "5V", "GND", "GND2", "VIN"];
   POWER.forEach((n, i) => (P[n] = [448 + i * 13, 526]));
 
-  const USED = { D2: "main", D3: "encMode", D4: "encMode", D17: "encMode", D16: "encPrec", D18: "encPrec", D19: "encPrec",
+  const USED = { D5: "main", D2: "encMode", D3: "encMode", D4: "encMode", D17: "encPrec", D18: "encPrec", D19: "encPrec",
     D14: "seg7", D20: "lcd", D21: "lcd", D47: "relay", D49: "buzzer",
     D27: "keypad", D29: "keypad", D31: "keypad", D33: "keypad", D35: "keypad", D37: "keypad", D39: "keypad", D41: "keypad" };
   const POWER_FOR = { IOREF: "", RST: "reset", "3V3": "h33", "5V": "h5v", GND: "gnd", GND2: "gnd", VIN: "vin" };
@@ -671,13 +671,13 @@ section > .sub { margin-top: -8px; }
   const K = (p) => [p[0], p[1] + DY + KDY];
   const add = (ids, kind, d, extra) => W.push({ ids, kind, d, extra: extra || "" });
 
-  add("main", "in", v([95, 174], S(P.D2)));
-  add("encMode", "in", v([220, 174], S(P.D4)));
+  add("main", "in", v([95, 174], S(P.D5)));
+  add("encMode", "in", v([220, 174], S(P.D2)));
   add("encMode", "in", v([240, 174], S(P.D3)));
-  add("encMode", "in", v([260, 174], S(P.D17)));
+  add("encMode", "in", v([260, 174], S(P.D4)));
   add("encPrec", "in", v([380, 174], S(P.D19)));
   add("encPrec", "in", v([400, 174], S(P.D18)));
-  add("encPrec", "in", v([420, 174], S(P.D16)));
+  add("encPrec", "in", v([420, 174], S(P.D17)));
   add("seg7", "uart", v([560, 174], S(P.D14)));
   add("lcd", "i2c", v([920, 174], S(P.D20)));
   add("lcd", "i2c", v([940, 174], S(P.D21)));
@@ -716,15 +716,15 @@ section > .sub { margin-top: -8px; }
   // Items: kind, name, pins, text, chip group, bubble anchor (svg coords)
   const ITEMS = {
     main: { kind: "in", group: "cmd", at: [106, 178],
-      name: { it: "Pulsante principale", en: "Main button" }, pins: "D2 · GND",
+      name: { it: "Pulsante principale", en: "Main button" }, pins: "D5 · GND",
       text: { it: "Ingresso con pull-up interno, chiude verso GND. Antirimbalzo 20 ms: avvia o annulla l'esposizione appena lo premi.",
         en: "Input with internal pull-up, closes to GND. 20 ms debounce: starts or cancels the exposure the moment you press it." } },
     encMode: { kind: "in", group: "cmd", at: [265, 178],
-      name: { it: "Encoder della modalità", en: "Mode encoder" }, pins: "DT D3 (INT5) · CLK D4 · SW D17",
-      text: { it: "Una tacca vale 4 conteggi letti dall'interrupt di D3. Ruotando cambi modalità; premendo alterni continuo e passo-passo.",
-        en: "One detent is 4 counts, read by the D3 interrupt. Turn it to change mode; press it to toggle between continuous and step-by-step." } },
+      name: { it: "Encoder della modalità", en: "Mode encoder" }, pins: "CLK D2 (INT4) · DT D3 (INT5) · SW D4",
+      text: { it: "Una tacca vale 4 conteggi letti dagli interrupt di D2 e D3. Ruotando cambi modalità; premendo alterni continuo e passo-passo.",
+        en: "One detent is 4 counts, read by the D2 and D3 interrupts. Turn it to change mode; press it to toggle between continuous and step-by-step." } },
     encPrec: { kind: "in", group: "cmd", at: [425, 178],
-      name: { it: "Encoder della precisione", en: "Precision encoder" }, pins: "DT D18 (INT3) · CLK D19 (INT2) · SW D16",
+      name: { it: "Encoder della precisione", en: "Precision encoder" }, pins: "DT D18 (INT3) · CLK D19 (INT2) · SW D17",
       text: { it: "Sceglie il passo in secondi o in frazioni di stop. La pressione alterna Secondi e F-Stop.",
         en: "Sets the step size in seconds or in fractions of a stop. Pressing it toggles between Seconds and F-Stop." } },
     keypad: { kind: "key", group: "cmd", at: [990, 576],
