@@ -1,8 +1,11 @@
 name: firmware
 
+# Il branch ESP32 è MicroPython: ha il suo workflow (esp32.yml) e non ha platformio.ini
 on:
   push:
+    branches-ignore: [feature/esp32-micropython-firmware]
   pull_request:
+    branches-ignore: [feature/esp32-micropython-firmware]
 
 jobs:
   build-and-test:
