@@ -1,28 +1,34 @@
-# PINOUT — R080 Timer v2.0.0
+# PINOUT — R080 Timer v2.1.0
 
 Collegamenti e risorse dell'Arduino Mega 2560 (ATmega2560, 16 MHz). Fonte: `src/drivers/Pins.h` e i driver in `src/drivers/`.
 
 ## Modifiche rispetto alla v1
 
-| Collegamento | v1 | v2.0.0 | Perché |
-|---|---|---|---|
-| 7 segmenti, ingresso dati del display | A2 (SoftwareSerial) | **D14** (TX3, seriale hardware Serial3) | SoftwareSerial disabilitava gli interrupt per circa 1 ms a byte |
-| Relè, D47 | diretto al modulo | diretto al modulo, **più 10 kΩ tra D47 e GND** | tiene il relè spento finché il firmware non comanda il pin (bootloader compreso) |
+| Collegamento | v1 | v2.0.0 | v2.1.0 | Perché |
+|---|---|---|---|---|
+| 7 segmenti, ingresso dati del display | A2 (SoftwareSerial) | **D14** (TX3, seriale hardware Serial3) | D14 | SoftwareSerial disabilitava gli interrupt per circa 1 ms a byte |
+| Relè, D47 | diretto al modulo | diretto al modulo, **più 10 kΩ tra D47 e GND** | invariato | tiene il relè spento finché il firmware non comanda il pin (bootloader compreso) |
+| Encoder della Modalità, CLK | D4 | D4 | **D2** | i tre fili dell'encoder su D2-D4, e CLK su un pin con interrupt (INT4) |
+| Encoder della Modalità, pulsante | D17 | D17 | **D4** | |
+| Pulsante principale | D2 | D2 | **D5** | libera D2 per l'encoder |
+| Encoder della precisione, pulsante | D16 | D16 | **D17** | i tre fili dell'encoder su D17-D19 |
 
-Tutti gli altri collegamenti sono invariati. A2 è libero.
+Tutti gli altri collegamenti sono invariati. A2 e D16 sono liberi.
+
+Dalla v2.1.0 ogni encoder ha un cavetto dritto a 3 fili: l'ordine dei pin del KY-040 (CLK, DT, SW) corrisponde a D2-D3-D4 per la Modalità e, rovesciato, a D19-D18-D17 per la precisione.
 
 ## Mappa dei pin
 
 | Pin | Direzione | Componente | Note |
 |---|---|---|---|
 | D0 / D1 | USART0 | USB | Log degli eventi a 115200 baud |
-| D2 | ingresso, pull-up | Pulsante principale | Chiude verso GND; antirimbalzo 20 ms |
+| D2 | ingresso | Encoder della Modalità, CLK | INT4 |
 | D3 | ingresso | Encoder della Modalità, DT | INT5 |
-| D4 | ingresso | Encoder della Modalità, CLK | Senza interrupt, letto nella ISR di D3 |
+| D4 | ingresso, pull-up | Encoder della Modalità, pulsante | Chiude verso GND |
+| D5 | ingresso, pull-up | Pulsante principale | Chiude verso GND; antirimbalzo 20 ms |
 | D14 | uscita (TX3) | 7 segmenti, RX del display | Serial3, 9600 baud |
 | D15 | (RX3) | — | Riservato da Serial3, non collegato |
-| D16 | ingresso, pull-up | Encoder della precisione, pulsante | Chiude verso GND |
-| D17 | ingresso, pull-up | Encoder della Modalità, pulsante | Chiude verso GND |
+| D17 | ingresso, pull-up | Encoder della precisione, pulsante | Chiude verso GND |
 | D18 | ingresso | Encoder della precisione, DT | INT3 |
 | D19 | ingresso | Encoder della precisione, CLK | INT2 |
 | D20 / D21 | I²C | LCD Waveshare 1602 RGB, SDA / SCL | 100 kHz, timeout 3 ms |
@@ -67,11 +73,11 @@ All'accensione il firmware legge `D` (D27 × D35) prima di inizializzare la libr
 | USART3 | 7 segmenti, 9600 baud |
 | TWI | LCD, 100 kHz |
 | EEPROM | Impostazioni a `0x000` (43 byte), contatori a `0x040` (17 byte) |
-| INT2, INT3, INT5 | Encoder |
+| INT2, INT3, INT4, INT5 | Encoder |
 
 Per i timer occupati, `analogWrite()` non è utilizzabile su D6–D8 (Timer4), D9–D10 (Timer2) e D11–D13 (Timer1).
 
 ## Pin liberi
 
-- Digitali: D5–D13, D22–D26, D28, D30, D32, D34, D36, D38, D40, D42–D46, D48, D50–D53.
+- Digitali: D6–D13, D16, D22–D26, D28, D30, D32, D34, D36, D38, D40, D42–D46, D48, D50–D53.
 - Analogici: A0–A15.

@@ -417,7 +417,7 @@
           <div class="top"><h3><span lang="it">Encoder rotativi KY-040</span><span lang="en">KY-040 rotary encoders</span></h3><span class="qty">×2</span></div>
           <p lang="it">Con pulsante. Quello della Modalità (M) sceglie Focus, Countdown o Test strip; quello della precisione (P) sceglie passo e tipo, Secondi o F-Stop.</p>
           <p lang="en">With push button. The Mode one (M) picks Focus, Countdown or Test strip; the precision one (P) picks the step and the type, Seconds or F-Stop.</p>
-          <div class="pins"><span class="pill">M · D3 / D4 / D17</span><span class="pill">P · D18 / D19 / D16</span></div>
+          <div class="pins"><span class="pill">M · D3 / D2 / D4</span><span class="pill">P · D18 / D19 / D17</span></div>
         </div>
       </article>
 
@@ -435,7 +435,7 @@
           <div class="top"><h3><span lang="it">Pulsante principale</span><span lang="en">Main push button</span></h3><span class="qty">×1</span></div>
           <p lang="it">Pulsante normalmente aperto, grande e facile da trovare al buio: avvia l'Esposizione e, durante, la annulla. Agisce alla pressione, dopo 20 ms stabili.</p>
           <p lang="en">Normally open, large and easy to find in the dark: starts the Exposure and, while it runs, cancels it. Acts on press, after 20 ms of stable contact.</p>
-          <div class="pins"><span class="pill">D2 → GND</span></div>
+          <div class="pins"><span class="pill">D5 → GND</span></div>
         </div>
       </article>
 
@@ -522,9 +522,9 @@
           <tr><td>LCD (I²C)</td><td><code>SDA D20</code> · <code>SCL D21</code></td><td><span lang="it">100 kHz, timeout 3 ms: un LCD scollegato non blocca il timer</span><span lang="en">100 kHz, 3 ms timeout: an unplugged LCD never stalls the timer</span></td></tr>
           <tr><td><span lang="it">7 segmenti (RX del display)</span><span lang="en">7-segment (display RX)</span></td><td><code>D14</code> (TX3)</td><td><span lang="it">Serial3, 9600 baud; D15 (RX3) resta scollegato</span><span lang="en">Serial3, 9600 baud; D15 (RX3) stays unconnected</span></td></tr>
           <tr><td><span lang="it">Tastierino righe / colonne</span><span lang="en">Keypad rows / columns</span></td><td><code>D33 D31 D29 D27</code> / <code>D41 D39 D37 D35</code></td><td><span lang="it">Righe 1–4, colonne 1–4</span><span lang="en">Rows 1–4, columns 1–4</span></td></tr>
-          <tr><td><span lang="it">Encoder Modalità DT / CLK / SW</span><span lang="en">Mode encoder DT / CLK / SW</span></td><td><code>D3 / D4 / D17</code></td><td><span lang="it">DT su INT5; una tacca = 4 conteggi</span><span lang="en">DT on INT5; one detent = 4 counts</span></td></tr>
-          <tr><td><span lang="it">Encoder precisione DT / CLK / SW</span><span lang="en">Precision encoder DT / CLK / SW</span></td><td><code>D18 / D19 / D16</code></td><td>INT3 / INT2</td></tr>
-          <tr><td><span lang="it">Pulsante principale</span><span lang="en">Main button</span></td><td><code>D2</code></td><td><span lang="it">Verso GND, antirimbalzo 20 ms</span><span lang="en">To GND, 20 ms debounce</span></td></tr>
+          <tr><td><span lang="it">Encoder Modalità DT / CLK / SW</span><span lang="en">Mode encoder DT / CLK / SW</span></td><td><code>D3 / D2 / D4</code></td><td><span lang="it">DT e CLK su INT5 / INT4; una tacca = 4 conteggi</span><span lang="en">DT and CLK on INT5 / INT4; one detent = 4 counts</span></td></tr>
+          <tr><td><span lang="it">Encoder precisione DT / CLK / SW</span><span lang="en">Precision encoder DT / CLK / SW</span></td><td><code>D18 / D19 / D17</code></td><td>INT3 / INT2</td></tr>
+          <tr><td><span lang="it">Pulsante principale</span><span lang="en">Main button</span></td><td><code>D5</code></td><td><span lang="it">Verso GND, antirimbalzo 20 ms</span><span lang="en">To GND, 20 ms debounce</span></td></tr>
           <tr><td>Buzzer</td><td><code>D49</code></td><td><span lang="it"><code>tone()</code> su Timer2</span><span lang="en"><code>tone()</code> on Timer2</span></td></tr>
           <tr><td><span lang="it">Relè della lampada</span><span lang="en">Lamp relay</span></td><td><code>D47</code></td><td><span lang="it">Attivo alto, con 10 kΩ verso GND</span><span lang="en">Active high, with 10 kΩ to GND</span></td></tr>
         </tbody>
@@ -921,8 +921,8 @@ cd R080Timer_MEGA</pre></div>
           <li lang="en">During an Exposure, Focus on included, keypad and encoders are ignored: only the main button works.</li>
           <li lang="it">In Focus cifre ed encoder della precisione non hanno effetto. Avviare con tempo zero dà il beep di errore: non è un guasto.</li>
           <li lang="en">In Focus digits and the precision encoder have no effect. Starting with time zero gives the error beep: not a fault.</li>
-          <li lang="it">Pulsante principale fra <code>D2</code> e GND, senza resistenze esterne: il pull-up è interno. Agisce alla pressione.</li>
-          <li lang="en">Main button between <code>D2</code> and GND, no external resistors: the pull-up is internal. It acts on press.</li>
+          <li lang="it">Pulsante principale fra <code>D5</code> e GND, senza resistenze esterne: il pull-up è interno. Agisce alla pressione.</li>
+          <li lang="en">Main button between <code>D5</code> and GND, no external resistors: the pull-up is internal. It acts on press.</li>
           <li lang="it">Tasti sbagliati: righe <code>D33 D31 D29 D27</code>, colonne <code>D41 D39 D37 D35</code>, nell'ordine. Encoder al contrario: DT e CLK scambiati.</li>
           <li lang="en">Wrong keys: rows <code>D33 D31 D29 D27</code>, columns <code>D41 D39 D37 D35</code>, in that order. Encoder backwards: DT and CLK swapped.</li>
           <li lang="it">Isola il componente con <code>Test tastierino</code>, <code>Test encoder</code>, <code>Test pulsante</code> del Menu di servizio.</li>
