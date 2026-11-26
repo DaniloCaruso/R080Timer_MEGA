@@ -19,6 +19,8 @@ void SevenSegSerial3::setBrightness(uint8_t level) {
 static void show(uint16_t n, uint8_t point) {
   char digits[5];
   snprintf_P(digits, sizeof digits, PSTR("%04u"), n);
+  Serial3.write(0x79);  // cursore sulla prima cifra: un byte perso (display che si accende dopo
+  Serial3.write(0);     // il Mega, reset a metà invio) sposterebbe le cifre fino al riavvio
   Serial3.write(0x77);
   Serial3.write(point);
   Serial3.write(digits, 4);
